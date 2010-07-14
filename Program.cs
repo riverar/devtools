@@ -25,6 +25,9 @@ CoApp-scan [options] <source-root-path>
     --verbose                   prints verbose messages
     
     --output-file=<file>        dumps the scan output to the specified <file>
+                                defaults to .\scan-output.xml
+
+    --ignore=<file or dir>      ignores the given file or directory from the scan
 ";
 
         private static int Main(string[] args) {
