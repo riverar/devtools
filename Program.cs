@@ -4,12 +4,21 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-namespace CoApp.Scan {
-    using System;
-    using Toolkit.Extensions;
+namespace CoApp.Scan
+{
+	using System;
+	using System.IO;
+	using System.Text;
+	using CoApp.Scan.Types;
+	using Toolkit.Extensions;
 
-    internal class Program {
-        private const string help = @"
+	/// <summary>
+	/// Contains the program.
+	/// </summary>
+	internal class Program
+	{
+		private const string DEFAULT_OUTPUTFILE = "scanreport.xml";
+		private const string HELP = @"
 Usage:
 -------
 
@@ -25,81 +34,119 @@ CoApp-scan [options] <source-root-path>
     --verbose                   prints verbose messages
     
     --output-file=<file>        dumps the scan output to the specified <file>
-                                defaults to .\scan-output.xml
-
-    --ignore=<file or dir>      ignores the given file or directory from the scan
 ";
 
-        private static int Main(string[] args) {
-            return new Program().main(args);
-        }
+		private static int Main(string[] args)
+		{
+			return new Program().main(args);
+		}
 
-        private int main(string[] args) {
-            
-            var options = args.Switches();
-            var parameters = args.Parameters();
+		private int main(string[] args)
+		{
+			string outputFile = DEFAULT_OUTPUTFILE;
+			bool verbose = false;
 
-            #region Parse Options 
+			var options = args.Switches();
+			var parameters = args.Parameters();
 
-            foreach(var arg in options.Keys) {
-                var argumentParameters = options[arg];
+			#region Parse Options
 
-                switch(arg) {
-                        /* options  */
-                        
-                    case "output-file":
-                        // 
-                        break;
-                    
-                        /* global switches */
-                    case "load-config":
-                        // all ready done, but don't get too picky.
-                        break;
+			foreach (var arg in options.Keys)
+			{
+				var argumentParameters = options[arg];
 
-                    case "nologo":
-                        this.Assembly().SetLogo("");
-                        break;
+				switch (arg)
+				{
+					/* options  */
 
-                    case "help":
-                        return Help();
+					case "output-file":
+						// 
+						outputFile = argumentParameters[0];
+						break;
 
-                    default:
-                        return Fail("Unknown parameter [--{0}]", arg);
-                }
-            }
-            Logo();
+					case "verbose":
+						verbose = true;
+						break;
 
-            #endregion
+					/* global switches */
+					case "load-config":
+						// all ready done, but don't get too picky.
+						break;
 
-            if(parameters.Count != 1) {
-                return Fail("Missign source code root path. \r\n\r\n    Use --help for command line help.");
-            }
+					case "nologo":
+						this.Assembly().SetLogo("");
+						break;
 
-            return 0;
-        }
+					case "help":
+						return Help();
 
-        #region fail/help/logo
+					default:
+						return Fail("Unknown parameter [--{0}]", arg);
+				}
+			}
+			Logo();
 
-        public int Fail(string text, params object[] par) {
-            Logo();
-            using(new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black))
-                Console.WriteLine("Error:{0}", text.format(par));
-            return 1;
-        }
+			#endregion
 
-        private int Help() {
-            Logo();
-            using(new ConsoleColors(ConsoleColor.White, ConsoleColor.Black))
-                help.Print();
-            return 0;
-        }
+			if (parameters.Count != 1)
+			{
+				return Fail("Missing source code root path. \r\n\r\n    Use --help for command line help.");
+			}
 
-        private void Logo() {
-            using(new ConsoleColors(ConsoleColor.Cyan, ConsoleColor.Black))
-                this.Assembly().Logo().Print();
-            this.Assembly().SetLogo("");
-        }
+			try
+			{
+				ProjectScanner scanner = new ProjectScanner();
+				scanner.Verbose = verbose;
 
-        #endregion
-    }
+				ScanReport report = scanner.Scan(parameters[0]);
+
+				string xml = report.Serialize();
+
+				if (outputFile == "-")
+				{
+					Console.WriteLine(xml);
+				}
+				else
+				{
+					StreamWriter writer = new StreamWriter(outputFile, false, Encoding.Unicode);
+					writer.WriteLine(xml);
+					writer.Close();
+				}
+			}
+			catch (Exception ex)
+			{
+				return Fail(string.Format("{0}\n{1}", ex.Message, ex.StackTrace));
+
+			}
+
+			return 0;
+		}
+
+		#region fail/HELP/logo
+
+		public int Fail(string text, params object[] par)
+		{
+			Logo();
+			using (new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black))
+				Console.WriteLine("Error:{0}", text.format(par));
+			return 1;
+		}
+
+		private int Help()
+		{
+			Logo();
+			using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black))
+				HELP.Print();
+			return 0;
+		}
+
+		private void Logo()
+		{
+			using (new ConsoleColors(ConsoleColor.Cyan, ConsoleColor.Black))
+				this.Assembly().Logo().Print();
+			this.Assembly().SetLogo("");
+		}
+
+		#endregion
+	}
 }
