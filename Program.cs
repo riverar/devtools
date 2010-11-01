@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright company="CoApp Project">
-//     Copyright (c) 2010 Garrett Serack. All rights reserved.
+//     Copyright (c) 2010 Trevor Dennis, Garrett Serack. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 
@@ -9,10 +9,11 @@ namespace CoApp.Scan
 	using System;
 	using System.IO;
 	using System.Text;
-	using CoApp.Scan.Types;
 	using Toolkit.Extensions;
+	using Toolkit.Scan;
+	using Toolkit.Scan.Types;
 
-	/// <summary>
+    /// <summary>
 	/// Contains the program.
 	/// </summary>
 	internal class Program
