@@ -8,6 +8,7 @@ namespace CoApp.Scan
 {
 	using System;
 	using System.IO;
+	using System.Linq;
 	using System.Text;
 	using Toolkit.Extensions;
 	using Toolkit.Scan;
@@ -62,7 +63,7 @@ CoApp-scan [options] <source-root-path>
 
 					case "output-file":
 						// 
-						outputFile = argumentParameters[0];
+						outputFile = argumentParameters.FirstOrDefault();
 						break;
 
 					case "verbose":
@@ -89,7 +90,7 @@ CoApp-scan [options] <source-root-path>
 
 			#endregion
 
-			if (parameters.Count != 1)
+			if (parameters.Count() != 1)
 			{
 				return Fail("Missing source code root path. \r\n\r\n    Use --help for command line help.");
 			}
@@ -99,7 +100,7 @@ CoApp-scan [options] <source-root-path>
 				ProjectScanner scanner = new ProjectScanner();
 				scanner.Verbose = verbose;
 
-				ScanReport report = scanner.Scan(parameters[0]);
+				ScanReport report = scanner.Scan(parameters.FirstOrDefault());
 
 				string xml = report.Serialize();
 
