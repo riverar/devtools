@@ -35,8 +35,26 @@ namespace QuickTool
         public static extern bool GlobalUnlock(IntPtr hMem);
     }
 
+    public class Winmm {
+
+        protected delegate void MidiCallback(int handle, int msg, int instance, int param1, int param2);
+
+        [DllImport("winmm.dll")]
+        private static extern int midiOutOpen(ref int handle, int deviceID, MidiCallback proc, int instance, int flags);
+
+        [DllImport("winmm.dll")]
+        protected static extern int midiOutShortMsg(int handle, int message);
+              
+    }
+
     [Flags]
-    public enum Modifiers {MOD_ALT=0x0001,MOD_CONTROL=0x0002,MOD_SHIFT=0x0004,MOD_WIN=0x0008}
+    public enum Modifiers {
+        MOD_ALT=0x0001,
+        MOD_CONTROL=0x0002,
+        MOD_SHIFT=0x0004,
+        MOD_WIN=0x0008
+    }
+
     public enum Msgs{
         WM_NULL                   = 0x0000,
         WM_CREATE                 = 0x0001,
@@ -89,7 +107,7 @@ namespace QuickTool
         WM_COMPAREITEM            = 0x0039,
         WM_GETOBJECT              = 0x003D,
         WM_COMPACTING             = 0x0041,
-        WM_COMMNOTIFY             = 0x0044 ,
+        WM_COMMNOTIFY             = 0x0044,
         WM_WINDOWPOSCHANGING      = 0x0046,
         WM_WINDOWPOSCHANGED       = 0x0047,
         WM_POWER                  = 0x0048,
