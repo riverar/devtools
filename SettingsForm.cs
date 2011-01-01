@@ -20,11 +20,18 @@ namespace QuickTool {
 
             buttonCancel.Click += (x, y) => Hide();
 
-            setQuickUploaderHotkey.Click += (x, y) => {
+            btnSetQuickUploaderHotkey.Click += (x, y) => {
                 quickUploaderHotkeyLabel.Text = "PRESS KEY COMBINATION";
-                setQuickUploaderHotkey.KeyDown += SettingsForm_KeyDown;
-                setQuickUploaderHotkey.KeyUp += SettingsForm_KeyUp;
+                btnSetQuickUploaderHotkey.KeyDown += SettingsForm_KeyDown;
+                btnSetQuickUploaderHotkey.KeyUp += SettingsForm_KeyUp;
             };
+
+            btnSetSourceUploaderHotkey.Click += (x, y) => {
+                quickSourceHotkeyLabel.Text = "PRESS KEY COMBINATION";
+                btnSetSourceUploaderHotkey.KeyDown += SettingsForm_KeyDown;
+                btnSetSourceUploaderHotkey.KeyUp += SettingsForm_KeyUp;
+            };
+
 
             FormClosing += (x, y) => {
                 y.Cancel = true;
@@ -404,9 +411,14 @@ namespace QuickTool {
             QuickSettings.Instance["image-filename-template"] = imageFilename.Text;
             QuickSettings.Instance["image-finishedurl-template"] = httpUrlTemplate.Text;
             QuickSettings.Instance["enable-audio-cues"] = cbAudioCues.Checked ? "true": "false";
-            
+
+            QuickSettings.Instance["syntaxhighlighter-prefix-path"] = syntaxhighlighterPrefixPath.Text;
+
             if (quickUploaderHotkeyLabel.Text != "PRESS KEY COMBINATION")
                 QuickSettings.Instance["quick-uploader-hotkey"] = quickUploaderHotkeyLabel.Text;
+
+            if (quickSourceHotkeyLabel.Text != "PRESS KEY COMBINATION")
+                QuickSettings.Instance["quick-source-hotkey"] = quickSourceHotkeyLabel.Text;
 
         }
         public void LoadSettings() {
@@ -421,7 +433,9 @@ namespace QuickTool {
             httpUrlTemplate.Text = QuickSettings.Instance["image-finishedurl-template"] ?? "http://servername.com/path/to/{0}" ;
             cbAudioCues.Checked = (QuickSettings.Instance["enable-audio-cues"] ?? "").Equals("true",StringComparison.CurrentCultureIgnoreCase);
             quickUploaderHotkeyLabel.Text = QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9";
-            
+            quickSourceHotkeyLabel.Text = QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6";
+            syntaxhighlighterPrefixPath.Text = QuickSettings.Instance["syntaxhighlighter-prefix-path"] ?? "";
+
         }
 
         private void SettingsForm_KeyDown(object sender, KeyEventArgs e) {
@@ -440,13 +454,19 @@ namespace QuickTool {
             if (e.Shift)
                 newKey = "Shift+" + newKey;
 
-            quickUploaderHotkeyLabel.Text = newKey;
+            if (sender == btnSetSourceUploaderHotkey)
+                quickSourceHotkeyLabel.Text = newKey;
+
+            if (sender == btnSetQuickUploaderHotkey)
+                quickUploaderHotkeyLabel.Text = newKey;
         }
 
         private void SettingsForm_KeyUp(object sender, KeyEventArgs e) {
-            setQuickUploaderHotkey.KeyDown -= SettingsForm_KeyDown;
-            setQuickUploaderHotkey.KeyUp -= SettingsForm_KeyUp;
-        }
+            btnSetQuickUploaderHotkey.KeyDown -= SettingsForm_KeyDown;
+            btnSetQuickUploaderHotkey.KeyUp -= SettingsForm_KeyUp;
 
+            btnSetSourceUploaderHotkey.KeyDown -= SettingsForm_KeyDown;
+            btnSetSourceUploaderHotkey.KeyUp -= SettingsForm_KeyUp;
+        }
     }
 }

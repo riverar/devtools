@@ -45,10 +45,15 @@
             this.ftpServer = new System.Windows.Forms.TextBox();
             this.cbAudioCues = new System.Windows.Forms.CheckBox();
             this.Hotkeys = new System.Windows.Forms.GroupBox();
-            this.setQuickUploaderHotkey = new System.Windows.Forms.Button();
+            this.btnSetSourceUploaderHotkey = new System.Windows.Forms.Button();
+            this.label9 = new System.Windows.Forms.Label();
+            this.quickSourceHotkeyLabel = new System.Windows.Forms.Label();
+            this.btnSetQuickUploaderHotkey = new System.Windows.Forms.Button();
+            this.label11 = new System.Windows.Forms.Label();
             this.quickUploaderHotkeyLabel = new System.Windows.Forms.Label();
             this.labelx = new System.Windows.Forms.Label();
-            this.label9 = new System.Windows.Forms.Label();
+            this.label10 = new System.Windows.Forms.Label();
+            this.syntaxhighlighterPrefixPath = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.Hotkeys.SuspendLayout();
@@ -119,6 +124,8 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.label10);
+            this.groupBox2.Controls.Add(this.syntaxhighlighterPrefixPath);
             this.groupBox2.Controls.Add(this.label8);
             this.groupBox2.Controls.Add(this.imageFilename);
             this.groupBox2.Controls.Add(this.label7);
@@ -133,7 +140,7 @@
             this.groupBox2.Controls.Add(this.ftpServer);
             this.groupBox2.Location = new System.Drawing.Point(12, 122);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(290, 262);
+            this.groupBox2.Size = new System.Drawing.Size(290, 300);
             this.groupBox2.TabIndex = 3;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "FTP Uploading";
@@ -238,7 +245,7 @@
             // cbAudioCues
             // 
             this.cbAudioCues.AutoSize = true;
-            this.cbAudioCues.Location = new System.Drawing.Point(12, 423);
+            this.cbAudioCues.Location = new System.Drawing.Point(12, 466);
             this.cbAudioCues.Name = "cbAudioCues";
             this.cbAudioCues.Size = new System.Drawing.Size(116, 17);
             this.cbAudioCues.TabIndex = 4;
@@ -247,34 +254,73 @@
             // 
             // Hotkeys
             // 
+            this.Hotkeys.Controls.Add(this.btnSetSourceUploaderHotkey);
             this.Hotkeys.Controls.Add(this.label9);
-            this.Hotkeys.Controls.Add(this.setQuickUploaderHotkey);
+            this.Hotkeys.Controls.Add(this.quickSourceHotkeyLabel);
+            this.Hotkeys.Controls.Add(this.btnSetQuickUploaderHotkey);
+            this.Hotkeys.Controls.Add(this.label11);
             this.Hotkeys.Controls.Add(this.quickUploaderHotkeyLabel);
             this.Hotkeys.Controls.Add(this.labelx);
             this.Hotkeys.Location = new System.Drawing.Point(308, 12);
             this.Hotkeys.Name = "Hotkeys";
-            this.Hotkeys.Size = new System.Drawing.Size(290, 104);
+            this.Hotkeys.Size = new System.Drawing.Size(290, 133);
             this.Hotkeys.TabIndex = 4;
             this.Hotkeys.TabStop = false;
             this.Hotkeys.Text = "Hotkeys";
             // 
-            // setQuickUploaderHotkey
+            // btnSetSourceUploaderHotkey
             // 
-            this.setQuickUploaderHotkey.Location = new System.Drawing.Point(209, 34);
-            this.setQuickUploaderHotkey.Name = "setQuickUploaderHotkey";
-            this.setQuickUploaderHotkey.Size = new System.Drawing.Size(75, 23);
-            this.setQuickUploaderHotkey.TabIndex = 4;
-            this.setQuickUploaderHotkey.Text = "Set";
-            this.setQuickUploaderHotkey.UseVisualStyleBackColor = true;
+            this.btnSetSourceUploaderHotkey.Location = new System.Drawing.Point(209, 73);
+            this.btnSetSourceUploaderHotkey.Name = "btnSetSourceUploaderHotkey";
+            this.btnSetSourceUploaderHotkey.Size = new System.Drawing.Size(75, 23);
+            this.btnSetSourceUploaderHotkey.TabIndex = 7;
+            this.btnSetSourceUploaderHotkey.Text = "Set";
+            this.btnSetSourceUploaderHotkey.UseVisualStyleBackColor = true;
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(6, 112);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(277, 13);
+            this.label9.TabIndex = 5;
+            this.label9.Text = "Note: Hotkeys are disabled while settings window is open";
+            // 
+            // quickSourceHotkeyLabel
+            // 
+            this.quickSourceHotkeyLabel.AutoSize = true;
+            this.quickSourceHotkeyLabel.Location = new System.Drawing.Point(31, 78);
+            this.quickSourceHotkeyLabel.Name = "quickSourceHotkeyLabel";
+            this.quickSourceHotkeyLabel.Size = new System.Drawing.Size(30, 13);
+            this.quickSourceHotkeyLabel.TabIndex = 6;
+            this.quickSourceHotkeyLabel.Text = "xxxx ";
+            // 
+            // btnSetQuickUploaderHotkey
+            // 
+            this.btnSetQuickUploaderHotkey.Location = new System.Drawing.Point(209, 34);
+            this.btnSetQuickUploaderHotkey.Name = "btnSetQuickUploaderHotkey";
+            this.btnSetQuickUploaderHotkey.Size = new System.Drawing.Size(75, 23);
+            this.btnSetQuickUploaderHotkey.TabIndex = 4;
+            this.btnSetQuickUploaderHotkey.Text = "Set";
+            this.btnSetQuickUploaderHotkey.UseVisualStyleBackColor = true;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(6, 59);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(87, 13);
+            this.label11.TabIndex = 5;
+            this.label11.Text = "Source Uploader";
             // 
             // quickUploaderHotkeyLabel
             // 
             this.quickUploaderHotkeyLabel.AutoSize = true;
             this.quickUploaderHotkeyLabel.Location = new System.Drawing.Point(31, 39);
             this.quickUploaderHotkeyLabel.Name = "quickUploaderHotkeyLabel";
-            this.quickUploaderHotkeyLabel.Size = new System.Drawing.Size(10, 13);
+            this.quickUploaderHotkeyLabel.Size = new System.Drawing.Size(30, 13);
             this.quickUploaderHotkeyLabel.TabIndex = 3;
-            this.quickUploaderHotkeyLabel.Text = " ";
+            this.quickUploaderHotkeyLabel.Text = "xxxx ";
             // 
             // labelx
             // 
@@ -285,14 +331,21 @@
             this.labelx.TabIndex = 2;
             this.labelx.Text = "QuickUploader";
             // 
-            // label9
+            // label10
             // 
-            this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(6, 82);
-            this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(277, 13);
-            this.label9.TabIndex = 5;
-            this.label9.Text = "Note: Hotkeys are disabled while settings window is open";
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(7, 254);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(143, 13);
+            this.label10.TabIndex = 13;
+            this.label10.Text = "SyntaxHighlighter Prefix Path";
+            // 
+            // syntaxhighlighterPrefixPath
+            // 
+            this.syntaxhighlighterPrefixPath.Location = new System.Drawing.Point(7, 270);
+            this.syntaxhighlighterPrefixPath.Name = "syntaxhighlighterPrefixPath";
+            this.syntaxhighlighterPrefixPath.Size = new System.Drawing.Size(277, 20);
+            this.syntaxhighlighterPrefixPath.TabIndex = 12;
             // 
             // SettingsForm
             // 
@@ -342,10 +395,15 @@
         private System.Windows.Forms.TextBox ftpPassword;
         private System.Windows.Forms.CheckBox cbAudioCues;
         private System.Windows.Forms.GroupBox Hotkeys;
-        private System.Windows.Forms.Button setQuickUploaderHotkey;
+        private System.Windows.Forms.Button btnSetQuickUploaderHotkey;
         private System.Windows.Forms.Label quickUploaderHotkeyLabel;
         private System.Windows.Forms.Label labelx;
         private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.Button btnSetSourceUploaderHotkey;
+        private System.Windows.Forms.Label quickSourceHotkeyLabel;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.TextBox syntaxhighlighterPrefixPath;
     }
 }
 

@@ -66,6 +66,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Ftp.cs" />
+    <Compile Include="LanguageChooser.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LanguageChooser.Designer.cs">
+      <DependentUpon>LanguageChooser.cs</DependentUpon>
+    </Compile>
     <Compile Include="SettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -79,6 +85,9 @@
     <Compile Include="SystemHotkey.cs">
       <SubType>Component</SubType>
     </Compile>
+    <EmbeddedResource Include="LanguageChooser.resx">
+      <DependentUpon>LanguageChooser.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="SettingsForm.resx">
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
