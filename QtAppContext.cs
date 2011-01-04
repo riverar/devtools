@@ -2,8 +2,6 @@
 using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Media;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Generic;
@@ -18,20 +16,17 @@ namespace QuickTool {
     using System.Net;
 
     public class QtAppContext : ApplicationContext {
-        private static string[] domains = ".aero .asia .biz .cat .com .coop .edu .gov .info .int .jobs .mil .mobi .museum .name .net .org .pro .tel .travel .xxx .ac .ad .ae .af .ag .ai .al .am .an .ao .aq .ar .as .at .au .aw .ax .az .ba .bb .bd .be .bf .bg .bh .bi .bj .bm .bn .bo .br .bs .bt .bv .bw .by .bz .ca .cc .cd .cf .cg .ch .ci .ck .cl .cm .cn .co .cr .cu .cv .cx .cy .cz .de .dj .dk .dm .do .dz .ec .ee .eg .er .es .et .eu .fi .fj .fk .fm .fo .fr .ga .gb .gd .ge .gf .gg .gh .gi .gl .gm .gn .gp .gq .gr .gs .gt .gu .gw .gy .hk .hm .hn .hr .ht .hu .id .ie .il .im .in .io .iq .ir .is .it .je .jm .jo .jp .ke .kg .kh .ki .km .kn .kp .kr .kw .ky .kz .la .lb .lc .li .lk .lr .ls .lt .lu .lv .ly .ma .mc .md .me .mg .mh .mk .ml .mm .mn .mo .mp .mq .mr .ms .mt .mu .mv .mw .mx .my .mz .na .nc .ne .nf .ng .ni .nl .no .np .nr .nu .nz .om .pa .pe .pf .pg .ph .pk .pl .pm .pn .pr .ps .pt .pw .py .qa .re .ro .rs .ru .rw .sa .sb .sc .sd .se .sg .sh .si .sj .sk .sl .sm .sn .so .sr .st .su .sv .sy .sz .tc .td .tf .tg .th .tj .tk .tl .tm .tn .to .tp .tr .tt .tv .tw .tz .ua .ug .uk .us .uy .uz .va .vc .ve .vg .vi .vn .vu .wf .ws .ye .yt .za .zm .zw".Split(' ');
-
-        
+        private static readonly string[] Domains = ".aero .asia .biz .cat .com .coop .edu .gov .info .int .jobs .mil .mobi .museum .name .net .org .pro .tel .travel .xxx .ac .ad .ae .af .ag .ai .al .am .an .ao .aq .ar .as .at .au .aw .ax .az .ba .bb .bd .be .bf .bg .bh .bi .bj .bm .bn .bo .br .bs .bt .bv .bw .by .bz .ca .cc .cd .cf .cg .ch .ci .ck .cl .cm .cn .co .cr .cu .cv .cx .cy .cz .de .dj .dk .dm .do .dz .ec .ee .eg .er .es .et .eu .fi .fj .fk .fm .fo .fr .ga .gb .gd .ge .gf .gg .gh .gi .gl .gm .gn .gp .gq .gr .gs .gt .gu .gw .gy .hk .hm .hn .hr .ht .hu .id .ie .il .im .in .io .iq .ir .is .it .je .jm .jo .jp .ke .kg .kh .ki .km .kn .kp .kr .kw .ky .kz .la .lb .lc .li .lk .lr .ls .lt .lu .lv .ly .ma .mc .md .me .mg .mh .mk .ml .mm .mn .mo .mp .mq .mr .ms .mt .mu .mv .mw .mx .my .mz .na .nc .ne .nf .ng .ni .nl .no .np .nr .nu .nz .om .pa .pe .pf .pg .ph .pk .pl .pm .pn .pr .ps .pt .pw .py .qa .re .ro .rs .ru .rw .sa .sb .sc .sd .se .sg .sh .si .sj .sk .sl .sm .sn .so .sr .st .su .sv .sy .sz .tc .td .tf .tg .th .tj .tk .tl .tm .tn .to .tp .tr .tt .tv .tw .tz .ua .ug .uk .us .uy .uz .va .vc .ve .vg .vi .vn .vu .wf .ws .ye .yt .za .zm .zw".Split(' ');
 
         private IContainer components;
         private MenuItem exitContextMenuItem;
-        private Form settingsForm;
+        private SettingsForm settingsForm;
         private LanguageChooser languageChooserForm;
         private NotifyIcon notifyIcon;
         private ContextMenu notifyIconContextMenu;
         private MenuItem showContextMenuItem;
         private Dispatcher dispatcher;
 
-        // private SystemHotkey TranslateUrlHotkey;
         private SystemHotkey quickUploaderHotkey;
         private SystemHotkey quickSourceHotkey;
 
@@ -42,11 +37,11 @@ namespace QuickTool {
             InitializeContext();
         }
 
-        public static Keys CastToEnum(string name) {
+        public static Keys CastToKeysEnum(string name) {
             if (name.Contains("+")) {
                 Keys result = Keys.None;
                 foreach (var n in name.Split('+'))
-                    result |= CastToEnum(n);
+                    result |= CastToKeysEnum(n);
                 return result;
             }
             if (Enum.IsDefined(typeof(Keys), name)) {
@@ -75,6 +70,24 @@ namespace QuickTool {
             base.ExitThreadCore();
         }
 
+        private FTP Connect() {
+            try {
+                var ftp = new FTP {
+                    Server = QuickSettings.Instance["ftp-server"],
+                    User = QuickSettings.Instance["ftp-username"],
+                    Password = QuickSettings.Instance["ftp-password"]
+                };
+                ftp.Connect();
+                return ftp;
+            }
+            catch {
+                Invoke(
+                    () =>
+                    ShowBalloonTip("Unable to upload file", "Couldn't log into ftp server", ToolTipIcon.Error));
+                return null;
+            }
+        }
+
         private void InitializeContext() {
             components = new Container();
             notifyIconContextMenu = new ContextMenu();
@@ -101,20 +114,15 @@ namespace QuickTool {
 
             dispatcher = Dispatcher.CurrentDispatcher;
 
-//            TranslateUrlHotkey = new SystemHotkey { Shortcut = Keys.Control | Keys.Alt | Keys.NumPad7 };
-//            TranslateUrlHotkey.Pressed += ((x, y) => { MessageBox.Show("hi", "there"); });
-
-
-            quickSourceHotkey = new SystemHotkey { Shortcut = CastToEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6") };
-            quickUploaderHotkey = new SystemHotkey { Shortcut = CastToEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9") };
-
+            quickSourceHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6") };
+            quickUploaderHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9") };
                     
-            quickUploaderHotkey.Pressed += ((x, y) => { UploadClipboardImage(); });
+            quickUploaderHotkey.Pressed += ((x, y) => UploadClipboardImage());
             quickSourceHotkey.Pressed += ((x, y) => {
                 if (languageChooserForm.Visible)
                     return;
 
-                DataObject dataObject = (DataObject)Clipboard.GetDataObject();
+                var dataObject = (DataObject)Clipboard.GetDataObject();
 
                 if (!dataObject.GetDataPresent(DataFormats.Text)) {
                     return;
@@ -145,20 +153,16 @@ namespace QuickTool {
             settingsForm.VisibleChanged += (x, y) => {
                 if (!settingsForm.Visible) {
                     quickUploaderHotkey.Shortcut =
-                        CastToEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9");
+                        CastToKeysEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9");
                     quickSourceHotkey.Shortcut =
-                        CastToEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6");
+                        CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6");
                 }
             };
-
-            
-
         }
 
         public void ShowBalloonTip(string title, string text, ToolTipIcon toolTipIcon) {
             notifyIcon.ShowBalloonTip(1000, title, text, toolTipIcon);
             currentMsg = text;
-            
         }
 
         private void ShowSettingsForm() {
@@ -171,7 +175,7 @@ namespace QuickTool {
         }
 
         private void UploadSourceFromClipboard(string brushFile, string brushName, string clipSource) {
-var htmlTemplate = @"
+const string htmlTemplate = @"
 <html><head>
 <script type=""text/javascript"" src=""{0}scripts/shCore.js""></script>
 <script type=""text/javascript"" src=""{0}scripts/shBrush{2}.js""></script>
@@ -184,50 +188,33 @@ var htmlTemplate = @"
 SyntaxHighlighter.defaults['toolbar'] = false;
 SyntaxHighlighter.all()
 </script>
-</body></html>"; // {0} prefix directory , {1} == language , {2} Brush Suffix., {3} source code.
+</body></html>";
             var pfxPath = QuickSettings.Instance["syntaxhighlighter-prefix-path"] ?? "";
-            var HTML = htmlTemplate.format(pfxPath, brushName, brushFile, clipSource.Replace("]]>","] ] >").Replace("</script>","</scr ipt>"));
+            var html = htmlTemplate.format(pfxPath, brushName, brushFile, clipSource.Replace("]]>","] ] >").Replace("</script>","</scr ipt>"));
             
             new Task(() => {
-
-                FTP ftp = null;
-                try {
-                    ftp = new FTP {
-                                      Server = QuickSettings.Instance["ftp-server"],
-                                      User = QuickSettings.Instance["ftp-username"],
-                                      Password = QuickSettings.Instance["ftp-password"]
-                                  };
-                    ftp.Connect();
-                }
-                catch {
-                    Invoke(
-                        () =>
-                        ShowBalloonTip("Unable to upload file", "Couldn't log into ftp server", ToolTipIcon.Error));
+                var ftp = Connect();
+                if (ftp == null)
                     return;
-                }
 
                 ftp.ChangeDir(QuickSettings.Instance["ftp-folder"]);
-                var stream = new MemoryStream(Encoding.UTF8.GetBytes(HTML));
-                stream.Seek(0, SeekOrigin.Begin);   
-
                 var remoteFilename = Path.ChangeExtension(QuickSettings.Instance["image-filename-template"].FormatFilename(), "html");
-                ftp.OpenUpload(stream, stream.Length, remoteFilename, false);
-                ftp.DoUploadUntilComplete();
-                stream.Close();
-                stream.Dispose();
+
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(html))) {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    ftp.UploadAndComplete(stream, stream.Length, remoteFilename, false);
+                }
 
                 Invoke(() => {
                     var finishedUrl = QuickSettings.Instance["image-finishedurl-template"].format(remoteFilename);
                     ShowBalloonTip("Text uploaded", finishedUrl, ToolTipIcon.Info);
                     Clipboard.SetDataObject(finishedUrl, true, 3, 100);
                 });
-
             }).Start();
         }
 
         private void ClipboardChanged() {
-
-            DataObject dataObject = (DataObject)Clipboard.GetDataObject();
+            var dataObject = (DataObject)Clipboard.GetDataObject();
 
             if (dataObject.ContainsImage()) {
                 ShowBalloonTip("Helpful Hint", "Press ctrl-alt-numpad9 to upload image to FTP", ToolTipIcon.Info);
@@ -236,25 +223,26 @@ SyntaxHighlighter.all()
             if (!dataObject.GetDataPresent(DataFormats.Text)) {
                 return;
             }
-            string data = dataObject.GetData(DataFormats.Text) as string;
+            var data = dataObject.GetData(DataFormats.Text) as string;
 
             if (data.Contains("tinyurl.com") || data.Contains("@") || data.Contains("bit.ly") || data.Contains("j.mp") || data.Length < 16 ) {
                 return;
             }
+
             Uri uri = null;
             try {
                 uri = new Uri(data);
             }
             catch (Exception) {
                 try {
-                    uri = new Uri("http://" + data);
+                    if (data.Contains("."))
+                        uri = new Uri("http://" + data);
                 }
-                catch (Exception) {
-
+                catch {
                 }
             }
             if (uri != null) {
-                if (domains.Contains((uri.DnsSafeHost.Substring(uri.DnsSafeHost.LastIndexOf('.'))))) {
+                if (Domains.Contains((uri.DnsSafeHost.Substring(uri.DnsSafeHost.LastIndexOf('.'))))) {
                     var bitly = new UriBuilder("http", "api.bit.ly", 80, "/v3/shorten");
                     bitly.Query = string.Format("format={0}&longUrl={1}&domain={2}&login={3}&apiKey={4}", "txt",
                                                 Uri.EscapeDataString(uri.AbsoluteUri), "j.mp",
@@ -262,7 +250,7 @@ SyntaxHighlighter.all()
                                                 QuickSettings.Instance["bit.ly-password"]);
 
                     var request = (HttpWebRequest)WebRequest.Create(bitly.Uri);
-                    request.BeginGetResponse((x) => {
+                    request.BeginGetResponse(x => {
                         try {
                             var response = (HttpWebResponse)request.EndGetResponse(x);
                             var stream = response.GetResponseStream();
@@ -271,10 +259,10 @@ SyntaxHighlighter.all()
                             stream.BeginRead(buffer, 0, 8192, y => {
                                 try {
                                     int read = stream.EndRead(y);
-                                    string newURL = Encoding.ASCII.GetString(buffer, 0, read);
+                                    string newUrl = Encoding.ASCII.GetString(buffer, 0, read);
                                     Invoke(() => {
-                                        Clipboard.SetDataObject(newURL, true, 3, 100);
-                                        ShowBalloonTip("URL Shrunk with Bit.ly", newURL, ToolTipIcon.Info);
+                                        Clipboard.SetDataObject(newUrl, true, 3, 100);
+                                        ShowBalloonTip("URL Shrunk with Bit.ly", newUrl, ToolTipIcon.Info);
                                      });
                                 }
                                 catch {
@@ -288,13 +276,12 @@ SyntaxHighlighter.all()
                     }, null);
                 }
                 return;
-
             }
         }
 
         private void UploadClipboardImage() {
             try {
-                DataObject dataObject = Clipboard.GetDataObject() as DataObject;
+                var dataObject = Clipboard.GetDataObject() as DataObject;
                 Stream stream = null;
                 IEnumerable<string> filenames = null;
                 string remoteFilename = string.Empty;
@@ -317,10 +304,8 @@ SyntaxHighlighter.all()
                 else if (dataObject.ContainsImage()) {
                     using (var img = dataObject.GetImage()) {
                         stream = new MemoryStream();
-                        if (Path.GetExtension(QuickSettings.Instance["image-filename-template"]).Equals(".jpg",StringComparison.CurrentCultureIgnoreCase))
-                            img.Save(stream, ImageFormat.Jpeg);
-                        else
-                            img.Save(stream, ImageFormat.Png);
+                        img.Save(stream, Path.GetExtension(QuickSettings.Instance["image-filename-template"])
+                            .Equals(".jpg", StringComparison.CurrentCultureIgnoreCase) ? ImageFormat.Jpeg : ImageFormat.Png);
 
                         stream.Seek(0, SeekOrigin.Begin);
                     }
@@ -333,21 +318,9 @@ SyntaxHighlighter.all()
 
                 new Task(() => {
 
-                    FTP ftp = null;
-                    try {
-                        ftp = new FTP {
-                            Server = QuickSettings.Instance["ftp-server"],
-                            User = QuickSettings.Instance["ftp-username"],
-                            Password = QuickSettings.Instance["ftp-password"]
-                        };
-                        ftp.Connect();
-                    }
-                    catch {
-                        Invoke(
-                            () =>
-                            ShowBalloonTip("Unable to upload file", "Couldn't log into ftp server", ToolTipIcon.Error));
+                    var ftp = Connect();
+                    if (ftp == null)
                         return;
-                    }
 
                     ftp.ChangeDir(QuickSettings.Instance["ftp-folder"]);
 
@@ -429,7 +402,6 @@ SyntaxHighlighter.all()
                         Clipboard.SetDataObject(finishedUrl, true, 3, 100);
                     });
                 }).Start();
-
             } catch( Exception exc ) {
                 Invoke(() => ShowBalloonTip("Unexpected Error", exc.Message , ToolTipIcon.Info));
             }
@@ -439,8 +411,7 @@ SyntaxHighlighter.all()
         private static void Main() {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            var context = new QtAppContext();
-            Application.Run(context);
+            Application.Run(new QtAppContext());
         }
     }
 }

@@ -1014,6 +1014,15 @@ namespace QuickTool {
         /// THIS IS A BLOCKING CALL
         /// </summary>
         /// <returns></returns>
+        public void UploadAndComplete(Stream fileToUpload, long length, string remote_filename, bool resume) {
+            OpenUpload(fileToUpload, length, remote_filename, resume);
+            DoUploadUntilComplete();
+        }
+
+        /// <summary>
+        /// THIS IS A BLOCKING CALL
+        /// </summary>
+        /// <returns></returns>
         public long DoUploadUntilComplete() {
             long sz=0;
             long bytes;
