@@ -45,7 +45,7 @@ namespace QuickTool {
         public LanguageChooser() {
             InitializeComponent();
             lbLanguages.Items.AddRange(languages.Keys.ToArray());
-
+            lbLanguages.SelectedItem = QuickSettings.Instance["lastBrushFile"] ?? "CSharp";
             btnOK.Click += Ok;
             lbLanguages.DoubleClick += Ok;
 
@@ -64,13 +64,30 @@ namespace QuickTool {
                 ok = false;
                 Hide();
             };
+
+            TopMost = true;
         }
 
         private void Ok(object sender, EventArgs e) {
             brushFile = lbLanguages.SelectedItem.ToString();
+            QuickSettings.Instance["lastBrushFile"] = brushFile;
             brushName = languages[brushFile];
             ok = true;
             Hide();
+        }
+
+        protected override bool ProcessDialogKey(Keys keyData) {
+            if( keyData == Keys.Escape) {
+                ok = false;
+                brushFile = "";
+                brushName = "";
+                Hide();
+                
+            } else if (keyData == Keys.Enter) {
+                Ok(this, null);
+            }
+
+            return base.ProcessDialogKey(keyData);
         }
     }
 }

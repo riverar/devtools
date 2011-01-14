@@ -34,7 +34,7 @@
             this.lbLanguages.FormattingEnabled = true;
             this.lbLanguages.Location = new System.Drawing.Point(12, 29);
             this.lbLanguages.Name = "lbLanguages";
-            this.lbLanguages.Size = new System.Drawing.Size(171, 56);
+            this.lbLanguages.Size = new System.Drawing.Size(171, 160);
             this.lbLanguages.TabIndex = 0;
             // 
             // label1
@@ -48,7 +48,7 @@
             // 
             // btnOK
             // 
-            this.btnOK.Location = new System.Drawing.Point(112, 91);
+            this.btnOK.Location = new System.Drawing.Point(108, 199);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
             this.btnOK.TabIndex = 2;
@@ -57,7 +57,7 @@
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(31, 91);
+            this.btnCancel.Location = new System.Drawing.Point(12, 199);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 3;
@@ -68,7 +68,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(195, 118);
+            this.ClientSize = new System.Drawing.Size(195, 234);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnOK);
             this.Controls.Add(this.label1);

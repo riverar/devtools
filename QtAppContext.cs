@@ -193,23 +193,33 @@ SyntaxHighlighter.all()
             var html = htmlTemplate.format(pfxPath, brushName, brushFile, clipSource.Replace("]]>","] ] >").Replace("</script>","</scr ipt>"));
             
             new Task(() => {
-                var ftp = Connect();
-                if (ftp == null)
-                    return;
+                try {
+                    var ftp = Connect();
+                    if (ftp == null)
+                        return;
 
-                ftp.ChangeDir(QuickSettings.Instance["ftp-folder"]);
-                var remoteFilename = Path.ChangeExtension(QuickSettings.Instance["image-filename-template"].FormatFilename(), "html");
+                    ftp.ChangeDir(QuickSettings.Instance["ftp-folder"]);
+                    var remoteFilename =
+                        Path.ChangeExtension(QuickSettings.Instance["image-filename-template"].FormatFilename(), "html");
 
-                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(html))) {
-                    stream.Seek(0, SeekOrigin.Begin);
-                    ftp.UploadAndComplete(stream, stream.Length, remoteFilename, false);
-                }
-
+                    using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(html))) {
+                        stream.Seek(0, SeekOrigin.Begin);
+                        ftp.UploadAndComplete(stream, stream.Length, remoteFilename, false);
+                    }
+                
                 Invoke(() => {
                     var finishedUrl = QuickSettings.Instance["image-finishedurl-template"].format(remoteFilename);
                     ShowBalloonTip("Text uploaded", finishedUrl, ToolTipIcon.Info);
-                    Clipboard.SetDataObject(finishedUrl, true, 3, 100);
+                    try {
+                        Clipboard.SetDataObject(finishedUrl, true, 3, 100);
+                    }
+                    catch {
+                        //whoops!
+                    }
+                    
                 });
+                }
+                catch { /* ignore */ }
             }).Start();
         }
 
@@ -217,7 +227,7 @@ SyntaxHighlighter.all()
             var dataObject = (DataObject)Clipboard.GetDataObject();
 
             if (dataObject.ContainsImage()) {
-                ShowBalloonTip("Helpful Hint", "Press ctrl-alt-numpad9 to upload image to FTP", ToolTipIcon.Info);
+                ShowBalloonTip("Helpful Hint", "Press " + QuickSettings.Instance["quick-uploader-hotkey"] + " to upload image to FTP", ToolTipIcon.Info);
             }
 
             if (!dataObject.GetDataPresent(DataFormats.Text)) {
@@ -259,7 +269,7 @@ SyntaxHighlighter.all()
                             stream.BeginRead(buffer, 0, 8192, y => {
                                 try {
                                     int read = stream.EndRead(y);
-                                    string newUrl = Encoding.ASCII.GetString(buffer, 0, read);
+                                    string newUrl = Encoding.ASCII.GetString(buffer, 0, read).Trim();
                                     Invoke(() => {
                                         Clipboard.SetDataObject(newUrl, true, 3, 100);
                                         ShowBalloonTip("URL Shrunk with Bit.ly", newUrl, ToolTipIcon.Info);
@@ -317,7 +327,7 @@ SyntaxHighlighter.all()
                 }
 
                 new Task(() => {
-
+                    try {
                     var ftp = Connect();
                     if (ftp == null)
                         return;
@@ -395,11 +405,15 @@ SyntaxHighlighter.all()
                         }
                     }
                     ftp.Disconnect();
-
+                    } catch { /* ignore */ }
                     Invoke(() => {
                         var finishedUrl = QuickSettings.Instance["image-finishedurl-template"].format(remoteFilename);
                         ShowBalloonTip("Image uploaded", finishedUrl, ToolTipIcon.Info);
-                        Clipboard.SetDataObject(finishedUrl, true, 3, 100);
+                        try {
+                            Clipboard.SetDataObject(finishedUrl, true, 3, 100);
+                        } catch {
+                            // whoops!
+                        }
                     });
                 }).Start();
             } catch( Exception exc ) {
