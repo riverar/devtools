@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Media;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Generic;
@@ -29,9 +30,24 @@ namespace QuickTool {
 
         private SystemHotkey quickUploaderHotkey;
         private SystemHotkey quickSourceHotkey;
+        private SystemHotkey bitlyHotkey;
 
         private ClipboardNotifier clipboardNotifier;
         private string currentMsg;
+        private SoundPlayer beep;
+        private SoundPlayer smallBeep;
+        private SoundPlayer errorBeep;
+        private Dictionary<string,string> bitlyCache = new Dictionary<string, string>();
+
+        private bool audioCues { get {
+                return (QuickSettings.Instance["enable-audio-cues"] ?? "").Equals("true", StringComparison.CurrentCultureIgnoreCase);
+        }}
+
+        private bool autoBitly {
+            get {
+                return (QuickSettings.Instance["enable-auto-bitly"] ?? "").Equals("true", StringComparison.CurrentCultureIgnoreCase);
+            }
+        }
 
         public QtAppContext() {
             InitializeContext();
@@ -81,9 +97,12 @@ namespace QuickTool {
                 return ftp;
             }
             catch {
-                Invoke(
-                    () =>
-                    ShowBalloonTip("Unable to upload file", "Couldn't log into ftp server", ToolTipIcon.Error));
+                Invoke( () => {
+                    if(audioCues)
+                        errorBeep.Play();
+                    ShowBalloonTip("Unable to upload file", "Couldn't log into ftp server", ToolTipIcon.Error);
+                });
+
                 return null;
             }
         }
@@ -114,10 +133,17 @@ namespace QuickTool {
 
             dispatcher = Dispatcher.CurrentDispatcher;
 
-            quickSourceHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6") };
-            quickUploaderHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9") };
+            quickSourceHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Alt+Control+NumPad6") };
+            quickUploaderHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Alt+Control+NumPad9") };
+            bitlyHotkey = new SystemHotkey { Shortcut = CastToKeysEnum(QuickSettings.Instance["manual-bitly-hotkey"] ?? "Alt+Control+NumPad3") };
                     
-            quickUploaderHotkey.Pressed += ((x, y) => UploadClipboardImage());
+            quickUploaderHotkey.Pressed += ((x, y) => UploadClipboardContents());
+            bitlyHotkey.Pressed += ((x, y) => {
+                var dataObject = (DataObject)Clipboard.GetDataObject();
+                if (dataObject != null && dataObject.GetDataPresent(DataFormats.Text))
+                    BitlyUrl(dataObject.GetData(DataFormats.Text) as string);
+            });
+
             quickSourceHotkey.Pressed += ((x, y) => {
                 if (languageChooserForm.Visible)
                     return;
@@ -153,11 +179,18 @@ namespace QuickTool {
             settingsForm.VisibleChanged += (x, y) => {
                 if (!settingsForm.Visible) {
                     quickUploaderHotkey.Shortcut =
-                        CastToKeysEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9");
+                        CastToKeysEnum(QuickSettings.Instance["quick-uploader-hotkey"] ?? "Alt+Control+NumPad9");
                     quickSourceHotkey.Shortcut =
-                        CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6");
+                        CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Alt+Control+NumPad6");
+                    bitlyHotkey.Shortcut =
+                        CastToKeysEnum(QuickSettings.Instance["quick-source-hotkey"] ?? "Alt+Control+NumPad3");
                 }
             };
+
+            var a = System.Reflection.Assembly.GetExecutingAssembly();
+            beep = new SoundPlayer(a.GetManifestResourceStream("QuickTool.sounds.NewBeep.wav"));
+            smallBeep = new SoundPlayer(a.GetManifestResourceStream("QuickTool.sounds.SmallBeep.wav"));
+            errorBeep = new SoundPlayer(a.GetManifestResourceStream("QuickTool.sounds.Error.wav"));
         }
 
         public void ShowBalloonTip(string title, string text, ToolTipIcon toolTipIcon) {
@@ -169,6 +202,7 @@ namespace QuickTool {
             // settingsForm.Location = new Point(Screen.PrimaryScreen.WorkingArea.Width - settingsForm.Width, Screen.PrimaryScreen.WorkingArea.Height - settingsForm.Height);
             quickUploaderHotkey.Shortcut = Keys.None;
             quickSourceHotkey.Shortcut = Keys.None;
+            bitlyHotkey.Shortcut = Keys.None;
 
             settingsForm.Activate();
             settingsForm.Show();
@@ -211,30 +245,43 @@ SyntaxHighlighter.all()
                     var finishedUrl = QuickSettings.Instance["image-finishedurl-template"].format(remoteFilename);
                     ShowBalloonTip("Text uploaded", finishedUrl, ToolTipIcon.Info);
                     try {
+                        if (audioCues)
+                            beep.Play();
                         Clipboard.SetDataObject(finishedUrl, true, 3, 100);
                     }
                     catch {
                         //whoops!
                     }
-                    
                 });
                 }
                 catch { /* ignore */ }
             }).Start();
         }
 
+        private string lastData;
         private void ClipboardChanged() {
-            var dataObject = (DataObject)Clipboard.GetDataObject();
+            var dataObject = (DataObject) Clipboard.GetDataObject();
 
             if (dataObject.ContainsImage()) {
-                ShowBalloonTip("Helpful Hint", "Press " + QuickSettings.Instance["quick-uploader-hotkey"] + " to upload image to FTP", ToolTipIcon.Info);
+                ShowBalloonTip("Helpful Hint",
+                               "Press " + QuickSettings.Instance["quick-uploader-hotkey"] + " to upload image to FTP",
+                               ToolTipIcon.Info);
             }
 
             if (!dataObject.GetDataPresent(DataFormats.Text)) {
                 return;
             }
             var data = dataObject.GetData(DataFormats.Text) as string;
+            if (lastData == data)
+                return;
 
+            lastData = data;
+            if (autoBitly)
+                BitlyUrl(data);
+        }
+
+        private void BitlyUrl(string data) {
+            lastData = data;
             if (data.Contains("tinyurl.com") || data.Contains("@") || data.Contains("bit.ly") || data.Contains("j.mp") || data.Length < 16 ) {
                 return;
             }
@@ -252,6 +299,13 @@ SyntaxHighlighter.all()
                 }
             }
             if (uri != null) {
+                if (bitlyCache.ContainsKey(uri.AbsoluteUri)) {
+                    Clipboard.SetDataObject(bitlyCache[uri.AbsoluteUri], true, 3, 100);
+                    if (audioCues)
+                        smallBeep.Play();
+                    return;
+                }
+
                 if (Domains.Contains((uri.DnsSafeHost.Substring(uri.DnsSafeHost.LastIndexOf('.'))))) {
                     var bitly = new UriBuilder("http", "api.bit.ly", 80, "/v3/shorten");
                     bitly.Query = string.Format("format={0}&longUrl={1}&domain={2}&login={3}&apiKey={4}", "txt",
@@ -270,9 +324,13 @@ SyntaxHighlighter.all()
                                 try {
                                     int read = stream.EndRead(y);
                                     string newUrl = Encoding.ASCII.GetString(buffer, 0, read).Trim();
+                                    if(! bitlyCache.ContainsKey(uri.AbsoluteUri))
+                                        bitlyCache.Add(uri.AbsoluteUri, newUrl);
                                     Invoke(() => {
                                         Clipboard.SetDataObject(newUrl, true, 3, 100);
                                         ShowBalloonTip("URL Shrunk with Bit.ly", newUrl, ToolTipIcon.Info);
+                                        if (audioCues)
+                                            smallBeep.Play();
                                      });
                                 }
                                 catch {
@@ -280,6 +338,8 @@ SyntaxHighlighter.all()
                             }, null);
                         }
                         catch {
+                            if (audioCues)
+                                errorBeep.Play();
                             ShowBalloonTip("Unable to get shortened URL", "Did you set your Bit.ly credentials?",
                                            ToolTipIcon.Error);
                         }
@@ -289,7 +349,7 @@ SyntaxHighlighter.all()
             }
         }
 
-        private void UploadClipboardImage() {
+        private void UploadClipboardContents() {
             try {
                 var dataObject = Clipboard.GetDataObject() as DataObject;
                 Stream stream = null;
@@ -303,6 +363,8 @@ SyntaxHighlighter.all()
                         filenames = new List<string> {clipText};
                     }
                     else {
+                        if (audioCues)
+                            errorBeep.Play();
                         ShowBalloonTip("Unable to upload file", "Clipboard does not contain image data or file(s)",
                                        ToolTipIcon.Error);
                         return;
@@ -417,6 +479,8 @@ SyntaxHighlighter.all()
                     });
                 }).Start();
             } catch( Exception exc ) {
+                if (audioCues)
+                    errorBeep.Play();
                 Invoke(() => ShowBalloonTip("Unexpected Error", exc.Message , ToolTipIcon.Info));
             }
         }

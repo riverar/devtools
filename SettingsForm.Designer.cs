@@ -31,6 +31,8 @@
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.syntaxhighlighterPrefixPath = new System.Windows.Forms.TextBox();
             this.label8 = new System.Windows.Forms.Label();
             this.imageFilename = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
@@ -52,8 +54,10 @@
             this.label11 = new System.Windows.Forms.Label();
             this.quickUploaderHotkeyLabel = new System.Windows.Forms.Label();
             this.labelx = new System.Windows.Forms.Label();
-            this.label10 = new System.Windows.Forms.Label();
-            this.syntaxhighlighterPrefixPath = new System.Windows.Forms.TextBox();
+            this.btnSetManualBitlyHotkey = new System.Windows.Forms.Button();
+            this.manualBitlylabel = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
+            this.cbAutoBitly = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.Hotkeys.SuspendLayout();
@@ -144,6 +148,22 @@
             this.groupBox2.TabIndex = 3;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "FTP Uploading";
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(7, 254);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(143, 13);
+            this.label10.TabIndex = 13;
+            this.label10.Text = "SyntaxHighlighter Prefix Path";
+            // 
+            // syntaxhighlighterPrefixPath
+            // 
+            this.syntaxhighlighterPrefixPath.Location = new System.Drawing.Point(7, 270);
+            this.syntaxhighlighterPrefixPath.Name = "syntaxhighlighterPrefixPath";
+            this.syntaxhighlighterPrefixPath.Size = new System.Drawing.Size(277, 20);
+            this.syntaxhighlighterPrefixPath.TabIndex = 12;
             // 
             // label8
             // 
@@ -245,7 +265,7 @@
             // cbAudioCues
             // 
             this.cbAudioCues.AutoSize = true;
-            this.cbAudioCues.Location = new System.Drawing.Point(12, 466);
+            this.cbAudioCues.Location = new System.Drawing.Point(317, 255);
             this.cbAudioCues.Name = "cbAudioCues";
             this.cbAudioCues.Size = new System.Drawing.Size(116, 17);
             this.cbAudioCues.TabIndex = 4;
@@ -254,6 +274,9 @@
             // 
             // Hotkeys
             // 
+            this.Hotkeys.Controls.Add(this.btnSetManualBitlyHotkey);
+            this.Hotkeys.Controls.Add(this.manualBitlylabel);
+            this.Hotkeys.Controls.Add(this.label13);
             this.Hotkeys.Controls.Add(this.btnSetSourceUploaderHotkey);
             this.Hotkeys.Controls.Add(this.label9);
             this.Hotkeys.Controls.Add(this.quickSourceHotkeyLabel);
@@ -263,7 +286,7 @@
             this.Hotkeys.Controls.Add(this.labelx);
             this.Hotkeys.Location = new System.Drawing.Point(308, 12);
             this.Hotkeys.Name = "Hotkeys";
-            this.Hotkeys.Size = new System.Drawing.Size(290, 133);
+            this.Hotkeys.Size = new System.Drawing.Size(290, 182);
             this.Hotkeys.TabIndex = 4;
             this.Hotkeys.TabStop = false;
             this.Hotkeys.Text = "Hotkeys";
@@ -280,7 +303,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(6, 112);
+            this.label9.Location = new System.Drawing.Point(6, 159);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(277, 13);
             this.label9.TabIndex = 5;
@@ -331,27 +354,49 @@
             this.labelx.TabIndex = 2;
             this.labelx.Text = "QuickUploader";
             // 
-            // label10
+            // btnManualBitlyHotkey
             // 
-            this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(7, 254);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(143, 13);
-            this.label10.TabIndex = 13;
-            this.label10.Text = "SyntaxHighlighter Prefix Path";
+            this.btnSetManualBitlyHotkey.Location = new System.Drawing.Point(209, 110);
+            this.btnSetManualBitlyHotkey.Name = "btnSetManualBitlyHotkey";
+            this.btnSetManualBitlyHotkey.Size = new System.Drawing.Size(75, 23);
+            this.btnSetManualBitlyHotkey.TabIndex = 10;
+            this.btnSetManualBitlyHotkey.Text = "Set";
+            this.btnSetManualBitlyHotkey.UseVisualStyleBackColor = true;
             // 
-            // syntaxhighlighterPrefixPath
+            // manualBitlylabel
             // 
-            this.syntaxhighlighterPrefixPath.Location = new System.Drawing.Point(7, 270);
-            this.syntaxhighlighterPrefixPath.Name = "syntaxhighlighterPrefixPath";
-            this.syntaxhighlighterPrefixPath.Size = new System.Drawing.Size(277, 20);
-            this.syntaxhighlighterPrefixPath.TabIndex = 12;
+            this.manualBitlylabel.AutoSize = true;
+            this.manualBitlylabel.Location = new System.Drawing.Point(31, 115);
+            this.manualBitlylabel.Name = "manualBitlylabel";
+            this.manualBitlylabel.Size = new System.Drawing.Size(30, 13);
+            this.manualBitlylabel.TabIndex = 9;
+            this.manualBitlylabel.Text = "xxxx ";
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(6, 96);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(64, 13);
+            this.label13.TabIndex = 8;
+            this.label13.Text = "Manual Bitly";
+            // 
+            // cbAutoBitly
+            // 
+            this.cbAutoBitly.AutoSize = true;
+            this.cbAutoBitly.Location = new System.Drawing.Point(317, 232);
+            this.cbAutoBitly.Name = "cbAutoBitly";
+            this.cbAutoBitly.Size = new System.Drawing.Size(215, 17);
+            this.cbAutoBitly.TabIndex = 5;
+            this.cbAutoBitly.Text = "Automatically Shorten URLs in clipboard";
+            this.cbAutoBitly.UseVisualStyleBackColor = true;
             // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(609, 510);
+            this.Controls.Add(this.cbAutoBitly);
             this.Controls.Add(this.Hotkeys);
             this.Controls.Add(this.cbAudioCues);
             this.Controls.Add(this.groupBox2);
@@ -404,6 +449,10 @@
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.TextBox syntaxhighlighterPrefixPath;
+        private System.Windows.Forms.Button btnSetManualBitlyHotkey;
+        private System.Windows.Forms.Label manualBitlylabel;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.CheckBox cbAutoBitly;
     }
 }
 

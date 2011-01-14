@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using Microsoft.Win32;
-
+﻿
 namespace QuickTool {
+    using System.Reflection;
+    using Microsoft.Win32;
+
     public class QuickSettings {
 
         private static QuickSettings instance;

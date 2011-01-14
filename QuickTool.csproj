@@ -119,6 +119,13 @@
       <Name>CoApp.Toolkit</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="sounds\NewBeep.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="sounds\Error.wav" />
+    <EmbeddedResource Include="sounds\SmallBeep.wav" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

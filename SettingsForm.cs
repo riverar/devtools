@@ -32,6 +32,12 @@ namespace QuickTool {
                 btnSetSourceUploaderHotkey.KeyUp += SettingsForm_KeyUp;
             };
 
+            btnSetManualBitlyHotkey.Click += (x, y) => {
+                manualBitlylabel.Text = "PRESS KEY COMBINATION";
+                btnSetManualBitlyHotkey.KeyDown += SettingsForm_KeyDown;
+                btnSetManualBitlyHotkey.KeyUp += SettingsForm_KeyUp;
+            };
+
 
             FormClosing += (x, y) => {
                 y.Cancel = true;
@@ -411,6 +417,7 @@ namespace QuickTool {
             QuickSettings.Instance["image-filename-template"] = imageFilename.Text;
             QuickSettings.Instance["image-finishedurl-template"] = httpUrlTemplate.Text;
             QuickSettings.Instance["enable-audio-cues"] = cbAudioCues.Checked ? "true": "false";
+            QuickSettings.Instance["enable-auto-bitly"] = cbAutoBitly.Checked ? "true" : "false";
 
             QuickSettings.Instance["syntaxhighlighter-prefix-path"] = syntaxhighlighterPrefixPath.Text;
 
@@ -419,6 +426,9 @@ namespace QuickTool {
 
             if (quickSourceHotkeyLabel.Text != "PRESS KEY COMBINATION")
                 QuickSettings.Instance["quick-source-hotkey"] = quickSourceHotkeyLabel.Text;
+
+            if (manualBitlylabel.Text != "PRESS KEY COMBINATION")
+                QuickSettings.Instance["manual-bitly-hotkey"] = manualBitlylabel.Text;
 
         }
         public void LoadSettings() {
@@ -432,8 +442,10 @@ namespace QuickTool {
             imageFilename.Text = QuickSettings.Instance["image-filename-template"] ?? "file-{date}-{time}-{counter}.png";
             httpUrlTemplate.Text = QuickSettings.Instance["image-finishedurl-template"] ?? "http://servername.com/path/to/{0}" ;
             cbAudioCues.Checked = (QuickSettings.Instance["enable-audio-cues"] ?? "").Equals("true",StringComparison.CurrentCultureIgnoreCase);
-            quickUploaderHotkeyLabel.Text = QuickSettings.Instance["quick-uploader-hotkey"] ?? "Control+Alt+NumPad9";
-            quickSourceHotkeyLabel.Text = QuickSettings.Instance["quick-source-hotkey"] ?? "Control+Alt+NumPad6";
+            cbAutoBitly.Checked = (QuickSettings.Instance["enable-auto-bitly"] ?? "").Equals("true", StringComparison.CurrentCultureIgnoreCase);
+            quickUploaderHotkeyLabel.Text = QuickSettings.Instance["quick-uploader-hotkey"] ?? "Alt+Control+NumPad9";
+            quickSourceHotkeyLabel.Text = QuickSettings.Instance["quick-source-hotkey"] ?? "Alt+Control+NumPad6";
+            manualBitlylabel.Text = QuickSettings.Instance["manual-bitly-hotkey"] ?? "Alt+Control+NumPad3";
             syntaxhighlighterPrefixPath.Text = QuickSettings.Instance["syntaxhighlighter-prefix-path"] ?? "";
 
         }
@@ -459,6 +471,9 @@ namespace QuickTool {
 
             if (sender == btnSetQuickUploaderHotkey)
                 quickUploaderHotkeyLabel.Text = newKey;
+
+            if (sender == btnSetManualBitlyHotkey)
+                manualBitlylabel.Text = newKey;
         }
 
         private void SettingsForm_KeyUp(object sender, KeyEventArgs e) {
