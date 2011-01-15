@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
-
+﻿//-----------------------------------------------------------------------
+// <copyright company="CoApp Project">
+//     Copyright (c) 2011  Garrett Serack. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
 namespace QuickTool {
-    public partial class SettingsForm :Form {
+    using System.Windows.Forms;
+
+    public partial class SettingsForm : Form {
         public SettingsForm() {
             InitializeComponent();
             LoadSettings();
@@ -22,22 +20,21 @@ namespace QuickTool {
 
             btnSetQuickUploaderHotkey.Click += (x, y) => {
                 quickUploaderHotkeyLabel.Text = "PRESS KEY COMBINATION";
-                btnSetQuickUploaderHotkey.KeyDown += SettingsForm_KeyDown;
-                btnSetQuickUploaderHotkey.KeyUp += SettingsForm_KeyUp;
+                btnSetQuickUploaderHotkey.KeyDown += SettingsFormKeyDown;
+                btnSetQuickUploaderHotkey.KeyUp += SettingsFormKeyUp;
             };
 
             btnSetSourceUploaderHotkey.Click += (x, y) => {
                 quickSourceHotkeyLabel.Text = "PRESS KEY COMBINATION";
-                btnSetSourceUploaderHotkey.KeyDown += SettingsForm_KeyDown;
-                btnSetSourceUploaderHotkey.KeyUp += SettingsForm_KeyUp;
+                btnSetSourceUploaderHotkey.KeyDown += SettingsFormKeyDown;
+                btnSetSourceUploaderHotkey.KeyUp += SettingsFormKeyUp;
             };
 
             btnSetManualBitlyHotkey.Click += (x, y) => {
                 manualBitlylabel.Text = "PRESS KEY COMBINATION";
-                btnSetManualBitlyHotkey.KeyDown += SettingsForm_KeyDown;
-                btnSetManualBitlyHotkey.KeyUp += SettingsForm_KeyUp;
+                btnSetManualBitlyHotkey.KeyDown += SettingsFormKeyDown;
+                btnSetManualBitlyHotkey.KeyUp += SettingsFormKeyUp;
             };
-
 
             FormClosing += (x, y) => {
                 y.Cancel = true;
@@ -47,6 +44,7 @@ namespace QuickTool {
 
         public static string KeyToText(Keys key) {
             #region BIGSWITCH
+
             switch (key) {
                 case Keys.None:
                     return "None";
@@ -403,85 +401,94 @@ namespace QuickTool {
                 default:
                     return "";
             }
-#endregion
+
+            #endregion
         }
 
         public void SaveSettings() {
-            QuickSettings.Instance["bit.ly-username"] = bitlyUserId.Text;
-            QuickSettings.Instance["bit.ly-password"] = bitlyApiKey.Text;
+            QuickSettings.StringSetting["bit.ly-username"] = bitlyUserId.Text;
+            QuickSettings.EncryptedStringSetting["bit.ly-password"] = bitlyApiKey.Text;
 
-            QuickSettings.Instance["ftp-server"] = ftpServer.Text;
-            QuickSettings.Instance["ftp-username"] = ftpUsername.Text;
-            QuickSettings.Instance["ftp-password"] = ftpPassword.Text;
-            QuickSettings.Instance["ftp-folder"] = ftpFolder.Text;
-            QuickSettings.Instance["image-filename-template"] = imageFilename.Text;
-            QuickSettings.Instance["image-finishedurl-template"] = httpUrlTemplate.Text;
-            QuickSettings.Instance["enable-audio-cues"] = cbAudioCues.Checked ? "true": "false";
-            QuickSettings.Instance["enable-auto-bitly"] = cbAutoBitly.Checked ? "true" : "false";
+            QuickSettings.StringSetting["ftp-server"] = ftpServer.Text;
+            QuickSettings.StringSetting["ftp-username"] = ftpUsername.Text;
+            QuickSettings.EncryptedStringSetting["ftp-password"] = ftpPassword.Text;
+            QuickSettings.StringSetting["ftp-folder"] = ftpFolder.Text;
+            QuickSettings.StringSetting["image-filename-template"] = imageFilename.Text;
+            QuickSettings.StringSetting["image-finishedurl-template"] = httpUrlTemplate.Text;
+            QuickSettings.BoolSetting["enable-audio-cues"] = cbAudioCues.Checked;
+            QuickSettings.BoolSetting["enable-auto-bitly"] = cbAutoBitly.Checked;
 
-            QuickSettings.Instance["syntaxhighlighter-prefix-path"] = syntaxhighlighterPrefixPath.Text;
+            QuickSettings.StringSetting["syntaxhighlighter-prefix-path"] = syntaxhighlighterPrefixPath.Text;
 
-            if (quickUploaderHotkeyLabel.Text != "PRESS KEY COMBINATION")
-                QuickSettings.Instance["quick-uploader-hotkey"] = quickUploaderHotkeyLabel.Text;
+            if (quickUploaderHotkeyLabel.Text != "PRESS KEY COMBINATION") {
+                QuickSettings.StringSetting["quick-uploader-hotkey"] = quickUploaderHotkeyLabel.Text;
+            }
 
-            if (quickSourceHotkeyLabel.Text != "PRESS KEY COMBINATION")
-                QuickSettings.Instance["quick-source-hotkey"] = quickSourceHotkeyLabel.Text;
+            if (quickSourceHotkeyLabel.Text != "PRESS KEY COMBINATION") {
+                QuickSettings.StringSetting["quick-source-hotkey"] = quickSourceHotkeyLabel.Text;
+            }
 
-            if (manualBitlylabel.Text != "PRESS KEY COMBINATION")
-                QuickSettings.Instance["manual-bitly-hotkey"] = manualBitlylabel.Text;
-
+            if (manualBitlylabel.Text != "PRESS KEY COMBINATION") {
+                QuickSettings.StringSetting["manual-bitly-hotkey"] = manualBitlylabel.Text;
+            }
         }
+
         public void LoadSettings() {
-            bitlyUserId.Text = QuickSettings.Instance["bit.ly-username"] ?? "";
-            bitlyApiKey.Text = QuickSettings.Instance["bit.ly-password"] ?? "";
+            bitlyUserId.Text = QuickSettings.StringSetting["bit.ly-username"] ?? "";
+            bitlyApiKey.Text = QuickSettings.EncryptedStringSetting["bit.ly-password"] ?? "";
 
-            ftpServer.Text = QuickSettings.Instance["ftp-server"] ?? "";
-            ftpUsername.Text= QuickSettings.Instance["ftp-username"] ?? "";
-            ftpPassword.Text = QuickSettings.Instance["ftp-password"] ?? "";
-            ftpFolder.Text = QuickSettings.Instance["ftp-folder"] ?? "" ;
-            imageFilename.Text = QuickSettings.Instance["image-filename-template"] ?? "file-{date}-{time}-{counter}.png";
-            httpUrlTemplate.Text = QuickSettings.Instance["image-finishedurl-template"] ?? "http://servername.com/path/to/{0}" ;
-            cbAudioCues.Checked = (QuickSettings.Instance["enable-audio-cues"] ?? "").Equals("true",StringComparison.CurrentCultureIgnoreCase);
-            cbAutoBitly.Checked = (QuickSettings.Instance["enable-auto-bitly"] ?? "").Equals("true", StringComparison.CurrentCultureIgnoreCase);
-            quickUploaderHotkeyLabel.Text = QuickSettings.Instance["quick-uploader-hotkey"] ?? "Alt+Control+NumPad9";
-            quickSourceHotkeyLabel.Text = QuickSettings.Instance["quick-source-hotkey"] ?? "Alt+Control+NumPad6";
-            manualBitlylabel.Text = QuickSettings.Instance["manual-bitly-hotkey"] ?? "Alt+Control+NumPad3";
-            syntaxhighlighterPrefixPath.Text = QuickSettings.Instance["syntaxhighlighter-prefix-path"] ?? "";
-
+            ftpServer.Text = QuickSettings.StringSetting["ftp-server"] ?? "";
+            ftpUsername.Text = QuickSettings.StringSetting["ftp-username"] ?? "";
+            ftpPassword.Text = QuickSettings.EncryptedStringSetting["ftp-password"] ?? "";
+            ftpFolder.Text = QuickSettings.StringSetting["ftp-folder"] ?? "";
+            imageFilename.Text = QuickSettings.StringSetting["image-filename-template"] ?? "file-{date}-{time}-{counter}.png";
+            httpUrlTemplate.Text = QuickSettings.StringSetting["image-finishedurl-template"] ?? "http://servername.com/path/to/{0}";
+            cbAudioCues.Checked = QuickSettings.BoolSetting["enable-audio-cues"];
+            cbAutoBitly.Checked = QuickSettings.BoolSetting["enable-auto-bitly"];
+            quickUploaderHotkeyLabel.Text = QuickSettings.StringSetting["quick-uploader-hotkey"] ?? "Alt+Control+NumPad9";
+            quickSourceHotkeyLabel.Text = QuickSettings.StringSetting["quick-source-hotkey"] ?? "Alt+Control+NumPad6";
+            manualBitlylabel.Text = QuickSettings.StringSetting["manual-bitly-hotkey"] ?? "Alt+Control+NumPad3";
+            syntaxhighlighterPrefixPath.Text = QuickSettings.StringSetting["syntaxhighlighter-prefix-path"] ?? "";
         }
 
-        private void SettingsForm_KeyDown(object sender, KeyEventArgs e) {
-
+        private void SettingsFormKeyDown(object sender, KeyEventArgs e) {
             Keys win32Key = e.KeyCode & Keys.KeyCode;
 
-            if ((e.Control & e.KeyCode == Keys.ControlKey) || (e.Alt & e.KeyCode == Keys.Menu) || (e.Shift & e.KeyCode == Keys.ShiftKey))
+            if ((e.Control & e.KeyCode == Keys.ControlKey) || (e.Alt & e.KeyCode == Keys.Menu) || (e.Shift & e.KeyCode == Keys.ShiftKey)) {
                 return;
+            }
 
             string newKey = KeyToText(win32Key);
 
-            if (e.Control)
+            if (e.Control) {
                 newKey = "Control+" + newKey;
-            if (e.Alt)
+            }
+            if (e.Alt) {
                 newKey = "Alt+" + newKey;
-            if (e.Shift)
+            }
+            if (e.Shift) {
                 newKey = "Shift+" + newKey;
+            }
 
-            if (sender == btnSetSourceUploaderHotkey)
+            if (sender == btnSetSourceUploaderHotkey) {
                 quickSourceHotkeyLabel.Text = newKey;
+            }
 
-            if (sender == btnSetQuickUploaderHotkey)
+            if (sender == btnSetQuickUploaderHotkey) {
                 quickUploaderHotkeyLabel.Text = newKey;
+            }
 
-            if (sender == btnSetManualBitlyHotkey)
+            if (sender == btnSetManualBitlyHotkey) {
                 manualBitlylabel.Text = newKey;
+            }
         }
 
-        private void SettingsForm_KeyUp(object sender, KeyEventArgs e) {
-            btnSetQuickUploaderHotkey.KeyDown -= SettingsForm_KeyDown;
-            btnSetQuickUploaderHotkey.KeyUp -= SettingsForm_KeyUp;
+        private void SettingsFormKeyUp(object sender, KeyEventArgs e) {
+            btnSetQuickUploaderHotkey.KeyDown -= SettingsFormKeyDown;
+            btnSetQuickUploaderHotkey.KeyUp -= SettingsFormKeyUp;
 
-            btnSetSourceUploaderHotkey.KeyDown -= SettingsForm_KeyDown;
-            btnSetSourceUploaderHotkey.KeyUp -= SettingsForm_KeyUp;
+            btnSetSourceUploaderHotkey.KeyDown -= SettingsFormKeyDown;
+            btnSetSourceUploaderHotkey.KeyUp -= SettingsFormKeyUp;
         }
     }
 }

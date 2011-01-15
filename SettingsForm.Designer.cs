@@ -47,6 +47,9 @@
             this.ftpServer = new System.Windows.Forms.TextBox();
             this.cbAudioCues = new System.Windows.Forms.CheckBox();
             this.Hotkeys = new System.Windows.Forms.GroupBox();
+            this.btnSetManualBitlyHotkey = new System.Windows.Forms.Button();
+            this.manualBitlylabel = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
             this.btnSetSourceUploaderHotkey = new System.Windows.Forms.Button();
             this.label9 = new System.Windows.Forms.Label();
             this.quickSourceHotkeyLabel = new System.Windows.Forms.Label();
@@ -54,9 +57,6 @@
             this.label11 = new System.Windows.Forms.Label();
             this.quickUploaderHotkeyLabel = new System.Windows.Forms.Label();
             this.labelx = new System.Windows.Forms.Label();
-            this.btnSetManualBitlyHotkey = new System.Windows.Forms.Button();
-            this.manualBitlylabel = new System.Windows.Forms.Label();
-            this.label13 = new System.Windows.Forms.Label();
             this.cbAutoBitly = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -229,6 +229,7 @@
             this.ftpPassword.Name = "ftpPassword";
             this.ftpPassword.Size = new System.Drawing.Size(277, 20);
             this.ftpPassword.TabIndex = 4;
+            this.ftpPassword.UseSystemPasswordChar = true;
             // 
             // label3
             // 
@@ -290,6 +291,33 @@
             this.Hotkeys.TabIndex = 4;
             this.Hotkeys.TabStop = false;
             this.Hotkeys.Text = "Hotkeys";
+            // 
+            // btnSetManualBitlyHotkey
+            // 
+            this.btnSetManualBitlyHotkey.Location = new System.Drawing.Point(209, 110);
+            this.btnSetManualBitlyHotkey.Name = "btnSetManualBitlyHotkey";
+            this.btnSetManualBitlyHotkey.Size = new System.Drawing.Size(75, 23);
+            this.btnSetManualBitlyHotkey.TabIndex = 10;
+            this.btnSetManualBitlyHotkey.Text = "Set";
+            this.btnSetManualBitlyHotkey.UseVisualStyleBackColor = true;
+            // 
+            // manualBitlylabel
+            // 
+            this.manualBitlylabel.AutoSize = true;
+            this.manualBitlylabel.Location = new System.Drawing.Point(31, 115);
+            this.manualBitlylabel.Name = "manualBitlylabel";
+            this.manualBitlylabel.Size = new System.Drawing.Size(30, 13);
+            this.manualBitlylabel.TabIndex = 9;
+            this.manualBitlylabel.Text = "xxxx ";
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(6, 96);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(64, 13);
+            this.label13.TabIndex = 8;
+            this.label13.Text = "Manual Bitly";
             // 
             // btnSetSourceUploaderHotkey
             // 
@@ -353,33 +381,6 @@
             this.labelx.Size = new System.Drawing.Size(78, 13);
             this.labelx.TabIndex = 2;
             this.labelx.Text = "QuickUploader";
-            // 
-            // btnManualBitlyHotkey
-            // 
-            this.btnSetManualBitlyHotkey.Location = new System.Drawing.Point(209, 110);
-            this.btnSetManualBitlyHotkey.Name = "btnSetManualBitlyHotkey";
-            this.btnSetManualBitlyHotkey.Size = new System.Drawing.Size(75, 23);
-            this.btnSetManualBitlyHotkey.TabIndex = 10;
-            this.btnSetManualBitlyHotkey.Text = "Set";
-            this.btnSetManualBitlyHotkey.UseVisualStyleBackColor = true;
-            // 
-            // manualBitlylabel
-            // 
-            this.manualBitlylabel.AutoSize = true;
-            this.manualBitlylabel.Location = new System.Drawing.Point(31, 115);
-            this.manualBitlylabel.Name = "manualBitlylabel";
-            this.manualBitlylabel.Size = new System.Drawing.Size(30, 13);
-            this.manualBitlylabel.TabIndex = 9;
-            this.manualBitlylabel.Text = "xxxx ";
-            // 
-            // label13
-            // 
-            this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(6, 96);
-            this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(64, 13);
-            this.label13.TabIndex = 8;
-            this.label13.Text = "Manual Bitly";
             // 
             // cbAutoBitly
             // 

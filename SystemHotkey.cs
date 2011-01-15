@@ -1,4 +1,10 @@
-﻿namespace QuickTool
+﻿//-----------------------------------------------------------------------
+// <copyright company="CoApp Project">
+//     Copyright (c) 2011  Garrett Serack. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
+
+namespace QuickTool
  {
     using System;
     using System.ComponentModel;
