@@ -20,7 +20,10 @@ namespace QuickTool {
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using System.Windows.Threading;
+    using CoApp.Toolkit.Configuration;
     using CoApp.Toolkit.Extensions;
+    using CoApp.Toolkit.Network;
+    using CoApp.Toolkit.Win32;
 
     public class QtAppContext : ApplicationContext {
         private static readonly string[] Domains =

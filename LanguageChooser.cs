@@ -4,6 +4,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using CoApp.Toolkit.Configuration;
+
 namespace QuickTool {
     using System;
     using System.Collections.Generic;

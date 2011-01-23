@@ -3,8 +3,11 @@
 //     Copyright (c) 2011  Garrett Serack. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
+using CoApp.Toolkit.Configuration;
+
 namespace QuickTool {
     using System.Windows.Forms;
+    using Properties;
 
     public partial class SettingsForm : Form {
         public SettingsForm() {
@@ -19,19 +22,19 @@ namespace QuickTool {
             buttonCancel.Click += (x, y) => Hide();
 
             btnSetQuickUploaderHotkey.Click += (x, y) => {
-                quickUploaderHotkeyLabel.Text = "PRESS KEY COMBINATION";
+                quickUploaderHotkeyLabel.Text = Resources.txt_PRESS_KEY_COMBINATION;
                 btnSetQuickUploaderHotkey.KeyDown += SettingsFormKeyDown;
                 btnSetQuickUploaderHotkey.KeyUp += SettingsFormKeyUp;
             };
 
             btnSetSourceUploaderHotkey.Click += (x, y) => {
-                quickSourceHotkeyLabel.Text = "PRESS KEY COMBINATION";
+                quickSourceHotkeyLabel.Text = Resources.txt_PRESS_KEY_COMBINATION;
                 btnSetSourceUploaderHotkey.KeyDown += SettingsFormKeyDown;
                 btnSetSourceUploaderHotkey.KeyUp += SettingsFormKeyUp;
             };
 
             btnSetManualBitlyHotkey.Click += (x, y) => {
-                manualBitlylabel.Text = "PRESS KEY COMBINATION";
+                manualBitlylabel.Text = Resources.txt_PRESS_KEY_COMBINATION;
                 btnSetManualBitlyHotkey.KeyDown += SettingsFormKeyDown;
                 btnSetManualBitlyHotkey.KeyUp += SettingsFormKeyUp;
             };
@@ -420,15 +423,15 @@ namespace QuickTool {
 
             QuickSettings.StringSetting["syntaxhighlighter-prefix-path"] = syntaxhighlighterPrefixPath.Text;
 
-            if (quickUploaderHotkeyLabel.Text != "PRESS KEY COMBINATION") {
+            if (quickUploaderHotkeyLabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
                 QuickSettings.StringSetting["quick-uploader-hotkey"] = quickUploaderHotkeyLabel.Text;
             }
 
-            if (quickSourceHotkeyLabel.Text != "PRESS KEY COMBINATION") {
+            if (quickSourceHotkeyLabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
                 QuickSettings.StringSetting["quick-source-hotkey"] = quickSourceHotkeyLabel.Text;
             }
 
-            if (manualBitlylabel.Text != "PRESS KEY COMBINATION") {
+            if (manualBitlylabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
                 QuickSettings.StringSetting["manual-bitly-hotkey"] = manualBitlylabel.Text;
             }
         }
