@@ -23,6 +23,7 @@ namespace QuickTool {
     using CoApp.Toolkit.Configuration;
     using CoApp.Toolkit.Extensions;
     using CoApp.Toolkit.Network;
+    using CoApp.Toolkit.Tasks;
     using CoApp.Toolkit.Win32;
 
     public class QtAppContext : ApplicationContext {
@@ -223,7 +224,7 @@ SyntaxHighlighter.all()
             var html = htmlTemplate.format(pfxPath, brushName, brushFile,
                 clipSource.Replace("]]>", "] ] >").Replace("</script>", "</scr ipt>"));
 
-            new Task(() => {
+            CoTask.Factory.StartNew(() => {
                 try {
                     var ftp = Connect();
                     if (ftp == null) {
@@ -256,7 +257,7 @@ SyntaxHighlighter.all()
                 catch {
                     /* suppress  */
                 }
-            }).Start();
+            });
         }
 
         private string lastData;
@@ -410,7 +411,7 @@ SyntaxHighlighter.all()
                     return;
                 }
 
-                new Task(() => {
+                CoTask.Factory.StartNew(() => {
                     try {
                         var ftp = Connect();
                         if (ftp == null) {
@@ -505,7 +506,7 @@ SyntaxHighlighter.all()
                             /* suppress */
                         }
                     });
-                }).Start();
+                });
             }
             catch (Exception exc) {
                 if (AudioCues) {
