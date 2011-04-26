@@ -24,7 +24,7 @@ namespace CoApp.Scan
 Usage:
 -------
 
-CoApp-scan [options] <source-root-path>
+scan [options] <source-root-path>
 
     <source-root-path>          the root of the source tree to collect data from
         
