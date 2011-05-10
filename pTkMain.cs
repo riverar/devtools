@@ -38,12 +38,18 @@ pTK [options] action [buildconfiguration...]
 
     Actions:
         build                   builds the product
+
         clean                   removes all files that are not part of the 
                                 project source
+
+        status                  shows any files present that should not be
+
         verify                  ensures that the product source matches the 
                                 built and cleaned
+
         trace                   performs a build using CoApp Trace to gather 
                                 build data 
+
         list                    lists availible builds from buildinfo
 
     [buildconfiguration]        optional; indicates the builds from the 
@@ -55,6 +61,7 @@ pTK [options] action [buildconfiguration...]
         private ProcessUtility gitexe;
         private ProcessUtility hgexe;
         private ProcessUtility ptk;
+        private ProcessUtility traceexe;
 
         private string gitcmd;
         private string setenvcmd;
@@ -124,6 +131,9 @@ pTK [options] action [buildconfiguration...]
                     hgexe.Kill();
                 if( ptk != null )
                     ptk.Kill();
+                if( traceexe != null ) {
+                    traceexe.Kill();
+                }
             };
 
 
@@ -171,6 +181,8 @@ pTK [options] action [buildconfiguration...]
             #endregion
 
             cmdexe = new ProcessUtility("cmd.exe");
+            traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+
             ptk = new ProcessUtility( Assembly.GetEntryAssembly().Location );
 
             UseGit = Directory.Exists(".git".GetFullPath());
@@ -211,13 +223,16 @@ pTK [options] action [buildconfiguration...]
             if (showTools) {
                 if( UseGit) {
                     Console.Write("Git: {0}", gitcmd ?? "");
-                    Console.WriteLine(gitexe.Executable);
+                    if (gitexe != null) {
+                        Console.WriteLine(gitexe.Executable ?? "");
+                    }
                 } 
                 if( UseHg) {
                     Console.WriteLine("hg: {0}", hgexe.Executable);
                 }
                 Console.WriteLine("SDK Setenv: {0}", setenvcmd);
                 Console.WriteLine("ptk: {0}", ptk.Executable);
+                Console.WriteLine("trace: {0}", traceexe.Executable);
             }
 
 
@@ -236,20 +251,28 @@ pTK [options] action [buildconfiguration...]
                 switch (parameters.FirstOrDefault().ToLower()) {
                     case "build":
                         Build(builds);
-                        Console.WriteLine("Project Built.");
+                        using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                            Console.WriteLine("Project Built.");
+                        }
                         break;
                     case "clean":
                         Clean(builds);
-                        Console.WriteLine("Project Cleaned.");
+                        using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                            Console.WriteLine("Project Cleaned.");
+                        }
                         break;
                     case "verify":
                         Clean(builds); // clean up other builds in the list first.
                         Verify(builds);
-                        Console.WriteLine("Project Verified.");
+                        using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                            Console.WriteLine("Project Verified.");
+                        }
                         break;
                     case "status":
                         Status(builds);
-                        Console.WriteLine("Project is in clean state.");
+                        using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                            Console.WriteLine("Project is in clean state.");
+                        }
                         break;
                     case "trace":
                         Trace(builds);
@@ -267,7 +290,6 @@ pTK [options] action [buildconfiguration...]
                         break;
                     default:
                         return Fail("'{0}' is not a valid command. \r\n\r\n    Use --help for assistance.");
-                        break;
                 }
             }
             catch (ConsoleException e) {
@@ -281,9 +303,26 @@ pTK [options] action [buildconfiguration...]
             return 0;
         }
 
-        private void Exec( string script ) {
+        private void TraceExec( string script, string traceFile ) {
             if (script.Contains("\r")) {
                 script = 
+@"@echo off
+@setlocal 
+@cd ""{0}""
+
+
+".format(Environment.CurrentDirectory) + script;
+                var scriptpath = WriteTempScript(script);
+                traceexe.ExecNoRedirections("--nologo --output-file={1} cmd.exe /c {0}", scriptpath, traceFile);
+            }
+            else {
+                traceexe.ExecNoRedirections("--nologo --output-file={1} cmd.exe /c {0}", script, traceFile);
+            }
+        }
+
+        private void Exec(string script) {
+            if (script.Contains("\r")) {
+                script =
 @"@echo off
 @setlocal 
 @cd ""{0}""
@@ -318,37 +357,43 @@ pTK [options] action [buildconfiguration...]
                     throw new ConsoleException("missing clean command in build {0}",build.Selector);
 
                 Exec(cmd.LValue);
+                File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Selector)));
             }
         }
-        private void Build(IEnumerable<Rule> builds) {
+        private void BuildDependencies(Rule build) {
             var pwd = Environment.CurrentDirectory;
-            foreach (var build in builds) {
-                foreach (var use in build["uses"]) {
-                    var config = string.Empty;
-                    var folder = string.Empty;
-                    if (use.IsCompoundRule) {
-                        config = use.LValue;
-                        folder = use.RValue;
-                    }
-                    else {
-                        folder = use.LValue;
-                    }
-                    folder = folder.GetFullPath();
-                    if (!Directory.Exists(folder)) {
-                        throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
-                    }
-                    var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
-                    if (!File.Exists(depBuildinfo)) {
-                        throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
-                    }
 
-                    Environment.CurrentDirectory = folder;
-                    ptk.ExecNoRedirections("--nologo build {0}", config);
-                    if( ptk.ExitCode != 0 )
-                        throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config );
-
-                    Environment.CurrentDirectory = pwd;
+            foreach (var use in build["uses"]) {
+                var config = string.Empty;
+                var folder = string.Empty;
+                if (use.IsCompoundRule) {
+                    config = use.LValue;
+                    folder = use.RValue;
                 }
+                else {
+                    folder = use.LValue;
+                }
+                folder = folder.GetFullPath();
+                if (!Directory.Exists(folder)) {
+                    throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                }
+                var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
+                if (!File.Exists(depBuildinfo)) {
+                    throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
+                }
+
+                Environment.CurrentDirectory = folder;
+                ptk.ExecNoRedirections("--nologo build {0}", config);
+                if (ptk.ExitCode != 0)
+                    throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
+
+                Environment.CurrentDirectory = pwd;
+            }
+        }
+
+        private void Build(IEnumerable<Rule> builds) {
+            foreach (var build in builds) {
+                BuildDependencies(build);
 
                 var compiler = build["compiler"].FirstOrDefault();
                 SwitchCompiler(compiler != null ? compiler.LValue : "vc10-x86");
@@ -360,6 +405,9 @@ pTK [options] action [buildconfiguration...]
                 Exec(cmd.LValue);
             }
         }
+
+        
+
         private void Verify(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
                 Clean( build.SingleItemAsEnumerable());
@@ -379,7 +427,7 @@ pTK [options] action [buildconfiguration...]
                     }
                 }
 
-                using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                using (new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black)) {
                     Console.WriteLine("Targets Verified.");
                 }
                 
@@ -400,7 +448,7 @@ pTK [options] action [buildconfiguration...]
                 }
 
                 if (results.Count() > 0) {
-                    Fail("Compile did not clean up:");
+                    Fail("Project directory is not clean:");
                     using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
                         foreach (var result in results) {
                             Console.WriteLine("   {0}", result);
@@ -413,7 +461,18 @@ pTK [options] action [buildconfiguration...]
 
 
         private void Trace(IEnumerable<Rule> builds) {
+            foreach (var build in builds) {
+                BuildDependencies(build);
 
+                var compiler = build["compiler"].FirstOrDefault();
+                SwitchCompiler(compiler != null ? compiler.LValue : "vc10-x86");
+
+                var cmd = build["build-command"].FirstOrDefault();
+                if (cmd == null)
+                    throw new ConsoleException("missing build command in build {0}", build.Selector);
+
+                TraceExec(cmd.LValue, Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Selector)));
+            }
         }
 
         private IEnumerable<string> Git(string cmdLine) {
