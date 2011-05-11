@@ -68,7 +68,6 @@ pTK [options] action [buildconfiguration...]
         private bool UseGit;
         private bool UseHg;
         private bool verbose;
-        
 
         private bool showTools;
         private List<string> tmpFiles= new List<string>();
