@@ -81,7 +81,6 @@ pTK [options] action [buildconfiguration...]
             return new pTkMain().main(args);
         }
 
-
         private void SwitchCompiler(string compiler) {
             var arch = "x86";
             switch( compiler ) {
