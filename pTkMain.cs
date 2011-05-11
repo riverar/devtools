@@ -236,7 +236,18 @@ pTK [options] action [buildconfiguration...]
             }
 
 
-            var propertySheet = PropertySheet.Load(buildinfo);
+            PropertySheet propertySheet = null;
+            try {
+                propertySheet = PropertySheet.Load(buildinfo);
+            }
+            catch( PropertySheetParseException pspe) {
+                using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
+                     Console.Write(pspe.Message);
+                     Console.WriteLine(" (Token [{0}])", pspe.Token.Data);
+                }
+                
+                return Fail("Error parsing .buildinfo file");
+            }
             var builds = from rule in propertySheet.Rules where rule.Selector != "*" select rule;
             if( parameters.Count() > 1 ) {
                 var allbuilds = builds;
@@ -405,8 +416,6 @@ pTK [options] action [buildconfiguration...]
                 Exec(cmd.LValue);
             }
         }
-
-        
 
         private void Verify(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
