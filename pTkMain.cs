@@ -233,7 +233,6 @@ pTK [options] action [buildconfiguration...]
                 Console.WriteLine("trace: {0}", traceexe.Executable);
             }
 
-
             PropertySheet propertySheet = null;
             try {
                 propertySheet = PropertySheet.Load(buildinfo);
@@ -241,7 +240,7 @@ pTK [options] action [buildconfiguration...]
             catch( PropertySheetParseException pspe) {
                 using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
                      Console.Write(pspe.Message);
-                     Console.WriteLine(" (Token [{0}])", pspe.Token.Data);
+                     Console.WriteLine("--found '{0}'", pspe.Token.Data);
                 }
                 
                 return Fail("Error parsing .buildinfo file");
