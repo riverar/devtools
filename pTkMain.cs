@@ -36,6 +36,9 @@ pTK [options] action [buildconfiguration...]
     --load=<file>               loads the build ptk buildinfo
                                 defaults to .\COPKG\.buildinfo 
 
+    --mingw-install=<path>      specifies the location of the mingw install
+    --msys-install=<path>       specifies the location of the msys install
+
     Actions:
         build                   builds the product
 
@@ -62,15 +65,18 @@ pTK [options] action [buildconfiguration...]
         private ProcessUtility hgexe;
         private ProcessUtility ptk;
         private ProcessUtility traceexe;
+        
+        
 
         private string gitcmd;
         private string setenvcmd;
         private bool UseGit;
         private bool UseHg;
         private bool verbose;
-
+        private Dictionary<string, string> originalEnvironment = GetEnvironment();
         private bool showTools;
         private List<string> tmpFiles= new List<string>();
+        private string searchPaths = "";
 
         /// <summary>
         /// Entry Point
@@ -81,24 +87,28 @@ pTK [options] action [buildconfiguration...]
             return new pTkMain().main(args);
         }
 
-        private void SwitchCompiler(string compiler) {
-            var arch = "x86";
-            switch( compiler ) {
-                case "vc10-x86":
-                    arch = "x86";
-                    break;
-                case "vc10-x64":
-                    arch = "x64";
-                    break;
-            }
+        private static Dictionary<string, string> GetEnvironment() {
+            var env = Environment.GetEnvironmentVariables();
+            return env.Keys.Cast<object>().ToDictionary(key => key.ToString(), key => env[key].ToString());
+        }
 
+        private void ResetEnvironment() {
+            foreach( var key in Environment.GetEnvironmentVariables().Keys ) {
+                Environment.SetEnvironmentVariable(key.ToString(),string.Empty);    
+            }
+            foreach (var key in originalEnvironment.Keys) {
+                Environment.SetEnvironmentVariable(key, originalEnvironment[key]);    
+            }
+        }
+
+        private void SetVC10Compiler(string arch) {
             var target_cpu = Environment.GetEnvironmentVariable("TARGET_CPU");
 
             if (string.IsNullOrEmpty(target_cpu) || (target_cpu == "x64" && arch == "x86") || (target_cpu == "x86" && arch != "x86")) {
-                
+
                 if (string.IsNullOrEmpty(setenvcmd))
                     throw new Exception("Cannot locate SDK SetEnv command. Please install the Windows SDK");
-                
+
                 cmdexe.Exec(@"/c ""{0}"" /{1} & set ", setenvcmd, arch == "x86" ? "x86" : "x64");
 
                 foreach (var x in cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
@@ -111,6 +121,78 @@ pTK [options] action [buildconfiguration...]
                 if (string.IsNullOrEmpty(target_cpu) || (target_cpu == "x64" && arch == "x86") || (target_cpu == "x86" && arch != "x86")) {
                     throw new Exception("Cannot set the SDK environment. Please install the Windows SDK and use the setenv.cmd command to set your environment");
                 }
+            }
+        }
+
+        private void SetMingwCompiler( string arch) {
+            var mingwProgramFinder = new ProgramFinder("", Directory.GetDirectories(@"c:\\", "M*").Aggregate(searchPaths+@"%ProgramFiles(x86)%;%ProgramFiles%;%ProgramW6432%", (current, dir) => dir + ";" + current));
+
+            var gcc = mingwProgramFinder.ScanForFile("mingw32-gcc.exe");
+            var msysmnt = mingwProgramFinder.ScanForFile("msysmnt.exe");
+
+            if( string.IsNullOrEmpty(gcc)) {
+                throw new ConsoleException("Unable to locate MinGW install location. Use --mingw-install=<path>\r\n   (it will remember after that.)");
+            }
+
+            if (string.IsNullOrEmpty(msysmnt)) {
+                throw new ConsoleException("Unable to locate MSYS install location. Use --msys-install=<path>\r\n   (it will remember after that.)");
+            }
+
+            var msysBin = Path.GetDirectoryName(msysmnt);
+            var msysPath = Path.GetDirectoryName(msysBin);
+
+            var msysLocalBin = Path.Combine(msysPath, "local", "bin");
+            var mingwBin = Path.GetDirectoryName(gcc);
+            var mingwPath = Path.GetDirectoryName(mingwBin);
+            var username = Environment.GetEnvironmentVariable("USERNAME") ?? "";
+
+            var newPath = ".;" + mingwBin + ";" + msysBin + ";" + msysLocalBin + ";" + Environment.GetEnvironmentVariable("PATH");
+            Environment.SetEnvironmentVariable("PATH", newPath);
+
+            var tmpPath = Environment.GetEnvironmentVariable("TMP") ??
+                Environment.GetEnvironmentVariable("TEMP") ??
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp").Replace("\\", "/");
+
+            Environment.SetEnvironmentVariable("TMP", tmpPath);
+            Environment.SetEnvironmentVariable("TEMP", tmpPath);
+
+            Environment.SetEnvironmentVariable("WD", msysBin);
+            Environment.SetEnvironmentVariable("TERM", "cygwin");
+
+            var homedir = Environment.GetEnvironmentVariable("HOME");
+            if( string.IsNullOrEmpty(homedir) ) {
+                homedir = Path.Combine(Path.Combine(msysPath, "home"), username);
+                if (!Directory.Exists(homedir)) {
+                    homedir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                }
+                Environment.SetEnvironmentVariable("HOME", homedir.Replace("\\", "/"));
+            }
+            
+            Environment.SetEnvironmentVariable("HISTFILE", Path.Combine(homedir, ".bashhistory").Replace("\\", "/"));
+
+            Environment.SetEnvironmentVariable("LOGNAME", username);
+            Environment.SetEnvironmentVariable("MAKE_MODE", "unix");
+            Environment.SetEnvironmentVariable("MSYSCON", "sh.exe");
+            Environment.SetEnvironmentVariable("MSYSTEM", "MINGW32");
+          
+        }
+
+        private void SwitchCompiler(string compiler) {
+            ResetEnvironment();
+
+            switch( compiler ) {
+                case "vc10-x86":
+                    SetVC10Compiler("x86");
+                    break;
+                case "vc10-x64":
+                    SetVC10Compiler("x64");
+                    break;
+                case "mingw-x86":
+                    SetMingwCompiler("x86");
+                    break;
+                default :
+                    throw new ConsoleException("Unknown Compiler Selection: {0}", compiler);
+
             }
         }
 
@@ -153,6 +235,11 @@ pTK [options] action [buildconfiguration...]
                         buildinfo = argumentParameters.LastOrDefault().GetFullPath();
                         break;
                     
+                    case "mingw-install":
+                    case "msys-install":
+                        searchPaths += argumentParameters.LastOrDefault().GetFullPath() + ";";
+                        break;
+
                     case "rescan-tools":
                         ProgramFinder.IgnoreCache = true;
                         break;
@@ -259,9 +346,7 @@ pTK [options] action [buildconfiguration...]
                 switch (parameters.FirstOrDefault().ToLower()) {
                     case "build":
                         Build(builds);
-                        using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
-                            Console.WriteLine("Project Built.");
-                        }
+                        
                         break;
                     case "clean":
                         Clean(builds);
@@ -328,6 +413,15 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        private string WriteTempScript(string text) {
+            var tmpFilename = Path.GetTempFileName();
+            tmpFiles.Add(tmpFilename);
+            tmpFilename += ".cmd";
+            tmpFiles.Add(tmpFilename);
+            File.WriteAllText(tmpFilename, text);
+
+            return tmpFilename;
+        }
         private void Exec(string script) {
             if (script.Contains("\r")) {
                 script =
@@ -343,17 +437,12 @@ pTK [options] action [buildconfiguration...]
             else {
                 cmdexe.ExecNoRedirections("/c {0}", script);
             }
+            if( cmdexe.ExitCode != 0 ) {
+                throw new ConsoleException("Command Exited with value {0}", cmdexe.ExitCode);
+            }
         }
 
-        private string WriteTempScript( string text ) {
-            var tmpFilename = Path.GetTempFileName();
-            tmpFiles.Add(tmpFilename);
-            tmpFilename += ".cmd";
-            tmpFiles.Add(tmpFilename);
-            File.WriteAllText(tmpFilename, text);
-            
-            return tmpFilename;
-        }
+       
 
         private void Clean(IEnumerable<Rule> builds) {
             foreach( var build in builds ) {
@@ -409,6 +498,10 @@ pTK [options] action [buildconfiguration...]
                 var cmd = build["build-command"].FirstOrDefault();
                 if (cmd == null)
                     throw new ConsoleException("missing build command in build {0}", build.Selector);
+
+                using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                    Console.WriteLine("Built Configuration [{0}]", build.Selector);
+                }
 
                 Exec(cmd.LValue);
             }
@@ -498,7 +591,7 @@ pTK [options] action [buildconfiguration...]
 
         #region fail/help/logo
 
-        public int Fail(string text, params object[] par) {
+        public static int Fail(string text, params object[] par) {
             Logo();
             using (new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black)) {
                 Console.WriteLine("Error:{0}", text.format(par));
@@ -506,7 +599,7 @@ pTK [options] action [buildconfiguration...]
             return 1;
         }
 
-        private int Help() {
+        private static int Help() {
             Logo();
             using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
                 help.Print();
@@ -514,11 +607,11 @@ pTK [options] action [buildconfiguration...]
             return 0;
         }
 
-        private void Logo() {
+        private static void Logo() {
             using (new ConsoleColors(ConsoleColor.Cyan, ConsoleColor.Black)) {
-                this.Assembly().Logo().Print();
+                Assembly.GetEntryAssembly().Logo().Print();
             }
-            this.Assembly().SetLogo("");
+            Assembly.GetEntryAssembly().SetLogo("");
         }
 
         #endregion
