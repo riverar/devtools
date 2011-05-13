@@ -257,6 +257,9 @@ pTK [options] action [buildconfiguration...]
                 return Fail("Unable to find buildinfo file [{0}]. \r\n\r\n    Use --help for command line help.", buildinfo);
             }
 
+            // make sure that we're in the parent directory of the .buildinfo file.
+            Environment.CurrentDirectory= Path.GetDirectoryName(Path.GetDirectoryName(buildinfo));
+
             Logo();
 
             if (parameters.Count() < 1) {
