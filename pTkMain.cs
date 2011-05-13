@@ -332,10 +332,10 @@ pTK [options] action [buildconfiguration...]
                 
                 return Fail("Error parsing .buildinfo file");
             }
-            var builds = from rule in propertySheet.Rules where rule.Selector != "*" select rule;
+            var builds = from rule in propertySheet.Rules where rule.Name != "*" select rule;
             if( parameters.Count() > 1 ) {
                 var allbuilds = builds;
-                builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Selector.IsWildcardMatch(p) select build));
+                builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
             }
             
             if(builds.Count() == 0 ) {
@@ -376,7 +376,7 @@ pTK [options] action [buildconfiguration...]
                             let compiler = build["compiler"].FirstOrDefault()
                             let targets = build["targets"].FirstOrDefault()
                             select new {
-                                Configuration = build.Selector,
+                                Configuration = build.Name,
                                 Compiler = compiler != null ? compiler.LValue : "vc10-x86",
                                 Number_of_Outputs = targets != null ? targets.Values.Count() : 0
                             }).ToTable().ConsoleOut();
@@ -451,10 +451,10 @@ pTK [options] action [buildconfiguration...]
 
                 var cmd = build["clean-command"].FirstOrDefault();
                 if( cmd == null ) 
-                    throw new ConsoleException("missing clean command in build {0}",build.Selector);
+                    throw new ConsoleException("missing clean command in build {0}",build.Name);
 
                 Exec(cmd.LValue);
-                File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Selector)));
+                File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
             }
         }
         private void BuildDependencies(Rule build) {
@@ -463,7 +463,7 @@ pTK [options] action [buildconfiguration...]
             foreach (var use in build["uses"]) {
                 var config = string.Empty;
                 var folder = string.Empty;
-                if (use.IsCompoundRule) {
+                if (use.IsCompoundProperty) {
                     config = use.LValue;
                     folder = use.RValue;
                 }
@@ -497,10 +497,10 @@ pTK [options] action [buildconfiguration...]
 
                 var cmd = build["build-command"].FirstOrDefault();
                 if (cmd == null)
-                    throw new ConsoleException("missing build command in build {0}", build.Selector);
+                    throw new ConsoleException("missing build command in build {0}", build.Name);
 
                 using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
-                    Console.WriteLine("Built Configuration [{0}]", build.Selector);
+                    Console.WriteLine("Built Configuration [{0}]", build.Name);
                 }
 
                 Exec(cmd.LValue);
@@ -568,9 +568,9 @@ pTK [options] action [buildconfiguration...]
 
                 var cmd = build["build-command"].FirstOrDefault();
                 if (cmd == null)
-                    throw new ConsoleException("missing build command in build {0}", build.Selector);
+                    throw new ConsoleException("missing build command in build {0}", build.Name);
 
-                TraceExec(cmd.LValue, Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Selector)));
+                TraceExec(cmd.LValue, Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
             }
         }
 
