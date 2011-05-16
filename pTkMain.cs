@@ -327,7 +327,7 @@ pTK [options] action [buildconfiguration...]
             try {
                 propertySheet = PropertySheet.Load(buildinfo);
             }
-            catch( PropertySheetParseException pspe) {
+            catch( EndUserParseException pspe) {
                 using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
                      Console.Write(pspe.Message);
                      Console.WriteLine("--found '{0}'", pspe.Token.Data);
