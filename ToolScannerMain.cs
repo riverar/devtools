@@ -147,7 +147,9 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
             Console.WriteLine("---------------------------------------------------------\r\n");
 
             var EXEs = Enumerable.Empty<string>();
-            EXEs = dirList.Aggregate(EXEs, (current, dir) => current.Union(Directory.EnumerateFiles(dir.GetFullPath(), "*.exe", SearchOption.AllDirectories)));
+            // EXEs = dirList.Aggregate(EXEs, (current, dir) => current.Union(Directory.EnumerateFiles(dir.GetFullPath(), "*.exe", SearchOption.AllDirectories)));
+            EXEs = dirList.Aggregate(EXEs, (current, dir) => current.Union(dir.GetFullPath().DirectoryEnumerateFilesSmarter("*.exe", SearchOption.AllDirectories) ));
+            // "".DirectoryEnumerateFilesSmarter("*.exe", SearchOption.AllDirectories)
             
 
             var matchPatterns = new[] {
@@ -165,6 +167,7 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
                 "*idl*.exe",
 
                 "*link*.exe",
+                "*ld*.exe",
                 "*lib*.exe",
 
                 "*asm*.exe",
@@ -212,8 +215,9 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
                     Console.WriteLine("   {0}", exe);
                 } catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
-                    Console.WriteLine(e.StackTrace);
+                    Console.WriteLine("{0} ===== {1}",exe, e.Message);
+                    // Console.WriteLine(e.Message);
+                    // Console.WriteLine(e.StackTrace);
                 }
             }
 
@@ -301,7 +305,7 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
                 
             }
 
-            StringsUtility.Value.Exec(@"""{0}""",binaryPath);
+            StringsUtility.Value.Exec(@"/accepteula ""{0}""",binaryPath);
 
             var rx = new Regex(@"\S*\.dll",RegexOptions.Multiline);
 
