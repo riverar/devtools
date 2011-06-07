@@ -48,7 +48,7 @@ namespace QuickTool {
         public LanguageChooser() {
             InitializeComponent();
             lbLanguages.Items.AddRange(languages.Keys.ToArray());
-            lbLanguages.SelectedItem = QuickSettings.StringSetting["lastBrushFile"] ?? "CSharp";
+            lbLanguages.SelectedItem = RegistryView.ApplicationUser["#lastBrushFile"].StringValue ?? "CSharp";
             btnOK.Click += Ok;
             lbLanguages.DoubleClick += Ok;
 
@@ -73,7 +73,7 @@ namespace QuickTool {
 
         private void Ok(object sender, EventArgs e) {
             brushFile = lbLanguages.SelectedItem.ToString();
-            QuickSettings.StringSetting["lastBrushFile"] = brushFile;
+            RegistryView.ApplicationUser["#lastBrushFile"].StringValue = brushFile;
             brushName = languages[brushFile];
             ok = true;
             Hide();

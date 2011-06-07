@@ -409,49 +409,49 @@ namespace QuickTool {
         }
 
         public void SaveSettings() {
-            QuickSettings.StringSetting["bit.ly-username"] = bitlyUserId.Text;
-            QuickSettings.EncryptedStringSetting["bit.ly-password"] = bitlyApiKey.Text;
+            RegistryView.ApplicationUser["#bit.ly-username"].StringValue = bitlyUserId.Text;
+            RegistryView.ApplicationUser["#bit.ly-password"].EncryptedStringValue = bitlyApiKey.Text;
 
-            QuickSettings.StringSetting["ftp-server"] = ftpServer.Text;
-            QuickSettings.StringSetting["ftp-username"] = ftpUsername.Text;
-            QuickSettings.EncryptedStringSetting["ftp-password"] = ftpPassword.Text;
-            QuickSettings.StringSetting["ftp-folder"] = ftpFolder.Text;
-            QuickSettings.StringSetting["image-filename-template"] = imageFilename.Text;
-            QuickSettings.StringSetting["image-finishedurl-template"] = httpUrlTemplate.Text;
-            QuickSettings.BoolSetting["enable-audio-cues"] = cbAudioCues.Checked;
-            QuickSettings.BoolSetting["enable-auto-bitly"] = cbAutoBitly.Checked;
+            RegistryView.ApplicationUser["#ftp-server"].StringValue = ftpServer.Text;
+            RegistryView.ApplicationUser["#ftp-username"].StringValue = ftpUsername.Text;
+            RegistryView.ApplicationUser["#ftp-password"].EncryptedStringValue = ftpPassword.Text;
+            RegistryView.ApplicationUser["#ftp-folder"].StringValue = ftpFolder.Text;
+            RegistryView.ApplicationUser["#image-filename-template"].StringValue = imageFilename.Text;
+            RegistryView.ApplicationUser["#image-finishedurl-template"].StringValue = httpUrlTemplate.Text;
+            RegistryView.ApplicationUser["#enable-audio-cues"].BoolValue = cbAudioCues.Checked;
+            RegistryView.ApplicationUser["#enable-auto-bitly"].BoolValue = cbAutoBitly.Checked;
 
-            QuickSettings.StringSetting["syntaxhighlighter-prefix-path"] = syntaxhighlighterPrefixPath.Text;
+            RegistryView.ApplicationUser["#syntaxhighlighter-prefix-path"].StringValue = syntaxhighlighterPrefixPath.Text;
 
             if (quickUploaderHotkeyLabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
-                QuickSettings.StringSetting["quick-uploader-hotkey"] = quickUploaderHotkeyLabel.Text;
+                RegistryView.ApplicationUser["#quick-uploader-hotkey"].StringValue = quickUploaderHotkeyLabel.Text;
             }
 
             if (quickSourceHotkeyLabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
-                QuickSettings.StringSetting["quick-source-hotkey"] = quickSourceHotkeyLabel.Text;
+                RegistryView.ApplicationUser["#quick-source-hotkey"].StringValue = quickSourceHotkeyLabel.Text;
             }
 
             if (manualBitlylabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
-                QuickSettings.StringSetting["manual-bitly-hotkey"] = manualBitlylabel.Text;
+                RegistryView.ApplicationUser["#manual-bitly-hotkey"].StringValue = manualBitlylabel.Text;
             }
         }
 
         public void LoadSettings() {
-            bitlyUserId.Text = QuickSettings.StringSetting["bit.ly-username"] ?? "";
-            bitlyApiKey.Text = QuickSettings.EncryptedStringSetting["bit.ly-password"] ?? "";
+            bitlyUserId.Text = RegistryView.ApplicationUser["#bit.ly-username"].StringValue ?? "";
+            bitlyApiKey.Text = RegistryView.ApplicationUser["#bit.ly-password"].EncryptedStringValue ?? "";
 
-            ftpServer.Text = QuickSettings.StringSetting["ftp-server"] ?? "";
-            ftpUsername.Text = QuickSettings.StringSetting["ftp-username"] ?? "";
-            ftpPassword.Text = QuickSettings.EncryptedStringSetting["ftp-password"] ?? "";
-            ftpFolder.Text = QuickSettings.StringSetting["ftp-folder"] ?? "";
-            imageFilename.Text = QuickSettings.StringSetting["image-filename-template"] ?? "file-{date}-{time}-{counter}.png";
-            httpUrlTemplate.Text = QuickSettings.StringSetting["image-finishedurl-template"] ?? "http://servername.com/path/to/{0}";
-            cbAudioCues.Checked = QuickSettings.BoolSetting["enable-audio-cues"];
-            cbAutoBitly.Checked = QuickSettings.BoolSetting["enable-auto-bitly"];
-            quickUploaderHotkeyLabel.Text = QuickSettings.StringSetting["quick-uploader-hotkey"] ?? "Alt+Control+NumPad9";
-            quickSourceHotkeyLabel.Text = QuickSettings.StringSetting["quick-source-hotkey"] ?? "Alt+Control+NumPad6";
-            manualBitlylabel.Text = QuickSettings.StringSetting["manual-bitly-hotkey"] ?? "Alt+Control+NumPad3";
-            syntaxhighlighterPrefixPath.Text = QuickSettings.StringSetting["syntaxhighlighter-prefix-path"] ?? "";
+            ftpServer.Text = RegistryView.ApplicationUser["#ftp-server"].StringValue ?? "";
+            ftpUsername.Text = RegistryView.ApplicationUser["#ftp-username"].StringValue ?? "";
+            ftpPassword.Text = RegistryView.ApplicationUser["#ftp-password"].EncryptedStringValue ?? "";
+            ftpFolder.Text = RegistryView.ApplicationUser["#ftp-folder"].StringValue ?? "";
+            imageFilename.Text = RegistryView.ApplicationUser["#image-filename-template"].StringValue ?? "file-{date}-{time}-{counter}.png";
+            httpUrlTemplate.Text = RegistryView.ApplicationUser["#image-finishedurl-template"].StringValue ?? "http://servername.com/path/to/{0}";
+            cbAudioCues.Checked = RegistryView.ApplicationUser["#enable-audio-cues"].BoolValue;
+            cbAutoBitly.Checked = RegistryView.ApplicationUser["#enable-auto-bitly"].BoolValue;
+            quickUploaderHotkeyLabel.Text = RegistryView.ApplicationUser["#quick-uploader-hotkey"].StringValue ?? "Alt+Control+NumPad9";
+            quickSourceHotkeyLabel.Text = RegistryView.ApplicationUser["#quick-source-hotkey"].StringValue ?? "Alt+Control+NumPad6";
+            manualBitlylabel.Text = RegistryView.ApplicationUser["#manual-bitly-hotkey"].StringValue ?? "Alt+Control+NumPad3";
+            syntaxhighlighterPrefixPath.Text = RegistryView.ApplicationUser["#syntaxhighlighter-prefix-path"].StringValue ?? "";
         }
 
         private void SettingsFormKeyDown(object sender, KeyEventArgs e) {

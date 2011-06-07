@@ -52,11 +52,11 @@ namespace QuickTool {
         private readonly Dictionary<string, string> bitlyCache = new Dictionary<string, string>();
 
         private static bool AudioCues {
-            get { return QuickSettings.BoolSetting["enable-audio-cues"]; }
+            get { return RegistryView.ApplicationUser["#enable-audio-cues"].BoolValue; }
         }
 
         private static bool AutoBitly {
-            get { return QuickSettings.BoolSetting["enable-auto-bitly"]; }
+            get { return RegistryView.ApplicationUser["#enable-auto-bitly"].BoolValue; }
         }
 
         public QtAppContext() {
@@ -86,9 +86,9 @@ namespace QuickTool {
         private FTP Connect() {
             try {
                 var ftp = new FTP {
-                    Server = QuickSettings.StringSetting["ftp-server"],
-                    User = QuickSettings.StringSetting["ftp-username"],
-                    Password = QuickSettings.EncryptedStringSetting["ftp-password"]
+                    Server = RegistryView.ApplicationUser["#ftp-server"].StringValue,
+                    User = RegistryView.ApplicationUser["#ftp-username"].StringValue,
+                    Password = RegistryView.ApplicationUser["#ftp-password"].EncryptedStringValue
                 };
                 ftp.Connect();
                 return ftp;
@@ -131,9 +131,9 @@ namespace QuickTool {
 
             dispatcher = Dispatcher.CurrentDispatcher;
 
-            quickSourceHotkey = new SystemHotkey {Shortcut = QuickSettingsEnum<Keys>.Setting["quick-source-hotkey"]};
-            quickUploaderHotkey = new SystemHotkey {Shortcut = QuickSettingsEnum<Keys>.Setting["quick-uploader-hotkey"]};
-            bitlyHotkey = new SystemHotkey {Shortcut = QuickSettingsEnum<Keys>.Setting["manual-bitly-hotkey"]};
+            quickSourceHotkey = new SystemHotkey { Shortcut = RegistryView.ApplicationUser["#quick-source-hotkey"].GetEnumValue<Keys>() };
+            quickUploaderHotkey = new SystemHotkey { Shortcut = RegistryView.ApplicationUser["#quick-uploader-hotkey"].GetEnumValue<Keys>() };
+            bitlyHotkey = new SystemHotkey { Shortcut = RegistryView.ApplicationUser["#manual-bitly-hotkey"].GetEnumValue<Keys>() };
 
             quickUploaderHotkey.Pressed += ((x, y) => UploadClipboardContents());
             bitlyHotkey.Pressed += ((x, y) => {
@@ -177,9 +177,9 @@ namespace QuickTool {
 
             settingsForm.VisibleChanged += (x, y) => {
                 if (!settingsForm.Visible) {
-                    quickUploaderHotkey.Shortcut = QuickSettingsEnum<Keys>.Setting["quick-uploader-hotkey"];
-                    quickSourceHotkey.Shortcut = QuickSettingsEnum<Keys>.Setting["quick-source-hotkey"];
-                    bitlyHotkey.Shortcut = QuickSettingsEnum<Keys>.Setting["manual-bitly-hotkey"];
+                    quickUploaderHotkey.Shortcut = RegistryView.ApplicationUser["#quick-uploader-hotkey"].GetEnumValue<Keys>();
+                    quickSourceHotkey.Shortcut = RegistryView.ApplicationUser["#quick-source-hotkey"].GetEnumValue<Keys>();
+                    bitlyHotkey.Shortcut = RegistryView.ApplicationUser["#manual-bitly-hotkey"].GetEnumValue<Keys>();
                 }
             };
 
@@ -220,7 +220,7 @@ SyntaxHighlighter.defaults['toolbar'] = false;
 SyntaxHighlighter.all()
 </script>
 </body></html>";
-            var pfxPath = QuickSettings.StringSetting["syntaxhighlighter-prefix-path"] ?? "";
+            var pfxPath = RegistryView.ApplicationUser["#syntaxhighlighter-prefix-path"].StringValue ?? "";
             var html = htmlTemplate.format(pfxPath, brushName, brushFile,
                 clipSource.Replace("]]>", "] ] >").Replace("</script>", "</scr ipt>"));
 
@@ -231,9 +231,9 @@ SyntaxHighlighter.all()
                         return;
                     }
 
-                    ftp.ChangeDir(QuickSettings.StringSetting["ftp-folder"]);
+                    ftp.ChangeDir(RegistryView.ApplicationUser["#ftp-folder"].StringValue);
                     var remoteFilename =
-                        Path.ChangeExtension(QuickSettings.StringSetting["image-filename-template"].FormatFilename(), "html");
+                        Path.ChangeExtension(RegistryView.ApplicationUser["#image-filename-template"].StringValue.FormatFilename(), "html");
 
                     using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(html))) {
                         stream.Seek(0, SeekOrigin.Begin);
@@ -241,7 +241,7 @@ SyntaxHighlighter.all()
                     }
 
                     Invoke(() => {
-                        var finishedUrl = QuickSettings.StringSetting["image-finishedurl-template"].format(remoteFilename);
+                        var finishedUrl = RegistryView.ApplicationUser["#image-finishedurl-template"].StringValue.format(remoteFilename);
                         ShowBalloonTip("Text uploaded", finishedUrl, ToolTipIcon.Info);
                         try {
                             if (AudioCues) {
@@ -271,7 +271,7 @@ SyntaxHighlighter.all()
 
             if (dataObject.ContainsImage()) {
                 ShowBalloonTip("Helpful Hint",
-                    "Press " + QuickSettings.StringSetting["quick-uploader-hotkey"] + " to upload image to FTP",
+                    "Press " + RegistryView.ApplicationUser["#quick-uploader-hotkey"].StringValue + " to upload image to FTP",
                     ToolTipIcon.Info);
             }
 
@@ -322,8 +322,8 @@ SyntaxHighlighter.all()
                     var bitly = new UriBuilder("http", "api.bit.ly", 80, "/v3/shorten");
                     bitly.Query = string.Format("format={0}&longUrl={1}&domain={2}&login={3}&apiKey={4}", "txt",
                         Uri.EscapeDataString(uri.AbsoluteUri), "j.mp",
-                        QuickSettings.StringSetting["bit.ly-username"],
-                        QuickSettings.EncryptedStringSetting["bit.ly-password"]);
+                        RegistryView.ApplicationUser["#bit.ly-username"].StringValue,
+                        RegistryView.ApplicationUser["#bit.ly-password"].EncryptedStringValue);
 
                     var request = (HttpWebRequest) WebRequest.Create(bitly.Uri);
                     request.BeginGetResponse(x => {
@@ -397,7 +397,7 @@ SyntaxHighlighter.all()
                 else if (dataObject.ContainsImage()) {
                     using (var img = dataObject.GetImage()) {
                         stream = new MemoryStream();
-                        img.Save(stream, Path.GetExtension(QuickSettings.StringSetting["image-filename-template"])
+                        img.Save(stream, Path.GetExtension(RegistryView.ApplicationUser["#image-filename-template"].StringValue)
                             .Equals(".jpg", StringComparison.CurrentCultureIgnoreCase)
                             ? ImageFormat.Jpeg
                             : ImageFormat.Png);
@@ -418,10 +418,10 @@ SyntaxHighlighter.all()
                             return;
                         }
 
-                        ftp.ChangeDir(QuickSettings.StringSetting["ftp-folder"]);
+                        ftp.ChangeDir(RegistryView.ApplicationUser["#ftp-folder"].StringValue);
 
                         if (stream != null) {
-                            remoteFilename = QuickSettings.StringSetting["image-filename-template"].FormatFilename();
+                            remoteFilename = RegistryView.ApplicationUser["#image-filename-template"].StringValue.FormatFilename();
                             ftp.OpenUpload(stream, stream.Length, remoteFilename, false);
                             ftp.DoUploadUntilComplete();
                             stream.Close();
@@ -448,11 +448,11 @@ SyntaxHighlighter.all()
                                         html +=
                                             @"<tr><td><a href=""{0}"" >{1}</a></td><td></td><td align='right'>{2:n0}</td></tr>".
                                                 format(
-                                                    QuickSettings.StringSetting["image-finishedurl-template"].format(remoteFilename),
+                                                     RegistryView.ApplicationUser["#image-finishedurl-template"].StringValue.format(remoteFilename),
                                                     remoteFilename, new FileInfo(subFile).Length);
 
                                         ftp.ChangeDir("/");
-                                        ftp.ChangeDir(QuickSettings.StringSetting["ftp-folder"]);
+                                        ftp.ChangeDir(RegistryView.ApplicationUser["#ftp-folder"].StringValue);
                                     }
                                 }
                                 else {
@@ -465,7 +465,7 @@ SyntaxHighlighter.all()
                                         html +=
                                             @"<tr><td><a href=""{0}"" >{1}</a></td><td></td><td align='right'>{2:n0}</td></tr>".
                                                 format(
-                                                    QuickSettings.StringSetting["image-finishedurl-template"].format(remoteFilename),
+                                                     RegistryView.ApplicationUser["#image-finishedurl-template"].StringValue.format(remoteFilename),
                                                     remoteFilename, new FileInfo(file).Length);
                                     }
                                     catch {
@@ -476,7 +476,7 @@ SyntaxHighlighter.all()
                             if (filesUploaded > 1) {
                                 html += @"</table></body></html>";
                                 remoteFilename =
-                                    Path.ChangeExtension(QuickSettings.StringSetting["image-filename-template"].FormatFilename(),
+                                    Path.ChangeExtension(RegistryView.ApplicationUser["#image-filename-template"].StringValue.FormatFilename(),
                                         "html");
 
                                 try {
@@ -497,7 +497,7 @@ SyntaxHighlighter.all()
                         /* suppress */
                     }
                     Invoke(() => {
-                        var finishedUrl = QuickSettings.StringSetting["image-finishedurl-template"].format(remoteFilename);
+                        var finishedUrl = RegistryView.ApplicationUser["#image-finishedurl-template"].StringValue.format(remoteFilename);
                         ShowBalloonTip("Image uploaded", finishedUrl, ToolTipIcon.Info);
                         try {
                             Clipboard.SetDataObject(finishedUrl, true, 3, 100);
