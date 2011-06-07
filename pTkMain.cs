@@ -303,7 +303,7 @@ pTK [options] action [buildconfiguration...]
                 hgexe = new ProcessUtility(f);
             }
 
-            setenvcmd = ProgramFinder.ProgramFiles.ScanForFile("setenv.cmd");
+            setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSDK.ScanForFile("setenv.cmd");
             if( string.IsNullOrEmpty(setenvcmd)) {
                 return Fail("Can not find setenv.cmd (required to perform builds)");
             }
@@ -401,13 +401,14 @@ pTK [options] action [buildconfiguration...]
 
         private void TraceExec( string script, string traceFile ) {
             if (script.Contains("\r")) {
-                script = 
+                script =
 @"@echo off
 @setlocal 
+{1}:
 @cd ""{0}""
 
 
-".format(Environment.CurrentDirectory) + script;
+".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 var scriptpath = WriteTempScript(script);
                 traceexe.ExecNoRedirections("--nologo --output-file={1} cmd.exe /c {0}", scriptpath, traceFile);
             }
@@ -430,10 +431,11 @@ pTK [options] action [buildconfiguration...]
                 script =
 @"@echo off
 @setlocal 
+{1}:
 @cd ""{0}""
 
 
-".format(Environment.CurrentDirectory) + script;
+".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 var scriptpath = WriteTempScript(script);
                 cmdexe.ExecNoRedirections("/c {0}", scriptpath);
             }
