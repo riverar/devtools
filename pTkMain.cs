@@ -410,10 +410,10 @@ pTK [options] action [buildconfiguration...]
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 var scriptpath = WriteTempScript(script);
-                traceexe.ExecNoRedirections("--nologo --output-file={1} cmd.exe /c {0}", scriptpath, traceFile);
+                traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", scriptpath, traceFile);
             }
             else {
-                traceexe.ExecNoRedirections("--nologo --output-file={1} cmd.exe /c {0}", script, traceFile);
+                traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", script, traceFile);
             }
         }
 
@@ -437,10 +437,10 @@ pTK [options] action [buildconfiguration...]
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 var scriptpath = WriteTempScript(script);
-                cmdexe.ExecNoRedirections("/c {0}", scriptpath);
+                cmdexe.ExecNoRedirections(@"/c ""{0}""", scriptpath);
             }
             else {
-                cmdexe.ExecNoRedirections("/c {0}", script);
+                cmdexe.ExecNoRedirections(@"/c ""{0}""", script);
             }
             if( cmdexe.ExitCode != 0 ) {
                 throw new ConsoleException("Command Exited with value {0}", cmdexe.ExitCode);
