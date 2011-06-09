@@ -60,23 +60,23 @@ pTK [options] action [buildconfiguration...]
 
 ";
 
-        private ProcessUtility cmdexe;
-        private ProcessUtility gitexe;
-        private ProcessUtility hgexe;
-        private ProcessUtility ptk;
-        private ProcessUtility traceexe;
+        private ProcessUtility _cmdexe;
+        private ProcessUtility _gitexe;
+        private ProcessUtility _hgexe;
+        private ProcessUtility _ptk;
+        private ProcessUtility _traceexe;
         
         
 
-        private string gitcmd;
-        private string setenvcmd;
-        private bool UseGit;
-        private bool UseHg;
-        private bool verbose;
-        private Dictionary<string, string> originalEnvironment = GetEnvironment();
-        private bool showTools;
-        private List<string> tmpFiles= new List<string>();
-        private string searchPaths = "";
+        private string _gitcmd;
+        private string _setenvcmd;
+        private bool _useGit;
+        private bool _useHg;
+        private bool _verbose;
+        private readonly Dictionary<string, string> _originalEnvironment = GetEnvironment();
+        private bool _showTools;
+        private readonly List<string> _tmpFiles= new List<string>();
+        private string _searchPaths = "";
 
         /// <summary>
         /// Entry Point
@@ -96,36 +96,36 @@ pTK [options] action [buildconfiguration...]
             foreach( var key in Environment.GetEnvironmentVariables().Keys ) {
                 Environment.SetEnvironmentVariable(key.ToString(),string.Empty);    
             }
-            foreach (var key in originalEnvironment.Keys) {
-                Environment.SetEnvironmentVariable(key, originalEnvironment[key]);    
+            foreach (var key in _originalEnvironment.Keys) {
+                Environment.SetEnvironmentVariable(key, _originalEnvironment[key]);    
             }
         }
 
         private void SetVC10Compiler(string arch) {
-            var target_cpu = Environment.GetEnvironmentVariable("TARGET_CPU");
+            var targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
 
-            if (string.IsNullOrEmpty(target_cpu) || (target_cpu == "x64" && arch == "x86") || (target_cpu == "x86" && arch != "x86")) {
+            if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
 
-                if (string.IsNullOrEmpty(setenvcmd))
+                if (string.IsNullOrEmpty(_setenvcmd))
                     throw new Exception("Cannot locate SDK SetEnv command. Please install the Windows SDK");
 
-                cmdexe.Exec(@"/c ""{0}"" /{1} & set ", setenvcmd, arch == "x86" ? "x86" : "x64");
+                _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
 
-                foreach (var x in cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
+                foreach (var x in _cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
                     if (x.Contains("=")) {
                         var v = x.Split('=');
                         Environment.SetEnvironmentVariable(v[0], v[1]);
                     }
 
-                target_cpu = Environment.GetEnvironmentVariable("TARGET_CPU");
-                if (string.IsNullOrEmpty(target_cpu) || (target_cpu == "x64" && arch == "x86") || (target_cpu == "x86" && arch != "x86")) {
+                targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
+                if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
                     throw new Exception("Cannot set the SDK environment. Please install the Windows SDK and use the setenv.cmd command to set your environment");
                 }
             }
         }
 
         private void SetMingwCompiler( string arch) {
-            var mingwProgramFinder = new ProgramFinder("", Directory.GetDirectories(@"c:\\", "M*").Aggregate(searchPaths+@"%ProgramFiles(x86)%;%ProgramFiles%;%ProgramW6432%", (current, dir) => dir + ";" + current));
+            var mingwProgramFinder = new ProgramFinder("", Directory.GetDirectories(@"c:\\", "M*").Aggregate(_searchPaths+@"%ProgramFiles(x86)%;%ProgramFiles%;%ProgramW6432%", (current, dir) => dir + ";" + current));
 
             var gcc = mingwProgramFinder.ScanForFile("mingw32-gcc.exe");
             var msysmnt = mingwProgramFinder.ScanForFile("msysmnt.exe");
@@ -196,23 +196,23 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
-        private int main(string[] args) {
+        private int main(IEnumerable<string> args) {
             var options = args.Switches();
             var parameters = args.Parameters();
             var buildinfo = @".\COPKG\.buildinfo".GetFullPath();
 
             Console.CancelKeyPress += (x, y) => {
                 Console.WriteLine("Stopping ptk.");
-                if (cmdexe != null)
-                    cmdexe.Kill();
-                if (gitexe != null)
-                    gitexe.Kill();
-                if (hgexe != null)
-                    hgexe.Kill();
-                if( ptk != null )
-                    ptk.Kill();
-                if( traceexe != null ) {
-                    traceexe.Kill();
+                if (_cmdexe != null)
+                    _cmdexe.Kill();
+                if (_gitexe != null)
+                    _gitexe.Kill();
+                if (_hgexe != null)
+                    _hgexe.Kill();
+                if( _ptk != null )
+                    _ptk.Kill();
+                if( _traceexe != null ) {
+                    _traceexe.Kill();
                 }
             };
 
@@ -228,7 +228,7 @@ pTK [options] action [buildconfiguration...]
                         break;
 
                     case "verbose":
-                        verbose = true; 
+                        _verbose = true; 
                         break;
 
                     case "load":
@@ -237,7 +237,7 @@ pTK [options] action [buildconfiguration...]
                     
                     case "mingw-install":
                     case "msys-install":
-                        searchPaths += argumentParameters.LastOrDefault().GetFullPath() + ";";
+                        _searchPaths += argumentParameters.LastOrDefault().GetFullPath() + ";";
                         break;
 
                     case "rescan-tools":
@@ -245,7 +245,7 @@ pTK [options] action [buildconfiguration...]
                         break;
 
                     case "show-tools":
-                        showTools = true;
+                        _showTools = true;
                         break;
 
                     case "help":
@@ -268,59 +268,59 @@ pTK [options] action [buildconfiguration...]
 
             #endregion
 
-            cmdexe = new ProcessUtility("cmd.exe");
-            traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+            _cmdexe = new ProcessUtility("cmd.exe");
+            _traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
 
-            ptk = new ProcessUtility( Assembly.GetEntryAssembly().Location );
+            _ptk = new ProcessUtility( Assembly.GetEntryAssembly().Location );
 
-            UseGit = Directory.Exists(".git".GetFullPath());
-            UseHg = UseGit ? false : Directory.Exists(".hg".GetFullPath());
+            _useGit = Directory.Exists(".git".GetFullPath());
+            _useHg = _useGit ? false : Directory.Exists(".hg".GetFullPath());
 
-            if( !(UseGit||UseHg)) {
+            if( !(_useGit||_useHg)) {
                 return Fail("Source must be checked out using git or hg-git.");
             }
             
-            if( UseGit ) {
-                if (verbose) {
+            if( _useGit ) {
+                if (_verbose) {
                     Console.WriteLine("Using git for verification");
                 }
-                gitcmd = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.cmd");
-                gitexe = null;
-                if (string.IsNullOrEmpty(gitcmd)) {
+                _gitcmd = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.cmd");
+                _gitexe = null;
+                if (string.IsNullOrEmpty(_gitcmd)) {
                     var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
                     if( string.IsNullOrEmpty(f)) {
                          return Fail("Can not find git.cmd or git.exe (required to perform verification.)");
                     }
-                    gitexe = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe"));
+                    _gitexe = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe"));
                 }
             }
 
-            if( UseHg ) {
+            if( _useHg ) {
                 var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
                 if (string.IsNullOrEmpty(f)) {
                     return Fail("Can not find hg.exe (required to perform verification.)");
                 }
-                hgexe = new ProcessUtility(f);
+                _hgexe = new ProcessUtility(f);
             }
 
-            setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSDK.ScanForFile("setenv.cmd");
-            if( string.IsNullOrEmpty(setenvcmd)) {
+            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSDK.ScanForFile("setenv.cmd");
+            if( string.IsNullOrEmpty(_setenvcmd)) {
                 return Fail("Can not find setenv.cmd (required to perform builds)");
             }
 
-            if (showTools) {
-                if( UseGit) {
-                    Console.Write("Git: {0}", gitcmd ?? "");
-                    if (gitexe != null) {
-                        Console.WriteLine(gitexe.Executable ?? "");
+            if (_showTools) {
+                if( _useGit) {
+                    Console.Write("Git: {0}", _gitcmd ?? "");
+                    if (_gitexe != null) {
+                        Console.WriteLine(_gitexe.Executable ?? "");
                     }
                 } 
-                if( UseHg) {
-                    Console.WriteLine("hg: {0}", hgexe.Executable);
+                if( _useHg) {
+                    Console.WriteLine("hg: {0}", _hgexe.Executable);
                 }
-                Console.WriteLine("SDK Setenv: {0}", setenvcmd);
-                Console.WriteLine("ptk: {0}", ptk.Executable);
-                Console.WriteLine("trace: {0}", traceexe.Executable);
+                Console.WriteLine("SDK Setenv: {0}", _setenvcmd);
+                Console.WriteLine("ptk: {0}", _ptk.Executable);
+                Console.WriteLine("trace: {0}", _traceexe.Executable);
             }
 
             PropertySheet propertySheet = null;
@@ -400,7 +400,7 @@ pTK [options] action [buildconfiguration...]
         }
 
         private void TraceExec( string script, string traceFile ) {
-            if (script.Contains("\r")) {
+            if (script.Contains("\r") || script.Contains("\n") ) {
                 script =
 @"@echo off
 @setlocal 
@@ -410,24 +410,24 @@ pTK [options] action [buildconfiguration...]
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 var scriptpath = WriteTempScript(script);
-                traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", scriptpath, traceFile);
+                _traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", scriptpath, traceFile);
             }
             else {
-                traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", script, traceFile);
+                _traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", script, traceFile);
             }
         }
 
         private string WriteTempScript(string text) {
             var tmpFilename = Path.GetTempFileName();
-            tmpFiles.Add(tmpFilename);
+            _tmpFiles.Add(tmpFilename);
             tmpFilename += ".cmd";
-            tmpFiles.Add(tmpFilename);
+            _tmpFiles.Add(tmpFilename);
             File.WriteAllText(tmpFilename, text);
 
             return tmpFilename;
         }
         private void Exec(string script) {
-            if (script.Contains("\r")) {
+            if (script.Contains("\r") || script.Contains("\n") ) {
                 script =
 @"@echo off
 @setlocal 
@@ -437,13 +437,13 @@ pTK [options] action [buildconfiguration...]
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 var scriptpath = WriteTempScript(script);
-                cmdexe.ExecNoRedirections(@"/c ""{0}""", scriptpath);
+                _cmdexe.ExecNoRedirections(@"/c ""{0}""", scriptpath);
             }
             else {
-                cmdexe.ExecNoRedirections(@"/c ""{0}""", script);
+                _cmdexe.ExecNoRedirections(@"/c ""{0}""", script);
             }
-            if( cmdexe.ExitCode != 0 ) {
-                throw new ConsoleException("Command Exited with value {0}", cmdexe.ExitCode);
+            if( _cmdexe.ExitCode != 0 ) {
+                throw new ConsoleException("Command Exited with value {0}", _cmdexe.ExitCode);
             }
         }
 
@@ -485,8 +485,8 @@ pTK [options] action [buildconfiguration...]
                 }
 
                 Environment.CurrentDirectory = folder;
-                ptk.ExecNoRedirections("--nologo build {0}", config);
-                if (ptk.ExitCode != 0)
+                _ptk.ExecNoRedirections("--nologo build {0}", config);
+                if (_ptk.ExitCode != 0)
                     throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
 
                 Environment.CurrentDirectory = pwd;
@@ -544,10 +544,10 @@ pTK [options] action [buildconfiguration...]
         private void Status(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
                 IEnumerable<string> results = new string[] { };
-                if (UseGit) {
+                if (_useGit) {
                     results = Git("status -s");
                 }
-                else if (UseHg) {
+                else if (_useHg) {
                     results = Hg("status");
                 }
 
@@ -580,18 +580,18 @@ pTK [options] action [buildconfiguration...]
         }
 
         private IEnumerable<string> Git(string cmdLine) {
-            if( !string.IsNullOrEmpty(gitcmd) ) {
-                cmdexe.Exec(@"/c ""{0}"" {1}", gitcmd, cmdLine);
-                return from line in cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;
+            if( !string.IsNullOrEmpty(_gitcmd) ) {
+                _cmdexe.Exec(@"/c ""{0}"" {1}", _gitcmd, cmdLine);
+                return from line in _cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;
             } else {
-                gitexe.Exec(cmdLine);
-                return from line in gitexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;  
+                _gitexe.Exec(cmdLine);
+                return from line in _gitexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;  
             }
         }
 
         private IEnumerable<string> Hg(string cmdLine) {
-            hgexe.Exec(cmdLine);
-            return from line in hgexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;
+            _hgexe.Exec(cmdLine);
+            return from line in _hgexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;
         }
 
         #region fail/help/logo
