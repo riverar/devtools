@@ -200,7 +200,11 @@ pTK [options] action [buildconfiguration...]
         private int main(IEnumerable<string> args) {
             var options = args.Switches();
             var parameters = args.Parameters();
-            var buildinfo = @".\COPKG\.buildinfo".GetFullPath();
+            var tempBuildinfo = (from a in @".\COPKG\".DirectoryEnumerateFilesSmarter("*.buildinfo", SearchOption.TopDirectoryOnly)
+                                 orderby a.Length ascending
+                                 select a.GetFullPath()).FirstOrDefault();
+            //we'll just use the default even though it won't work so I don't need to change the code much :)
+            var buildinfo = tempBuildinfo ?? @".\COPKG\.buildinfo".GetFullPath();
 
             Console.CancelKeyPress += (x, y) => {
                 Console.WriteLine("Stopping ptk.");
