@@ -115,6 +115,7 @@ pTK [options] action [buildconfiguration...]
                     if (x.Contains("=")) {
                         var v = x.Split('=');
                         Environment.SetEnvironmentVariable(v[0], v[1]);
+                        Console.WriteLine("Setting ENV: [{0}]=[{1}]", v[0], v[1]);
                     }
 
                 targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
@@ -303,7 +304,7 @@ pTK [options] action [buildconfiguration...]
                 _hgexe = new ProcessUtility(f);
             }
 
-            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSDK.ScanForFile("setenv.cmd");
+            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd");
             if( string.IsNullOrEmpty(_setenvcmd)) {
                 return Fail("Can not find setenv.cmd (required to perform builds)");
             }
@@ -427,6 +428,8 @@ pTK [options] action [buildconfiguration...]
             return tmpFilename;
         }
         private void Exec(string script) {
+            
+
             if (script.Contains("\r") || script.Contains("\n") ) {
                 script =
 @"@echo off
@@ -436,6 +439,7 @@ pTK [options] action [buildconfiguration...]
 
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
+                Console.WriteLine(script);
                 var scriptpath = WriteTempScript(script);
                 _cmdexe.ExecNoRedirections(@"/c ""{0}""", scriptpath);
             }
