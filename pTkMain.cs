@@ -109,8 +109,10 @@ pTK [options] action [buildconfiguration...]
                 if (string.IsNullOrEmpty(_setenvcmd))
                     throw new Exception("Cannot locate SDK SetEnv command. Please install the Windows SDK");
 
+                Console.WriteLine(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
                 _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
 
+                
                 foreach (var x in _cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
                     if (x.Contains("=")) {
                         var v = x.Split('=');
@@ -120,6 +122,8 @@ pTK [options] action [buildconfiguration...]
 
                 targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
                 if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
+                    Console.WriteLine("Arch: {0}",arch);
+                    Console.WriteLine("TargetCPI: {0}",targetCpu);
                     throw new Exception("Cannot set the SDK environment. Please install the Windows SDK and use the setenv.cmd command to set your environment");
                 }
             }
@@ -308,7 +312,7 @@ pTK [options] action [buildconfiguration...]
                 _hgexe = new ProcessUtility(f);
             }
 
-            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd");
+            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd",filters:new [] {@"\Windows Azure SDK\**"});
             if( string.IsNullOrEmpty(_setenvcmd)) {
                 return Fail("Can not find setenv.cmd (required to perform builds)");
             }
@@ -466,7 +470,12 @@ pTK [options] action [buildconfiguration...]
                 if( cmd == null ) 
                     throw new ConsoleException("missing clean command in build {0}",build.Name);
 
-                Exec(cmd.LValue);
+                try {
+                    Exec(cmd.LValue);
+                } catch
+                {
+                    //ignoring any failures from clean command.
+                }
                 File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
             }
         }
