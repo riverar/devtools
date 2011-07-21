@@ -110,7 +110,7 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
                     case "default":
                         var drive = argumentParameters.Last();
                         var driveletter = string.IsNullOrEmpty(drive) ? 'c' : drive[0];
-                        parameters = new[] {@"{0}:\program files*", @"{0}:\cyg*", @"{0}:\ming*", @"{0}:\msys*",@"{0}:\*ddk*"}.Select(d => d.format(driveletter)).Aggregate(parameters, (current, path) => current.Add(path));
+                        parameters = new[] {@"{0}:\program files*", @"{0}:\cyg*", @"{0}:\ming*", @"{0}:\msys*",@"{0}:\*ddk*"}.Select(d => d.format(driveletter)).Aggregate(parameters, (current, path) => current.UnionSingleItem(path));
 
                         break;
 
