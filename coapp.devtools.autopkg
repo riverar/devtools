@@ -15,14 +15,14 @@ package
     display-name: "CoApp Developer tools";
     policy: 1.0;
     /*license: <path to license on disk> */
-    orig-location: "http://coapp.org/repository/coapp.devtools-1.0.6.128-any.msi";
+    orig-location: "http://coapp.org/repository/coapp.devtools-1.0.6.129-any.msi";
     feed-location: "http://coapp.org/repository/packages.atom.xml";
     binding-min: "1.0.6.0";
     binding-max: ($CURRENT-1);
 }
 
 dependencies {
-	add: "coapp.toolkit-1.0.6.128-any";
+	add: "coapp.toolkit-1.0.6.129-any";
 }
 
 identity
@@ -46,6 +46,7 @@ exe-file[dllexport.exe]{
 exe-file[QuickTool.exe]{
 	global-bin: true;
 }
+
 
 
 
