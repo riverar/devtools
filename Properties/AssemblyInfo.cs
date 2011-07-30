@@ -11,10 +11,10 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CoApp.CLI")]
-[assembly: AssemblyDescription("CoApp command line utility")]
+[assembly: AssemblyTitle("CoApp Scan")]
+[assembly: AssemblyDescription("CoApp Source code scan uility")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("CoApp Command Line Interface")]
+[assembly: AssemblyProduct("CoApp")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
