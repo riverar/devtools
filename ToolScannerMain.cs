@@ -19,7 +19,14 @@ namespace CoApp.ToolScanner {
     using Toolkit.Win32;
 
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <remarks></remarks>
     internal class ToolScannerMain {
+        /// <summary>
+        /// 
+        /// </summary>
         private const string help =
             @"
 Usage:
@@ -66,17 +73,41 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
     
 
 ";
+        /// <summary>
+        /// 
+        /// </summary>
         private static readonly Lazy<ProgramFinder> _programFinder = new Lazy<ProgramFinder>(() => new ProgramFinder("", @"{0}\optional;%SystemDrive%\WinDDK;%ProgramFiles(x86)%;%ProgramFiles%;%ProgramW6432%".format(
             Path.GetDirectoryName(Assembly.GetEntryAssembly().Location))));
+        /// <summary>
+        /// 
+        /// </summary>
         private static readonly Lazy<ProcessUtility> StringsUtility = new Lazy<ProcessUtility>(() => new ProcessUtility(_programFinder.Value.ScanForFile("sysinternals_strings.exe")));
 
+        /// <summary>
+        /// 
+        /// </summary>
         private bool send;
+        /// <summary>
+        /// 
+        /// </summary>
         private string outputfilename;
 
+        /// <summary>
+        /// Mains the specified args.
+        /// </summary>
+        /// <param name="args">The args.</param>
+        /// <returns></returns>
+        /// <remarks></remarks>
         private static int Main(string[] args) {
             return new ToolScannerMain().main(args);
         }
 
+        /// <summary>
+        /// Mains the specified args.
+        /// </summary>
+        /// <param name="args">The args.</param>
+        /// <returns></returns>
+        /// <remarks></remarks>
         private int main(IEnumerable<string> args) {
             var options = args.Switches();
             var parameters = args.Parameters();
@@ -244,6 +275,12 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
             return 0;
         }
 
+        /// <summary>
+        /// Interrogates the binary.
+        /// </summary>
+        /// <param name="binaryPath">The binary path.</param>
+        /// <returns></returns>
+        /// <remarks></remarks>
         public XElement InterrogateBinary(string binaryPath) {
             binaryPath = binaryPath.GetFullPath();
             var peInfo = PEInfo.Scan(binaryPath);
@@ -321,6 +358,13 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
 
         #region fail/help/logo
 
+        /// <summary>
+        /// Fails the specified text.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <param name="par">The par.</param>
+        /// <returns></returns>
+        /// <remarks></remarks>
         public static int Fail(string text, params object[] par) {
             Logo();
             using (new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black)) {
@@ -329,6 +373,11 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
             return 1;
         }
 
+        /// <summary>
+        /// Helps this instance.
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks></remarks>
         private static int Help() {
             Logo();
             using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
@@ -337,6 +386,10 @@ It looks for Microsoft, Cygwin, MinGW, Watcom, Borland, IBM intel compilers.
             return 0;
         }
 
+        /// <summary>
+        /// Logoes this instance.
+        /// </summary>
+        /// <remarks></remarks>
         private static void Logo() {
             using (new ConsoleColors(ConsoleColor.Cyan, ConsoleColor.Black)) {
                 Assembly.GetEntryAssembly().Logo().Print();
