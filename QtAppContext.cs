@@ -228,7 +228,7 @@ SyntaxHighlighter.all()
             var html = htmlTemplate.format(pfxPath, brushName, brushFile,
                 clipSource.Replace("]]>", "] ] >").Replace("</script>", "</scr ipt>"));
 
-            CoTask.Factory.StartNew(() => {
+            Task.Factory.StartNew(() => {
                 try {
                     var ftp = Connect();
                     if (ftp == null) {
@@ -415,7 +415,7 @@ SyntaxHighlighter.all()
                     return;
                 }
 
-                CoTask.Factory.StartNew(() => {
+                Task.Factory.StartNew(() => {
                     try {
                         var ftp = Connect();
                         if (ftp == null) {
