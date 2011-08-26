@@ -222,15 +222,15 @@ pTK [options] action [buildconfiguration...]
                     _gitexe.Kill();
                 if (_hgexe != null)
                     _hgexe.Kill();
-                if( _ptk != null )
+                if (_ptk != null)
                     _ptk.Kill();
-                if( _traceexe != null ) {
+                if (_traceexe != null) {
                     _traceexe.Kill();
                 }
             };
 
 
-            #region Parse Options 
+            #region Parse Options
 
             foreach (string arg in options.Keys) {
                 IEnumerable<string> argumentParameters = options[arg];
@@ -241,13 +241,13 @@ pTK [options] action [buildconfiguration...]
                         break;
 
                     case "verbose":
-                        _verbose = true; 
+                        _verbose = true;
                         break;
 
                     case "load":
                         buildinfo = argumentParameters.LastOrDefault().GetFullPath();
                         break;
-                    
+
                     case "mingw-install":
                     case "msys-install":
                         _searchPaths += argumentParameters.LastOrDefault().GetFullPath() + ";";
@@ -271,7 +271,7 @@ pTK [options] action [buildconfiguration...]
             }
 
             // make sure that we're in the parent directory of the .buildinfo file.
-            Environment.CurrentDirectory= Path.GetDirectoryName(Path.GetDirectoryName(buildinfo));
+            Environment.CurrentDirectory = Path.GetDirectoryName(Path.GetDirectoryName(buildinfo));
 
             Logo();
 
@@ -282,53 +282,57 @@ pTK [options] action [buildconfiguration...]
             #endregion
 
             _cmdexe = new ProcessUtility("cmd.exe");
-            _traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+            var f = new ProgramFinder("").ScanForFile("trace.exe");
 
-            _ptk = new ProcessUtility( Assembly.GetEntryAssembly().Location );
+            if(!string.IsNullOrEmpty(f)) {
+                _traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+            }
+
+            _ptk = new ProcessUtility(Assembly.GetEntryAssembly().Location);
 
             _useGit = Directory.Exists(".git".GetFullPath());
             _useHg = _useGit ? false : Directory.Exists(".hg".GetFullPath());
 
-            if( !(_useGit||_useHg)) {
+            if (!(_useGit || _useHg)) {
                 return Fail("Source must be checked out using git or hg-git.");
             }
-            
-            if( _useGit ) {
+
+            if (_useGit) {
                 if (_verbose) {
                     Console.WriteLine("Using git for verification");
                 }
                 _gitcmd = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.cmd");
                 _gitexe = null;
                 if (string.IsNullOrEmpty(_gitcmd)) {
-                    var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
-                    if( string.IsNullOrEmpty(f)) {
-                         return Fail("Can not find git.cmd or git.exe (required to perform verification.)");
+                    f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
+                    if (string.IsNullOrEmpty(f)) {
+                        return Fail("Can not find git.cmd or git.exe (required to perform verification.)");
                     }
                     _gitexe = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe"));
                 }
             }
 
-            if( _useHg ) {
-                var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
+            if (_useHg) {
+                 f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
                 if (string.IsNullOrEmpty(f)) {
                     return Fail("Can not find hg.exe (required to perform verification.)");
                 }
                 _hgexe = new ProcessUtility(f);
             }
 
-            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd",filters:new [] {@"\Windows Azure SDK\**"});
-            if( string.IsNullOrEmpty(_setenvcmd)) {
+            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd", filters: new[] { @"\Windows Azure SDK\**" });
+            if (string.IsNullOrEmpty(_setenvcmd)) {
                 return Fail("Can not find setenv.cmd (required to perform builds)");
             }
 
             if (_showTools) {
-                if( _useGit) {
+                if (_useGit) {
                     Console.Write("Git: {0}", _gitcmd ?? "");
                     if (_gitexe != null) {
                         Console.WriteLine(_gitexe.Executable ?? "");
                     }
-                } 
-                if( _useHg) {
+                }
+                if (_useHg) {
                     Console.WriteLine("hg: {0}", _hgexe.Executable);
                 }
                 Console.WriteLine("SDK Setenv: {0}", _setenvcmd);
@@ -340,21 +344,21 @@ pTK [options] action [buildconfiguration...]
             try {
                 propertySheet = PropertySheet.Load(buildinfo);
             }
-            catch( EndUserParseException pspe) {
+            catch (EndUserParseException pspe) {
                 using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
-                     Console.Write(pspe.Message);
-                     Console.WriteLine("--found '{0}'", pspe.Token.Data);
+                    Console.Write(pspe.Message);
+                    Console.WriteLine("--found '{0}'", pspe.Token.Data);
                 }
-                
+
                 return Fail("Error parsing .buildinfo file");
             }
             var builds = from rule in propertySheet.Rules where rule.Name != "*" select rule;
-            if( parameters.Count() > 1 ) {
+            if (parameters.Count() > 1) {
                 var allbuilds = builds;
                 builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
             }
-            
-            if(builds.Count() == 0 ) {
+
+            if (builds.Count() == 0) {
                 return Fail("No valid build configurations selected.");
             }
 
@@ -362,7 +366,7 @@ pTK [options] action [buildconfiguration...]
                 switch (parameters.FirstOrDefault().ToLower()) {
                     case "build":
                         Build(builds);
-                        
+
                         break;
                     case "clean":
                         Clean(builds);
@@ -389,13 +393,13 @@ pTK [options] action [buildconfiguration...]
                     case "list":
                         Console.WriteLine("Buildinfo from [{0}]", buildinfo);
                         (from build in builds
-                            let compiler = build["compiler"].FirstOrDefault()
-                            let targets = build["targets"].FirstOrDefault()
-                            select new {
-                                Configuration = build.Name,
-                                Compiler = compiler != null ? compiler.LValue : "vc10-x86",
-                                Number_of_Outputs = targets != null ? targets.Values.Count() : 0
-                            }).ToTable().ConsoleOut();
+                         let compiler = build["compiler"].FirstOrDefault()
+                         let targets = build["targets"].FirstOrDefault()
+                         select new {
+                             Configuration = build.Name,
+                             Compiler = compiler != null ? compiler.LValue : "vc10-x86",
+                             Number_of_Outputs = targets != null ? targets.Values.Count() : 0
+                         }).ToTable().ConsoleOut();
                         break;
                     default:
                         return Fail("'{0}' is not a valid command. \r\n\r\n    Use --help for assistance.");
@@ -408,7 +412,7 @@ pTK [options] action [buildconfiguration...]
                 Console.WriteLine(e.StackTrace);
                 return Fail("   {0}", e.Message);
             }
-            
+
             return 0;
         }
 
