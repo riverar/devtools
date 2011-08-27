@@ -14,6 +14,7 @@ namespace CoApp.Ptk {
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using Toolkit.Configuration;
     using Toolkit.Exceptions;
     using Toolkit.Extensions;
     using Toolkit.Scripting.Languages.PropertySheet;
@@ -88,15 +89,29 @@ pTK [options] action [buildconfiguration...]
         /// </summary>
         private ProcessUtility _traceexe;
         
-        
+        private string _gitcmd;
+        // private string _setenvcmd;
+        // private string _vcvars;
         /// <summary>
         /// Command line to git.cmd
         /// </summary>
-        private string _gitcmd;
-        /// <summary>
-        /// Command line to setenv.cmd (prepare build environment)
-        /// </summary>
-        private string _setenvcmd;
+        // sdk batch file locations
+        private string _setenvcmd71;
+        private string _setenvcmd7;
+        private string _setenvcmd6;
+        private string _setenvcmdFeb2003;
+
+        private string _wdksetenvcmd7600;
+
+        // compiler batch file locations
+        private string _vcvarsallbat10;
+        private string _vcvarsallbat9;
+        private string _vcvarsallbat8;
+        private string _vcvarsallbat7;
+        private string _vcvarsallbat71;
+        private string _vcvars32bat;
+
+
         private bool _useGit;
         private bool _useHg;
         /// <summary>
@@ -149,35 +164,70 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
-        /// <summary>
-        /// Set up environment and paths to use the Visual C compiler
-        /// </summary>
-        /// <param name="arch">A string indicating the target platform. Must be either "x64" or "x86"</param>
-        private void SetVC10Compiler(string arch) {
+        private void SetVCCompiler(string compilerName, string compilerBatchFile, string arch) {
+
+            using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                Console.Write("Setting VC Compiler: ");
+            }
+            using (new ConsoleColors(ConsoleColor.Green, ConsoleColor.Black)) {
+                Console.Write(compilerName);
+            }
+            using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
+                Console.WriteLine(" for [{0}]", arch);
+            }
+
+
+            if (string.IsNullOrEmpty(compilerBatchFile))
+                throw new Exception("Cannot locate Visual C++ vcvars batch file command. Please install {0} (and use --rescan-tools). ".format(compilerName));
+
+            _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", compilerBatchFile, arch == "x86" ? "x86" : "x64");
+
+            foreach (var x in _cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)) {
+                if (x.Contains("=")) {
+                    var v = x.Split('=');
+                    Environment.SetEnvironmentVariable(v[0], v[1]);
+                    // Console.WriteLine("Setting ENV: [{0}]=[{1}]", v[0], v[1]);
+                }
+            }
+        }
+
+        private void SetSDK(string sdkName, string sdkBatchFile, string arch) {
+            using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                Console.Write("Setting SDK: ");
+            }
+            using (new ConsoleColors(ConsoleColor.Green, ConsoleColor.Black)) {
+                Console.Write(sdkName);
+            }
+            using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
+                Console.WriteLine(" for [{0}]", arch);
+            }
+
             var targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
 
             if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
 
-                if (string.IsNullOrEmpty(_setenvcmd))
-                    throw new Exception("Cannot locate SDK SetEnv command. Please install the Windows SDK");
+                if (string.IsNullOrEmpty(sdkBatchFile))
+                    throw new Exception("Cannot locate SDK SetEnv command for SDK ({0}). Please install the Windows SDK {0}".format(sdkName));
 
-                Console.WriteLine(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
-                _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
+                // Console.WriteLine(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
 
-                
+                _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", sdkBatchFile, arch == "x86" ? "x86" : "x64");
+
                 foreach (var x in _cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
                     if (x.Contains("=")) {
                         var v = x.Split('=');
                         Environment.SetEnvironmentVariable(v[0], v[1]);
-                        Console.WriteLine("Setting ENV: [{0}]=[{1}]", v[0], v[1]);
+                        // Console.WriteLine("Setting ENV: [{0}]=[{1}]", v[0], v[1]);
                     }
 
+                /*
                 targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
                 if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
-                    Console.WriteLine("Arch: {0}",arch);
-                    Console.WriteLine("TargetCPI: {0}",targetCpu);
-                    throw new Exception("Cannot set the SDK environment. Please install the Windows SDK and use the setenv.cmd command to set your environment");
+                    Console.WriteLine("Arch: {0}", arch);
+                    Console.WriteLine("TargetCPU: {0}", targetCpu);
+                    throw new Exception("Cannot set the SDK environment. Please install the Windows SDK ({0}) and use the setenv.cmd command to set your environment".format(sdkName));
                 }
+                 */
             }
         }
 
@@ -186,6 +236,17 @@ pTK [options] action [buildconfiguration...]
         /// </summary>
         /// <param name="arch">A string indicating the target platform</param>
         private void SetMingwCompiler( string arch) {
+            using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                Console.Write("Setting Compiler: ");
+            }
+            using (new ConsoleColors(ConsoleColor.Green, ConsoleColor.Black)) {
+                Console.Write("mingw");
+            }
+            using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
+                Console.WriteLine(" for [{0}]", arch);
+            }
+
+
             var mingwProgramFinder = new ProgramFinder("", Directory.GetDirectories(@"c:\\", "M*").Aggregate(_searchPaths+@"%ProgramFiles(x86)%;%ProgramFiles%;%ProgramW6432%", (current, dir) => dir + ";" + current));
 
             var gcc = mingwProgramFinder.ScanForFile("mingw32-gcc.exe");
@@ -241,23 +302,94 @@ pTK [options] action [buildconfiguration...]
         /// <summary>
         /// Change the designated compiler
         /// </summary>
-        /// <param name="compiler">The compiler name and platform (supported strings only)</param>
-        /// <remarks>Valid choices are "vc10-x86", "vc10-x64", "mingw-x86"</remarks>
-        private void SwitchCompiler(string compiler) {
-            ResetEnvironment();
-
+        private void SwitchCompiler(string compiler, string platform) {
+           
             switch( compiler ) {
-                case "vc10-x86":
-                    SetVC10Compiler("x86");
+                case "vc10":
+                    SetVCCompiler("Visual Studio 2010", _vcvarsallbat10, platform);
                     break;
-                case "vc10-x64":
-                    SetVC10Compiler("x64");
+
+                case "vc9":
+                    SetVCCompiler("Visual Studio 2008", _vcvarsallbat9, platform);
                     break;
-                case "mingw-x86":
-                    SetMingwCompiler("x86");
+
+                case "vc8":
+                    SetVCCompiler("Visual Studio 2005", _vcvarsallbat8, platform);
                     break;
+
+                case "vc7.1":
+                    SetVCCompiler("Visual Studio 2003", _vcvarsallbat71, platform);
+                    break;
+
+                case "vc7":
+                    SetVCCompiler("Visual Studio 2002", _vcvarsallbat7, platform);
+                    break;
+
+                case "vc6":
+                    SetVCCompiler("Visual Studio 98 (vc6)", _vcvars32bat, platform);
+                    break;
+
+                case "sdk7.1":
+                    SetSDK("Windows Sdk 7.1", _setenvcmd71, platform);
+                    break;
+
+                case "sdk7":
+                    SetSDK("Windows Sdk 7", _setenvcmd7, platform);
+                    break;
+
+                case "sdk6":
+                    SetSDK("Windows Sdk 6", _setenvcmd6, platform);
+                    break;
+
+                    /*
+                case "wdk7600":
+                    var wdkFolder = RegistryView.System[@"SOFTWARE\Wow6432Node\Microsoft\WDKDocumentation\7600.091201\Setup", "Build"].Value as string;
+            
+                    if (string.IsNullOrEmpty(wdkFolder)) {
+                        wdkFolder = RegistryView.System[@"SOFTWARE\Microsoft\WDKDocumentation\7600.091201\Setup", "Build"].Value as string;
+                    }
+                    
+                    // C:\WinDDK\7600.16385.1\ fre x86 WIN7
+                    SetSDK("Windows WDK 7600", _wdksetenvcmd7600, platform);
+                    break;
+                    */
+                case "mingw":
+                    SetMingwCompiler(platform);
+                    break;
+
                 default :
                     throw new ConsoleException("Unknown Compiler Selection: {0}", compiler);
+            }
+        }
+
+        private void SwitchSdk( string sdk, string platform ) {
+
+            switch (sdk) {
+                case "sdk7.1":
+                    SetSDK("Windows Sdk 7.1", _setenvcmd71, platform);
+                    break;
+
+                case "sdk7":
+                    SetSDK("Windows Sdk 7", _setenvcmd7, platform);
+                    break;
+
+                case "sdk6":
+                    SetSDK("Windows Sdk 6", _setenvcmd6, platform);
+                    break;
+
+                case "feb2003":
+                    SetSDK("Platform SDK Feb 2003", _setenvcmd6, platform);
+                    break;
+
+                case "wdk7600":
+                    SetSDK("Windows WDK 7600", _wdksetenvcmd7600, platform);
+                    break;
+
+                case "none":
+                    break;
+
+                default:
+                    throw new ConsoleException("Unknown Compiler Selection: {0}", sdk);
 
             }
         }
@@ -285,15 +417,15 @@ pTK [options] action [buildconfiguration...]
                     _gitexe.Kill();
                 if (_hgexe != null)
                     _hgexe.Kill();
-                if( _ptk != null )
+                if (_ptk != null)
                     _ptk.Kill();
-                if( _traceexe != null ) {
+                if (_traceexe != null) {
                     _traceexe.Kill();
                 }
             };
 
 
-            #region Parse Options 
+            #region Parse Options
 
             // set up options which were defined by the user
             foreach (string arg in options.Keys) {
@@ -306,14 +438,14 @@ pTK [options] action [buildconfiguration...]
                         break;
 
                     case "verbose":
-                        _verbose = true; 
+                        _verbose = true;
                         break;
 
                     case "load":
                         // user specified a custom PropertySheet
                         buildinfo = argumentParameters.LastOrDefault().GetFullPath();
                         break;
-                    
+
                     case "mingw-install":
                     case "msys-install":
                         _searchPaths += argumentParameters.LastOrDefault().GetFullPath() + ";";
@@ -337,7 +469,7 @@ pTK [options] action [buildconfiguration...]
             }
 
             // make sure that we're in the parent directory of the .buildinfo file.
-            Environment.CurrentDirectory= Path.GetDirectoryName(Path.GetDirectoryName(buildinfo));
+            Environment.CurrentDirectory = Path.GetDirectoryName(Path.GetDirectoryName(buildinfo));
 
             // tell the user what we are
             Logo();
@@ -351,25 +483,27 @@ pTK [options] action [buildconfiguration...]
 
             // set up several tools we need
             _cmdexe = new ProcessUtility("cmd.exe");
-            _traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+            var f = new ProgramFinder("").ScanForFile("trace.exe");
 
-            _ptk = new ProcessUtility( Assembly.GetEntryAssembly().Location );
+            if(!string.IsNullOrEmpty(f)) {
+                _traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+            }
 
+            _ptk = new ProcessUtility(Assembly.GetEntryAssembly().Location);
             // if this package is tracked by git, we can use git
-            _useGit = Directory.Exists(".git".GetFullPath());
-            // if this package is tracked by mercurial, we can use mercurial
+            _useGit = Directory.Exists(".git".GetFullPath());            // if this package is tracked by mercurial, we can use mercurial
             _useHg = _useGit ? false : Directory.Exists(".hg".GetFullPath());
 
             // source control is mandatory! create a repository for this package
-            if( !(_useGit||_useHg)) {
+            if (!(_useGit || _useHg)) {
                 return Fail("Source must be checked out using git or hg-git.");
             }
-            
+
             // find git in the file system
             // - we prefer the CMD script over git.exe
             // git.exe may be located at "C:\Program Files\Git\bin"
             // git.cmd may be located at "C:\Program Files\Git\cmd"
-            if( _useGit ) {
+            if (_useGit) {
                 if (_verbose) {
                     Console.WriteLine("Using git for verification");
                 }
@@ -377,44 +511,58 @@ pTK [options] action [buildconfiguration...]
                 _gitcmd = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.cmd");
                 _gitexe = null;
                 if (string.IsNullOrEmpty(_gitcmd)) {
-                    // attemt to find git.exe
-                    var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
-                    if( string.IsNullOrEmpty(f)) {
-                         return Fail("Can not find git.cmd or git.exe (required to perform verification.)");
+                    f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
+                    if (string.IsNullOrEmpty(f)) {
+                        return Fail("Can not find git.cmd or git.exe (required to perform verification.)");
                     }
                     _gitexe = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe"));
                 }
             }
 
-            // find mercurial in the file system
-            if( _useHg ) {
-                var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
+            if (_useHg) {
+                 f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
                 if (string.IsNullOrEmpty(f)) {
                     return Fail("Can not find hg.exe (required to perform verification.)");
                 }
                 _hgexe = new ProcessUtility(f);
             }
 
-            // figure out the path to the Windows SDK environment preparation command
-            // usually found in "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin"
-            _setenvcmd = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd",filters:new [] {@"\Windows Azure SDK\**"});
-            if( string.IsNullOrEmpty(_setenvcmd)) {
-                return Fail("Can not find setenv.cmd (required to perform builds)");
-            }
+            // find sdk batch files.
 
-            // tell the user tool paths
+            _setenvcmd71 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd", excludeFilters: new[] { @"\Windows Azure SDK\**" , "winddk**" }, includeFilters: new [] {"sdk**", "v7.1**"}, rememberMissingFile:true, tagWithCosmeticVersion:"7.1");
+            _setenvcmd7 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd", excludeFilters: new[] { @"\Windows Azure SDK\**", "7.1**", "winddk**" }, includeFilters: new[] { "sdk**", "v7**" }, rememberMissingFile: true, tagWithCosmeticVersion: "7.0");
+            _setenvcmd6 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd", excludeFilters: new[] { @"\Windows Azure SDK\**", "winddk**" }, includeFilters: new[] { "sdk**", "6**" }, rememberMissingFile: true, tagWithCosmeticVersion: "6");
+
+            _wdksetenvcmd7600 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.bat", excludeFilters: new[] { @"\Windows Azure SDK\**"}, includeFilters: new[] { "winddk**"  }, rememberMissingFile: true, tagWithCosmeticVersion: "7600.16385.1");
+
+            _vcvarsallbat10 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("vcvarsall.bat", includeFilters: new[] { "vc**", "10.0**" }, rememberMissingFile: true, tagWithCosmeticVersion: "10.0");
+            _vcvarsallbat9 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("vcvarsall.bat", includeFilters: new[] { "vc**", "9.0**" }, rememberMissingFile: true, tagWithCosmeticVersion: "9.0");
+            _vcvarsallbat8 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("vcvarsall.bat", includeFilters: new[] { "vc**", "8.0**" }, rememberMissingFile: true, tagWithCosmeticVersion: "8.0");
+            _vcvarsallbat7 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("vcvarsall.bat", includeFilters: new[] { "vc**", "7.0**" }, rememberMissingFile: true, tagWithCosmeticVersion: "7.0");
+            _vcvarsallbat71 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("vcvarsall.bat", includeFilters: new[] { "vc**", "7.1**" }, rememberMissingFile: true, tagWithCosmeticVersion: "7.1");
+            _vcvars32bat = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("vcvars32.bat", includeFilters: new[] { "vc98**" }, rememberMissingFile: true, tagWithCosmeticVersion: "6");
+
             if (_showTools) {
-                // print path to source control program
-                if( _useGit) {
+                if (_useGit) {
                     Console.Write("Git: {0}", _gitcmd ?? "");
                     if (_gitexe != null) {
                         Console.WriteLine(_gitexe.Executable ?? "");
                     }
-                } 
-                if( _useHg) {
+                }
+                if (_useHg) {
                     Console.WriteLine("hg: {0}", _hgexe.Executable);
                 }
-                Console.WriteLine("SDK Setenv: {0}", _setenvcmd);
+                Console.WriteLine("SDK Setenv (7.1): {0}", _vcvarsallbat10 ?? "Not-Found");
+                Console.WriteLine("SDK Setenv (7.0): {0}", _setenvcmd7 ?? "Not-Found");
+                Console.WriteLine("SDK Setenv (6): {0}", _setenvcmd6 ?? "Not-Found");
+
+                Console.WriteLine("VC vcvarsall (10.0): {0}", _vcvarsallbat10 ?? "Not-Found");
+                Console.WriteLine("VC vcvarsall (9.0): {0}", _vcvarsallbat9 ?? "Not-Found");
+                Console.WriteLine("VC vcvarsall (8.0): {0}", _vcvarsallbat8 ?? "Not-Found");
+                Console.WriteLine("VC vcvarsall (7.0): {0}", _vcvarsallbat7 ?? "Not-Found");
+                Console.WriteLine("VC vcvarsall (7.1): {0}", _vcvarsallbat71 ?? "Not-Found");
+                Console.WriteLine("VC vcvars32 (6): {0}", _vcvars32bat ?? "Not-Found");
+
                 Console.WriteLine("ptk: {0}", _ptk.Executable);
                 Console.WriteLine("trace: {0}", _traceexe.Executable);
             }
@@ -425,16 +573,16 @@ pTK [options] action [buildconfiguration...]
                 // load and parse. propertySheet will contain everything else we need for later
                 propertySheet = PropertySheet.Load(buildinfo);
             }
-            catch( EndUserParseException pspe) {
+            catch (EndUserParseException pspe) {
                 using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
-                     Console.Write(pspe.Message);
-                     Console.WriteLine("--found '{0}'", pspe.Token.Data);
+                    Console.Write(pspe.Message);
+                    Console.WriteLine("--found '{0}'", pspe.Token.Data);
                 }
-                
+
                 return Fail("Error parsing .buildinfo file");
             }
             var builds = from rule in propertySheet.Rules where rule.Name != "*" select rule;
-            if( parameters.Count() > 1 ) {
+            if (parameters.Count() > 1) {
                 var allbuilds = builds;
                 builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
             }
@@ -449,7 +597,7 @@ pTK [options] action [buildconfiguration...]
                 switch (parameters.FirstOrDefault().ToLower()) {
                     case "build":
                         Build(builds);
-                        
+
                         break;
                     case "clean":
                         Clean(builds);
@@ -477,10 +625,14 @@ pTK [options] action [buildconfiguration...]
                         Console.WriteLine("Buildinfo from [{0}]", buildinfo);
                         (from build in builds
                             let compiler = build["compiler"].FirstOrDefault()
+                            let sdk = build["sdk"].FirstOrDefault()
+                            let platform = build["platform"].FirstOrDefault()
                             let targets = build["targets"].FirstOrDefault()
                             select new {
                                 Configuration = build.Name,
-                                Compiler = compiler != null ? compiler.LValue : "vc10-x86",
+                                Compiler = compiler != null ? compiler.LValue : "sdk7.1",
+                                Sdk = sdk != null ? sdk.LValue : "sdk7.1",
+                                Platform = platform != null ? platform.LValue : "x86",
                                 Number_of_Outputs = targets != null ? targets.Values.Count() : 0
                             }).ToTable().ConsoleOut();
                         break;
@@ -497,7 +649,7 @@ pTK [options] action [buildconfiguration...]
                 Console.WriteLine(e.StackTrace);
                 return Fail("   {0}", e.Message);
             }
-            
+
             return 0;
         }
 
@@ -561,7 +713,7 @@ pTK [options] action [buildconfiguration...]
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
                 // tell the user what we are about to run
-                Console.WriteLine(script);
+                //Console.WriteLine(script);
                 // create temporary file
                 var scriptpath = WriteTempScript(script);
                 // run it
@@ -578,14 +730,30 @@ pTK [options] action [buildconfiguration...]
         }
 
        
-        /// <summary>
-        /// Deletes excess files according to clean command
-        /// </summary>
-        /// <param name="builds">A list of builds to clean</param>
+        private void SetCompilerSdkAndPlatform( Rule build ) {
+            ResetEnvironment();
+
+            var compilerProperty = build["compiler"].FirstOrDefault();
+            var compiler = compilerProperty != null ? compilerProperty.LValue : "sdk7.1";
+
+            var sdkProperty = build["sdk"].FirstOrDefault();
+            var sdk = sdkProperty != null ? sdkProperty.LValue : "sdk7.1";
+
+            var platformProperty = build["platform"].FirstOrDefault();
+            var platform = platformProperty != null ? platformProperty.LValue : "x86";
+
+            if (!compiler.Contains("sdk") && !compiler.Contains("wdk")) {
+                SwitchSdk(sdk, platform);
+            }
+
+            SwitchCompiler(compiler,platform);
+        }
+
+
         private void Clean(IEnumerable<Rule> builds) {
             foreach( var build in builds ) {
-                var compiler = build["compiler"].FirstOrDefault();
-                SwitchCompiler(compiler!= null ? compiler.LValue :  "vc10-x86");
+                SetCompilerSdkAndPlatform(build);
+
 
                 var cmd = build["clean-command"].FirstOrDefault();
                 if( cmd == null ) 
@@ -650,9 +818,7 @@ pTK [options] action [buildconfiguration...]
                 // build dependencies first
                 BuildDependencies(build);
 
-                // select a compiler or default to vc10-x86
-                var compiler = build["compiler"].FirstOrDefault();
-                SwitchCompiler(compiler != null ? compiler.LValue : "vc10-x86");
+                SetCompilerSdkAndPlatform(build);
 
                 // read the build command from PropertySheet
                 var cmd = build["build-command"].FirstOrDefault();
@@ -745,8 +911,7 @@ pTK [options] action [buildconfiguration...]
                 // prepare dependencies. these are not part of the trace
                 BuildDependencies(build);
 
-                var compiler = build["compiler"].FirstOrDefault();
-                SwitchCompiler(compiler != null ? compiler.LValue : "vc10-x86");
+                SetCompilerSdkAndPlatform(build);
 
                 // does this build rule contain a build command?
                 var cmd = build["build-command"].FirstOrDefault();
