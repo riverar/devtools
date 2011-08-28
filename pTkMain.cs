@@ -21,6 +21,9 @@ namespace CoApp.Ptk {
     using Toolkit.Utility;
 
     internal class pTkMain {
+        /// <summary>
+        /// Help message for the user
+        /// </summary>
         private const string help =
             @"
 Usage:
@@ -65,16 +68,33 @@ pTK [options] action [buildconfiguration...]
 
 ";
 
+        /// <summary>
+        /// Wrapper for the Windows command line
+        /// </summary>
         private ProcessUtility _cmdexe;
+        /// <summary>
+        /// Wrapper for git (source control)
+        /// </summary>
         private ProcessUtility _gitexe;
+        /// <summary>
+        /// Wrapper for mercurial (source control)
+        /// </summary>
         private ProcessUtility _hgexe;
+        /// <summary>
+        /// Wrapper for pTk (That's us!)
+        /// </summary>
         private ProcessUtility _ptk;
+        /// <summary>
+        /// Wrapper for Trace. (Trace tells us what the build process does)
+        /// </summary>
         private ProcessUtility _traceexe;
         
         private string _gitcmd;
         // private string _setenvcmd;
         // private string _vcvars;
-
+        /// <summary>
+        /// Command line to git.cmd
+        /// </summary>
         // sdk batch file locations
         private string _setenvcmd71;
         private string _setenvcmd7;
@@ -94,9 +114,18 @@ pTK [options] action [buildconfiguration...]
 
         private bool _useGit;
         private bool _useHg;
+        /// <summary>
+        /// Does the user want us to print more?
+        /// </summary>
         private bool _verbose;
         private readonly Dictionary<string, string> _originalEnvironment = GetEnvironment();
+        /// <summary>
+        /// Tell the user which tools we are using?
+        /// </summary>
         private bool _showTools;
+        /// <summary>
+        /// A list of temporary files for bookkeeping
+        /// </summary>
         private readonly List<string> _tmpFiles= new List<string>();
         private string _searchPaths = "";
 
@@ -109,11 +138,23 @@ pTK [options] action [buildconfiguration...]
             return new pTkMain().main(args);
         }
 
+        /// <summary>
+        /// Get the environment variables (key/value pairs)
+        /// </summary>
+        /// <remarks>
+        /// Path variable may differ in output from actual path on some systems
+        /// Run «reg query "hklm\system\currentcontrolset\control\Session manager\Environment" /v path» to verify
+        /// Character limit for path on Vista is 1024 http://support.microsoft.com/kb/924032
+        /// </remarks>
+        /// <returns>A dictionary of path variables as strings</returns>
         private static Dictionary<string, string> GetEnvironment() {
             var env = Environment.GetEnvironmentVariables();
             return env.Keys.Cast<object>().ToDictionary(key => key.ToString(), key => env[key].ToString());
         }
 
+        /// <summary>
+        /// Resets application Environment 
+        /// </summary>
         private void ResetEnvironment() {
             foreach( var key in Environment.GetEnvironmentVariables().Keys ) {
                 Environment.SetEnvironmentVariable(key.ToString(),string.Empty);    
@@ -190,6 +231,10 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        /// <summary>
+        /// Set up environment and paths to use mingw
+        /// </summary>
+        /// <param name="arch">A string indicating the target platform</param>
         private void SetMingwCompiler( string arch) {
             using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
                 Console.Write("Setting Compiler: ");
@@ -254,6 +299,9 @@ pTK [options] action [buildconfiguration...]
           
         }
 
+        /// <summary>
+        /// Change the designated compiler
+        /// </summary>
         private void SwitchCompiler(string compiler, string platform) {
            
             switch( compiler ) {
@@ -346,12 +394,18 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        /// <summary>
+        /// This is the main procedure
+        /// </summary>
+        /// <param name="args">Command line parameters</param>
+        /// <returns>Error codes (0 for success, non-zero on Error)</returns>
         private int main(IEnumerable<string> args) {
             var options = args.Switches();
             var parameters = args.Parameters();
             var tempBuildinfo = (from a in @".\COPKG\".DirectoryEnumerateFilesSmarter("*.buildinfo", SearchOption.TopDirectoryOnly)
                                  orderby a.Length ascending
                                  select a.GetFullPath()).FirstOrDefault();
+            // find PropertySheet location
             //we'll just use the default even though it won't work so I don't need to change the code much :)
             var buildinfo = tempBuildinfo ?? @".\COPKG\.buildinfo".GetFullPath();
 
@@ -373,11 +427,13 @@ pTK [options] action [buildconfiguration...]
 
             #region Parse Options
 
+            // set up options which were defined by the user
             foreach (string arg in options.Keys) {
                 IEnumerable<string> argumentParameters = options[arg];
 
                 switch (arg) {
                     case "nologo":
+                        // disable logo (will print "\n" anyway)
                         this.Assembly().SetLogo("");
                         break;
 
@@ -386,6 +442,7 @@ pTK [options] action [buildconfiguration...]
                         break;
 
                     case "load":
+                        // user specified a custom PropertySheet
                         buildinfo = argumentParameters.LastOrDefault().GetFullPath();
                         break;
 
@@ -414,14 +471,17 @@ pTK [options] action [buildconfiguration...]
             // make sure that we're in the parent directory of the .buildinfo file.
             Environment.CurrentDirectory = Path.GetDirectoryName(Path.GetDirectoryName(buildinfo));
 
+            // tell the user what we are
             Logo();
 
+            // tell the user we can't work without instructions
             if (parameters.Count() < 1) {
                 return Fail("Missing action . \r\n\r\n    Use --help for command line help.");
             }
 
             #endregion
 
+            // set up several tools we need
             _cmdexe = new ProcessUtility("cmd.exe");
             var f = new ProgramFinder("").ScanForFile("trace.exe");
 
@@ -430,18 +490,24 @@ pTK [options] action [buildconfiguration...]
             }
 
             _ptk = new ProcessUtility(Assembly.GetEntryAssembly().Location);
-
-            _useGit = Directory.Exists(".git".GetFullPath());
+            // if this package is tracked by git, we can use git
+            _useGit = Directory.Exists(".git".GetFullPath());            // if this package is tracked by mercurial, we can use mercurial
             _useHg = _useGit ? false : Directory.Exists(".hg".GetFullPath());
 
+            // source control is mandatory! create a repository for this package
             if (!(_useGit || _useHg)) {
                 return Fail("Source must be checked out using git or hg-git.");
             }
 
+            // find git in the file system
+            // - we prefer the CMD script over git.exe
+            // git.exe may be located at "C:\Program Files\Git\bin"
+            // git.cmd may be located at "C:\Program Files\Git\cmd"
             if (_useGit) {
                 if (_verbose) {
                     Console.WriteLine("Using git for verification");
                 }
+                // attemt to find git.cmd
                 _gitcmd = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.cmd");
                 _gitexe = null;
                 if (string.IsNullOrEmpty(_gitcmd)) {
@@ -501,8 +567,10 @@ pTK [options] action [buildconfiguration...]
                 Console.WriteLine("trace: {0}", _traceexe.Executable);
             }
 
+            // load property sheet (that is the .buildinfo file by default)
             PropertySheet propertySheet = null;
             try {
+                // load and parse. propertySheet will contain everything else we need for later
                 propertySheet = PropertySheet.Load(buildinfo);
             }
             catch (EndUserParseException pspe) {
@@ -518,11 +586,13 @@ pTK [options] action [buildconfiguration...]
                 var allbuilds = builds;
                 builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
             }
-
-            if (builds.Count() == 0) {
+            
+            // are there even builds present?
+            if(builds.Count() == 0 ) {
                 return Fail("No valid build configurations selected.");
             }
 
+            // do the user's bidding
             try {
                 switch (parameters.FirstOrDefault().ToLower()) {
                     case "build":
@@ -571,9 +641,11 @@ pTK [options] action [buildconfiguration...]
                 }
             }
             catch (ConsoleException e) {
+                // these exceptions are expected
                 return Fail("   {0}", e.Message);
             }
             catch (Exception e) {
+                // it's probably okay to crash within proper commands (because something else crashed)
                 Console.WriteLine(e.StackTrace);
                 return Fail("   {0}", e.Message);
             }
@@ -581,7 +653,14 @@ pTK [options] action [buildconfiguration...]
             return 0;
         }
 
+        /// <summary>
+        /// Traces the changes made by a specific script
+        /// </summary>
+        /// <param name="script">Script to trace</param>
+        /// <param name="traceFile">An output file</param>
         private void TraceExec( string script, string traceFile ) {
+            // multiline scripts need to be executed with a temporary script, 
+            // everything else runs directly from the cmd prompt
             if (script.Contains("\r") || script.Contains("\n") ) {
                 script =
 @"@echo off
@@ -599,19 +678,32 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        /// <summary>
+        /// Create a temporary .cmd file
+        /// </summary>
+        /// <param name="text">The script to be written into the .cmd file</param>
+        /// <returns>Full path to the temporary script</returns>
         private string WriteTempScript(string text) {
             var tmpFilename = Path.GetTempFileName();
             _tmpFiles.Add(tmpFilename);
+            // append proper file extension
             tmpFilename += ".cmd";
             _tmpFiles.Add(tmpFilename);
             File.WriteAllText(tmpFilename, text);
 
             return tmpFilename;
         }
+
+        /// <summary>
+        /// Runs a command line script
+        /// </summary>
+        /// <param name="script">A command line script</param>
         private void Exec(string script) {
             
-
+            // multiline scripts need prepration,
+            // everything else can be run straight from cmd
             if (script.Contains("\r") || script.Contains("\n") ) {
+                // set up environment for the script
                 script =
 @"@echo off
 @setlocal 
@@ -620,13 +712,18 @@ pTK [options] action [buildconfiguration...]
 
 
 ".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
+                // tell the user what we are about to run
                 //Console.WriteLine(script);
+                // create temporary file
                 var scriptpath = WriteTempScript(script);
+                // run it
                 _cmdexe.ExecNoRedirections(@"/c ""{0}""", scriptpath);
             }
             else {
+                // run script
                 _cmdexe.ExecNoRedirections(@"/c ""{0}""", script);
             }
+            // handle error conditions
             if( _cmdexe.ExitCode != 0 ) {
                 throw new ConsoleException("Command Exited with value {0}", _cmdexe.ExitCode);
             }
@@ -671,12 +768,20 @@ pTK [options] action [buildconfiguration...]
                 File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
             }
         }
+
+        /// <summary>
+        /// Builds all dependencies listed in a given build rule
+        /// </summary>
+        /// <param name="build">A build rule to which the dependencies should be built</param>
         private void BuildDependencies(Rule build) {
+            // save current directory
             var pwd = Environment.CurrentDirectory;
 
             foreach (var use in build["uses"]) {
                 var config = string.Empty;
                 var folder = string.Empty;
+
+                // set folder and configuration as needed
                 if (use.IsCompoundProperty) {
                     config = use.LValue;
                     folder = use.RValue;
@@ -693,33 +798,50 @@ pTK [options] action [buildconfiguration...]
                     throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
                 }
 
+                // switch project directory
                 Environment.CurrentDirectory = folder;
+                // build dependency project
                 _ptk.ExecNoRedirections("--nologo build {0}", config);
                 if (_ptk.ExitCode != 0)
                     throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
-
+                // reset directory to where we came from
                 Environment.CurrentDirectory = pwd;
             }
         }
 
+        /// <summary>
+        /// Runs build rules
+        /// </summary>
+        /// <param name="builds">A list of build rules to build</param>
         private void Build(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
+                // build dependencies first
                 BuildDependencies(build);
 
                 SetCompilerSdkAndPlatform(build);
 
+                // read the build command from PropertySheet
                 var cmd = build["build-command"].FirstOrDefault();
                 if (cmd == null)
                     throw new ConsoleException("missing build command in build {0}", build.Name);
 
+                // tell the user which build rule we are processing right now
                 using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
                     Console.WriteLine("Built Configuration [{0}]", build.Name);
                 }
 
+                // run this build command
                 Exec(cmd.LValue);
             }
         }
 
+        /// <summary>
+        /// Checks if the process chain clean/build/clean leaves excess or unaccounted files
+        /// </summary>
+        /// <remarks>
+        /// Runs Clean, Build (and checks targets), Clean and Status (to check for excess files)
+        /// </remarks>
+        /// <param name="builds">A list of build rules to verify</param>
         private void Verify(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
                 Clean( build.SingleItemAsEnumerable());
@@ -749,9 +871,16 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        /// <summary>
+        /// Checks if excess files are present in the project directory
+        /// </summary>
+        /// <remarks>Throws ConsoleException if excess files are found</remarks>
+        /// <param name="builds">A list of build rules to check</param>
         private void Status(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
                 IEnumerable<string> results = new string[] { };
+                
+                // this returns all new files created by the build process
                 if (_useGit) {
                     results = Git("status -s");
                 }
@@ -759,9 +888,11 @@ pTK [options] action [buildconfiguration...]
                     results = Hg("status");
                 }
 
+                // Zero results means clean directory
                 if (results.Count() > 0) {
                     Fail("Project directory is not clean:");
                     using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
+                        // list offending files
                         foreach (var result in results) {
                             Console.WriteLine("   {0}", result);
                         }
@@ -771,20 +902,35 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        /// <summary>
+        /// Trace a build process
+        /// </summary>
+        /// <param name="builds">The build rules to trace</param>
         private void Trace(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
+                // prepare dependencies. these are not part of the trace
                 BuildDependencies(build);
 
                 SetCompilerSdkAndPlatform(build);
 
+                // does this build rule contain a build command?
                 var cmd = build["build-command"].FirstOrDefault();
                 if (cmd == null)
                     throw new ConsoleException("missing build command in build {0}", build.Name);
 
+                // run trace
                 TraceExec(cmd.LValue, Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
             }
         }
 
+        /// <summary>
+        /// Run a git command
+        /// </summary>
+        /// <param name="cmdLine">A command to run with git</param>
+        /// <returns>Any line from git's output except for those containing "copkg"</returns>
+        /// <example>
+        /// Git ("status -s")
+        /// </example>
         private IEnumerable<string> Git(string cmdLine) {
             if( !string.IsNullOrEmpty(_gitcmd) ) {
                 _cmdexe.Exec(@"/c ""{0}"" {1}", _gitcmd, cmdLine);
@@ -795,6 +941,11 @@ pTK [options] action [buildconfiguration...]
             }
         }
 
+        /// <summary>
+        /// Run an Hg command
+        /// </summary>
+        /// <param name="cmdLine">A command to run with hg</param>
+        /// <returns>Any line from git's output except for those containing "copkg"</returns>
         private IEnumerable<string> Hg(string cmdLine) {
             _hgexe.Exec(cmdLine);
             return from line in _hgexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) where !line.ToLower().Contains("copkg") select line;
@@ -802,6 +953,16 @@ pTK [options] action [buildconfiguration...]
 
         #region fail/help/logo
 
+        /// <summary>
+        /// Print an error to the console
+        /// </summary>
+        /// <param name="text">An error message</param>
+        /// <param name="par">A format string</param>
+        /// <returns>Always returns 1</returns>
+        /// <seealso cref="String.Format(string, object[])"/>
+        /// <remarks>
+        /// Format according to http://msdn.microsoft.com/en-us/library/b1csw23d.aspx
+        /// </remarks>
         public static int Fail(string text, params object[] par) {
             Logo();
             using (new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black)) {
@@ -810,6 +971,10 @@ pTK [options] action [buildconfiguration...]
             return 1;
         }
 
+        /// <summary>
+        /// Print usage notes (help) and logo
+        /// </summary>
+        /// <returns>Always returns 0</returns>
         private static int Help() {
             Logo();
             using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
@@ -818,6 +983,12 @@ pTK [options] action [buildconfiguration...]
             return 0;
         }
 
+        /// <summary>
+        /// Print program logo, information an copyright notice once.
+        /// </summary>
+        /// <remarks>
+        /// Recurring calls to the function will not print "\n" (blank line) instead.
+        /// </remarks>
         private static void Logo() {
             using (new ConsoleColors(ConsoleColor.Cyan, ConsoleColor.Black)) {
                 Assembly.GetEntryAssembly().Logo().Print();
