@@ -99,7 +99,7 @@ pTK [options] action [buildconfiguration...]
         private string _setenvcmd71;
         private string _setenvcmd7;
         private string _setenvcmd6;
-        private string _setenvcmdFeb2003;
+        /* private string _setenvcmdFeb2003; */
 
         private string _wdksetenvcmd7600;
 
