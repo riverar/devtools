@@ -1,0 +1,215 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{7B8CB73A-D762-44F4-B0AA-95840A29A019}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CoApp.CCI</RootNamespace>
+    <AssemblyName>CoApp.CCI</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\output\any\debug\bin\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;LITTLEENDIAN</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>0649</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\output\any\release\bin\</OutputPath>
+    <DefineConstants>TRACE;LITTLEENDIAN</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>0649</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Ast\AssertionAdder\AssertionAdderVisitor.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Contracts.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Core.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Error.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Expressions.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\MemberDeclarationInterfaces.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\MemberDeclarations.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Members.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Miscellaneous.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\NamespaceDeclarationInterfaces.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\NamespaceDeclarations.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Namespaces.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Options.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Statements.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\TypeDeclarationInterfaces.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\TypeDeclarations.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Types.cs" />
+    <Compile Include="Ast\AstsProjectedAsCodeModel\Units.cs" />
+    <Compile Include="Ast\CodeModelToIL\Helpers.cs" />
+    <Compile Include="Ast\CodeModelToIL\Visitor.cs" />
+    <Compile Include="Ast\CodeModel\Contracts.cs" />
+    <Compile Include="Ast\CodeModel\DummyObjects.cs" />
+    <Compile Include="Ast\CodeModel\ExpressionHelper.cs" />
+    <Compile Include="Ast\CodeModel\Expressions.cs" />
+    <Compile Include="Ast\CodeModel\Members.cs" />
+    <Compile Include="Ast\CodeModel\Statements.cs" />
+    <Compile Include="Ast\CodeModel\Visitors.cs" />
+    <Compile Include="Ast\ContractExtractor\ContractExtractor.cs" />
+    <Compile Include="Ast\ContractExtractor\ContractHelper.cs" />
+    <Compile Include="Ast\ContractExtractor\ContractProviders.cs" />
+    <Compile Include="Ast\ContractExtractor\MoveNext.cs" />
+    <Compile Include="Ast\ILToCodeModel\BlockRemover.cs" />
+    <Compile Include="Ast\ILToCodeModel\ControlFlowDecompiler.cs" />
+    <Compile Include="Ast\ILToCodeModel\DeclarationAdder.cs" />
+    <Compile Include="Ast\ILToCodeModel\Decompiler.cs" />
+    <Compile Include="Ast\ILToCodeModel\EmptyStatementRemover.cs" />
+    <Compile Include="Ast\ILToCodeModel\HelperObjects.cs" />
+    <Compile Include="Ast\ILToCodeModel\MoveNextDecompiler.cs" />
+    <Compile Include="Ast\ILToCodeModel\PatternDecompiler.cs" />
+    <Compile Include="Ast\ILToCodeModel\RemoveBranchConditionLocals.cs" />
+    <Compile Include="Ast\ILToCodeModel\RemoveCompilationArtifacts.cs" />
+    <Compile Include="Ast\ILToCodeModel\SourceMethodBody.cs" />
+    <Compile Include="Ast\ILToCodeModel\TypeInferencer.cs" />
+    <Compile Include="Ast\ILToCodeModel\UnreferencedLabelRemover.cs" />
+    <Compile Include="Ast\ILToCodeModel\Unstacker.cs" />
+    <Compile Include="Ast\MutableCodeModel\Contracts.cs" />
+    <Compile Include="Ast\MutableCodeModel\Copier.cs" />
+    <Compile Include="Ast\MutableCodeModel\Expressions.cs" />
+    <Compile Include="Ast\MutableCodeModel\Members.cs" />
+    <Compile Include="Ast\MutableCodeModel\Mutator.cs" />
+    <Compile Include="Ast\MutableCodeModel\Normalizer\AnonymousDelegateRemover.cs" />
+    <Compile Include="Ast\MutableCodeModel\Normalizer\CapturedLocalOrArgumentFinder.cs" />
+    <Compile Include="Ast\MutableCodeModel\Normalizer\Duplicator.cs" />
+    <Compile Include="Ast\MutableCodeModel\Normalizer\Helpers.cs" />
+    <Compile Include="Ast\MutableCodeModel\Normalizer\Normalizer.cs" />
+    <Compile Include="Ast\MutableCodeModel\Statements.cs" />
+    <Compile Include="Metadata\ControlAndDataFlowGraph\ControlFlowInferencer.cs" />
+    <Compile Include="Metadata\ControlAndDataFlowGraph\DataFlowInferencer.cs" />
+    <Compile Include="Metadata\ControlAndDataFlowGraph\Graph.cs" />
+    <Compile Include="Metadata\ControlAndDataFlowGraph\TypeInferencer.cs" />
+    <Compile Include="Metadata\ILGenerator\ILGenerator.cs" />
+    <Compile Include="Metadata\ILGenerator\MethodBody.cs" />
+    <Compile Include="Metadata\MetadataHelper\AttributeHelper.cs" />
+    <Compile Include="Metadata\MetadataHelper\CommandLineOptions.cs" />
+    <Compile Include="Metadata\MetadataHelper\Core.cs" />
+    <Compile Include="Metadata\MetadataHelper\GlobalAssemblyCache.cs" />
+    <Compile Include="Metadata\MetadataHelper\MemberHelper.cs" />
+    <Compile Include="Metadata\MetadataHelper\Members.cs" />
+    <Compile Include="Metadata\MetadataHelper\PlatformTypes.cs" />
+    <Compile Include="Metadata\MetadataHelper\TypeHelper.cs" />
+    <Compile Include="Metadata\MetadataHelper\Types.cs" />
+    <Compile Include="Metadata\MetadataHelper\UnitHelper.cs" />
+    <Compile Include="Metadata\MetadataHelper\UnmanagedFileIO.cs" />
+    <Compile Include="Metadata\MetadataHelper\UtilityDataStructures.cs" />
+    <Compile Include="Metadata\MetadataHelper\Validator.cs" />
+    <Compile Include="Metadata\MetadataHelper\Visitors.cs" />
+    <Compile Include="Metadata\MetadataModel\Core.cs" />
+    <Compile Include="Metadata\MetadataModel\DummyObjects.cs" />
+    <Compile Include="Metadata\MetadataModel\Expressions.cs" />
+    <Compile Include="Metadata\MetadataModel\Members.cs" />
+    <Compile Include="Metadata\MetadataModel\Miscellaneous.cs" />
+    <Compile Include="Metadata\MetadataModel\Namespaces.cs" />
+    <Compile Include="Metadata\MetadataModel\Types.cs" />
+    <Compile Include="Metadata\MetadataModel\Units.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Copier.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Expressions.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Members.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Miscellaneous.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Mutator.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Namespaces.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Types.cs" />
+    <Compile Include="Metadata\MutableMetadataModel\Units.cs" />
+    <Compile Include="Metadata\PdbReader\BitAccess.cs" />
+    <Compile Include="Metadata\PdbReader\BitSet.cs" />
+    <Compile Include="Metadata\PdbReader\CvInfo.cs" />
+    <Compile Include="Metadata\PdbReader\DataStream.cs" />
+    <Compile Include="Metadata\PdbReader\DbiDbgHdr.cs" />
+    <Compile Include="Metadata\PdbReader\DbiHeader.cs" />
+    <Compile Include="Metadata\PdbReader\DbiModuleInfo.cs" />
+    <Compile Include="Metadata\PdbReader\DbiSecCon.cs" />
+    <Compile Include="Metadata\PdbReader\IntHashTable.cs" />
+    <Compile Include="Metadata\PdbReader\MsfDirectory.cs" />
+    <Compile Include="Metadata\PdbReader\PdbConstant.cs" />
+    <Compile Include="Metadata\PdbReader\PdbDebugException.cs" />
+    <Compile Include="Metadata\PdbReader\PdbException.cs" />
+    <Compile Include="Metadata\PdbReader\PdbFile.cs" />
+    <Compile Include="Metadata\PdbReader\PdbFileHeader.cs" />
+    <Compile Include="Metadata\PdbReader\PdbFunction.cs" />
+    <Compile Include="Metadata\PdbReader\PdbLine.cs" />
+    <Compile Include="Metadata\PdbReader\PdbLines.cs" />
+    <Compile Include="Metadata\PdbReader\PdbReader.cs" />
+    <Compile Include="Metadata\PdbReader\PdbScope.cs" />
+    <Compile Include="Metadata\PdbReader\PdbSlot.cs" />
+    <Compile Include="Metadata\PdbReader\PdbSource.cs" />
+    <Compile Include="Metadata\PdbReader\SourceLocationProvider.cs" />
+    <Compile Include="Metadata\PdbWriter\GlobalSuppressions.cs" />
+    <Compile Include="Metadata\PdbWriter\ISymbolWriter.cs" />
+    <Compile Include="Metadata\PdbWriter\Writer.cs" />
+    <Compile Include="Metadata\PeReader\Attributes.cs" />
+    <Compile Include="Metadata\PeReader\BinaryObjectModel.cs" />
+    <Compile Include="Metadata\PeReader\CoreTypes.cs" />
+    <Compile Include="Metadata\PeReader\Errors.cs" />
+    <Compile Include="Metadata\PeReader\ILReader.cs" />
+    <Compile Include="Metadata\PeReader\ModuleReadWriteFactory.cs" />
+    <Compile Include="Metadata\PeReader\PEFileReader.cs" />
+    <Compile Include="Metadata\PeReader\PEFileStructures.cs" />
+    <Compile Include="Metadata\PeReader\PEFileToObjectModel.cs" />
+    <Compile Include="Metadata\PeReader\Types.cs" />
+    <Compile Include="Metadata\PeReader\UnmanagedReadWrite.cs" />
+    <Compile Include="Metadata\PeReader\UtilityDataStructures.cs" />
+    <Compile Include="Metadata\PeReader\WindowsRuntimeHost.cs" />
+    <Compile Include="Metadata\PeWriter\BinaryWriter.cs" />
+    <Compile Include="Metadata\PeWriter\GlobalSuppressions.cs" />
+    <Compile Include="Metadata\PeWriter\IMetadata.cs" />
+    <Compile Include="Metadata\PeWriter\MemoryStream.cs" />
+    <Compile Include="Metadata\PeWriter\PdbWriterInterface.cs" />
+    <Compile Include="Metadata\PeWriter\PeWriter.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Metadata\ReflectionEmitter\Emitter.cs" />
+    <Compile Include="Metadata\ReflectionEmitter\Mapper.cs" />
+    <Compile Include="Metadata\SourceModel\DummyObjects.cs" />
+    <Compile Include="Metadata\SourceModel\Implementations.cs" />
+    <Compile Include="Metadata\SourceModel\Interfaces.cs" />
+    <Compile Include="Metadata\SourceModel\SourceModelHelper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Ast\AstsProjectedAsCodeModel\ErrorMessages.resx" />
+    <EmbeddedResource Include="Metadata\MetadataHelper\ErrorMessages.resx" />
+    <EmbeddedResource Include="Metadata\PeReader\PeReaderErrorMessages.resx" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Ast\AssertionAdder\Properties\" />
+    <Folder Include="Ast\AstsProjectedAsCodeModel\Properties\" />
+    <Folder Include="Ast\CodeModelToIL\Properties\" />
+    <Folder Include="Ast\CodeModel\Properties\" />
+    <Folder Include="Ast\ContractExtractor\Properties\" />
+    <Folder Include="Ast\ILToCodeModel\Properties\" />
+    <Folder Include="Ast\MutableCodeModel\Properties\" />
+    <Folder Include="Metadata\Microsoft.Contracts\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
