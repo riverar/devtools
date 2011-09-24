@@ -66,7 +66,6 @@
     <Compile Include="ResourceLib\FontDirectoryEntry.cs" />
     <Compile Include="ResourceLib\FontDirectoryResource.cs" />
     <Compile Include="ResourceLib\FontResource.cs" />
-    <Compile Include="ResourceLib\Gdi32.cs" />
     <Compile Include="ResourceLib\GenericResource.cs" />
     <Compile Include="ResourceLib\IconDirectoryResource.cs" />
     <Compile Include="ResourceLib\IconFile.cs" />

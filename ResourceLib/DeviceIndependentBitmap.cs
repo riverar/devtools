@@ -39,7 +39,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
     public class DeviceIndependentBitmap {
         private Bitmap _color;
         private byte[] _data;
-        private Gdi32.BITMAPINFOHEADER _header;
+        private BitmapInfoHeader _header;
         private Bitmap _image;
         private Bitmap _mask;
 
@@ -78,7 +78,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
                 var pData = Marshal.AllocHGlobal(Marshal.SizeOf(_header));
                 try {
                     Marshal.Copy(_data, 0, pData, Marshal.SizeOf(_header));
-                    _header = (Gdi32.BITMAPINFOHEADER) Marshal.PtrToStructure(pData, typeof (Gdi32.BITMAPINFOHEADER));
+                    _header = (BitmapInfoHeader) Marshal.PtrToStructure(pData, typeof (BitmapInfoHeader));
                 }
                 finally {
                     Marshal.FreeHGlobal(pData);
@@ -89,7 +89,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
         /// <summary>
         ///   Bitmap info header.
         /// </summary>
-        public Gdi32.BITMAPINFOHEADER Header {
+        public BitmapInfoHeader Header {
             get { return _header; }
         }
 
@@ -115,7 +115,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
         ///   Position of the DIB bitmap bits within a DIB bitmap array.
         /// </summary>
         private Int32 XorImageIndex {
-            get { return (Int32) (Marshal.SizeOf(_header) + ColorCount*Marshal.SizeOf(new Gdi32.RGBQUAD())); }
+            get { return (Int32) (Marshal.SizeOf(_header) + ColorCount*Marshal.SizeOf(new RgbQuad())); }
         }
 
         /// <summary>
@@ -166,7 +166,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
                         hBmpOld = Gdi32.SelectObject(hdc, hBmp);
 
                         // prepare BitmapInfoHeader for mono bitmap:
-                        var monoBmHdrSize = (int) _header.biSize + Marshal.SizeOf(new Gdi32.RGBQUAD())*2;
+                        var monoBmHdrSize = (int) _header.biSize + Marshal.SizeOf(new RgbQuad())*2;
 
                         bitsInfo = Marshal.AllocCoTaskMem(monoBmHdrSize);
                         Marshal.WriteInt32(bitsInfo, Marshal.SizeOf(_header));
@@ -174,7 +174,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
                         Marshal.WriteInt32(bitsInfo, 8, _header.biHeight/2);
                         Marshal.WriteInt16(bitsInfo, 12, 1);
                         Marshal.WriteInt16(bitsInfo, 14, 1);
-                        Marshal.WriteInt32(bitsInfo, 16, (Int32) Gdi32.BitmapCompression.BI_RGB);
+                        Marshal.WriteInt32(bitsInfo, 16, (Int32) BitmapCompression.BI_RGB);
                         Marshal.WriteInt32(bitsInfo, 20, 0);
                         Marshal.WriteInt32(bitsInfo, 24, 0);
                         Marshal.WriteInt32(bitsInfo, 28, 0);
@@ -192,7 +192,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
 
                         if (0 ==
                             Gdi32.SetDIBitsToDevice(hdc, 0, 0, (UInt32) _header.biWidth, (UInt32) _header.biHeight/2, 0, 0, 0, (UInt32) _header.biHeight/2, bits,
-                                bitsInfo, (UInt32) Gdi32.DIBColors.DIB_RGB_COLORS)) {
+                                bitsInfo, (UInt32) DIBColors.DIB_RGB_COLORS)) {
                             throw new Win32Exception(Marshal.GetLastWin32Error());
                         }
 
@@ -264,7 +264,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
 
                         if (0 ==
                             Gdi32.SetDIBitsToDevice(hdc, 0, 0, (UInt32) _header.biWidth, (UInt32) _header.biHeight/2, 0, 0, 0, (UInt32) (_header.biHeight/2),
-                                bits, bitsInfo, (Int32) Gdi32.DIBColors.DIB_RGB_COLORS)) {
+                                bits, bitsInfo, (Int32) DIBColors.DIB_RGB_COLORS)) {
                             throw new Win32Exception(Marshal.GetLastWin32Error());
                         }
 
@@ -311,7 +311,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
                         }
 
                         // Image
-                        var bitmapInfo = new Gdi32.BITMAPINFO();
+                        var bitmapInfo = new BitmapInfo();
                         bitmapInfo.bmiHeader = _header;
                         // bitmapInfo.bmiColors = Tools.StandarizePalette(mEncoder.Colors);
                         hDCScreenOUTBmp = Gdi32.CreateCompatibleDC(hDCScreen);
@@ -342,7 +342,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
         /// <param name = "lpData">Pointer to the beginning of icon data.</param>
         /// <param name = "size">Icon data size.</param>
         internal void Read(IntPtr lpData, uint size) {
-            _header = (Gdi32.BITMAPINFOHEADER) Marshal.PtrToStructure(lpData, typeof (Gdi32.BITMAPINFOHEADER));
+            _header = (BitmapInfoHeader) Marshal.PtrToStructure(lpData, typeof (BitmapInfoHeader));
 
             _data = new byte[size];
             Marshal.Copy(lpData, _data, 0, _data.Length);

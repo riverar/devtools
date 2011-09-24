@@ -27,13 +27,14 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
     using System;
     using System.IO;
     using System.Runtime.InteropServices;
+    using CoApp.Toolkit.Win32;
 
     /// <summary>
     ///   A bitmap file in a .bmp format.
     /// </summary>
     public class BitmapFile {
         private DeviceIndependentBitmap _bitmap;
-        private Gdi32.BITMAPFILEHEADER _header;
+        private BitmapFileHeader _header;
 
         /// <summary>
         ///   An existing bitmap file.
@@ -45,7 +46,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
             var pFileHeaderData = Marshal.AllocHGlobal(Marshal.SizeOf(_header));
             try {
                 Marshal.Copy(data, 0, pFileHeaderData, Marshal.SizeOf(_header));
-                _header = (Gdi32.BITMAPFILEHEADER) Marshal.PtrToStructure(pFileHeaderData, typeof (Gdi32.BITMAPFILEHEADER));
+                _header = (BitmapFileHeader) Marshal.PtrToStructure(pFileHeaderData, typeof (BitmapFileHeader));
             }
             finally {
                 Marshal.FreeHGlobal(pFileHeaderData);
