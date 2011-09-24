@@ -23,12 +23,12 @@
 // </license>
 //-----------------------------------------------------------------------
 
-namespace CoApp.Toolkit.ResourceLib {
+namespace CoApp.Developer.Toolkit.ResourceLib {
     using System;
     using System.ComponentModel;
     using System.Drawing;
     using System.Runtime.InteropServices;
-    using Win32;
+    using CoApp.Toolkit.Win32;
 
     /// <summary>
     ///   A device-independent image consists of a BITMAPINFOHEADER where

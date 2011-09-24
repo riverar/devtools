@@ -23,18 +23,17 @@
 // </license>
 //-----------------------------------------------------------------------
 
-namespace CoApp.Toolkit.ResourceLib {
+namespace CoApp.Developer.Toolkit.ResourceLib {
     using System;
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
-    using Win32;
 
     /// <summary>
     ///   Standard menu template.
     /// </summary>
     public class MenuTemplate : MenuTemplateBase {
-        private Win32.MenuTemplate _header;
+        private CoApp.Toolkit.Win32.MenuTemplate _header;
         private MenuTemplateItemCollection _menuItems = new MenuTemplateItemCollection();
 
         /// <summary>
@@ -50,7 +49,7 @@ namespace CoApp.Toolkit.ResourceLib {
         /// </summary>
         /// <param name = "lpRes">Address in memory.</param>
         internal override IntPtr Read(IntPtr lpRes) {
-            _header = (Win32.MenuTemplate) Marshal.PtrToStructure(lpRes, typeof (Win32.MenuTemplate));
+            _header = (CoApp.Toolkit.Win32.MenuTemplate) Marshal.PtrToStructure(lpRes, typeof (CoApp.Toolkit.Win32.MenuTemplate));
 
             var lpMenuItem = new IntPtr(lpRes.ToInt32() + Marshal.SizeOf(_header) + _header.wOffset);
             return _menuItems.Read(lpMenuItem);

@@ -23,7 +23,7 @@
 // </license>
 //-----------------------------------------------------------------------
 
-namespace CoApp.Toolkit.ResourceLib {
+namespace CoApp.Developer.Toolkit.ResourceLib {
     using System;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;

@@ -23,13 +23,13 @@
 // </license>
 //-----------------------------------------------------------------------
 
-namespace CoApp.Toolkit.ResourceLib {
+namespace CoApp.Developer.Toolkit.ResourceLib {
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Runtime.InteropServices;
-    using Win32;
+    using CoApp.Toolkit.Win32;
 
     /// <summary>
     ///   Resource info manager.
@@ -202,27 +202,27 @@ namespace CoApp.Toolkit.ResourceLib {
         protected Resource CreateResource(IntPtr hModule, IntPtr hResourceGlobal, ResourceId type, ResourceId name, UInt16 wIDLanguage, int size) {
             if (type.IsIntResource()) {
                 switch (type.ResourceType) {
-                    case Win32.ResourceTypes.RT_VERSION:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_VERSION:
                         return new VersionResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_GROUP_CURSOR:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_GROUP_CURSOR:
                         return new CursorDirectoryResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_GROUP_ICON:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_GROUP_ICON:
                         return new IconDirectoryResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_MANIFEST:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_MANIFEST:
                         return new ManifestResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_BITMAP:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_BITMAP:
                         return new BitmapResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_MENU:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_MENU:
                         return new MenuResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_DIALOG:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_DIALOG:
                         return new DialogResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_STRING:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_STRING:
                         return new StringResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_FONTDIR:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_FONTDIR:
                         return new FontDirectoryResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_FONT:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_FONT:
                         return new FontResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
-                    case Win32.ResourceTypes.RT_ACCELERATOR:
+                    case CoApp.Toolkit.Win32.ResourceTypes.RT_ACCELERATOR:
                         return new AcceleratorResource(hModule, hResourceGlobal, type, name, wIDLanguage, size);
                 }
             }
