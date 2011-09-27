@@ -42,7 +42,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
         set {
             if( value == null ) {
                 _settings["#CurrentCertificate"].EncryptedStringValue = null;
-            } else if( value != _default) {
+            } else {
+                _default = value;
                 _settings["#CurrentCertificate"].EncryptedStringValue = _default._location;
             }
         }}
@@ -129,7 +130,6 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     throw new Exception("Certificate '{0}' does not have private key".format(_location));
                 }
             }
-            _certificate = new X509Certificate2(location, password);
         }
 
         /// <summary>

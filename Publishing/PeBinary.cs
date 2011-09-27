@@ -107,10 +107,33 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                 throw new Exception("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
                             }
                             tmpFilename.TryHardToDeleteFile();
-                            var assembly = module as Assembly;
-                            if (assembly != null) {
+
+
+                            //Make a mutable copy of the module.
+                            var copier = new MetadataDeepCopier(host);
+                            var mutableModule = copier.Copy(module);
+
+                            //Traverse the module. In a real application the MetadataVisitor and/or the MetadataTravers will be subclasses
+                            //and the traversal will gather information to use during rewriting.
+                            var traverser = new MetadataTraverser()
+                            {
+                                PreorderVisitor = new MetadataVisitor(),
+                                TraverseIntoMethodBodies = true
+                            };
+                            traverser.Traverse(mutableModule);
+
+                            //Rewrite the mutable copy. In a real application the rewriter would be a subclass of MetadataRewriter that actually does something.
+                            var rewriter = new MetadataRewriter(host);
+                            var rewrittenModule = rewriter.Rewrite(mutableModule) as Assembly;
+                            if (rewrittenModule != null) {
                                 // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
-                                foreach (var a in assembly.AssemblyAttributes) {
+                                foreach( var ar in rewrittenModule.AssemblyReferences ) {
+                                    if( !ar.PublicKeyToken.Any() ) {
+                                        Console.WriteLine("Dependent Reference : {0}-{1} is not strong named", ar.Name, ar.Version);
+                                    }
+                                }
+
+                                foreach (var a in rewrittenModule.ContainingAssembly.AssemblyAttributes) {
                                     var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
                                     if (attributeArgument != null) {
                                         var attributeName = a.Type.ToString();
@@ -153,6 +176,11 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                                 case "System.Reflection.AssemblyTrademarkAttribute":
                                                     if (string.IsNullOrEmpty(AssemblyTrademark)) {
                                                         AssemblyTrademark = attributeValue;
+                                                    }
+                                                    break;
+                                                case "System.Reflection.AssemblyDescriptionAttribute":
+                                                    if (string.IsNullOrEmpty(AssemblyDescription)) {
+                                                        AssemblyDescription = attributeValue;
                                                     }
                                                     break;
                                                 case "BugTrackerAttribute":
@@ -411,6 +439,13 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                 // change any assembly attributes we need to change
 
                                 if (rewrittenModule != null) {
+                                    foreach (var ar in rewrittenModule.AssemblyReferences) {
+                                        if (!ar.PublicKeyToken.Any()) {
+                                            Console.WriteLine("Note: Non-strong-named dependent reference found: {0}-{1} assuming same strong-name-key", ar.Name, ar.Version);
+                                            (ar as AssemblyReference).PublicKey = StrongNameKey.ToList();
+                                        }
+                                    }
+
                                     // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
                                     foreach (var a in rewrittenModule.AssemblyAttributes) {
                                         var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
@@ -419,6 +454,9 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                             switch (attributeName) {
                                                 case "System.Reflection.AssemblyTitleAttribute":
                                                     attributeArgument.Value = string.IsNullOrEmpty(AssemblyTitle) ? string.Empty : AssemblyTitle;
+                                                    break;
+                                                case "System.Reflection.AssemblyDescriptionAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyDescription) ? string.Empty : AssemblyDescription;
                                                     break;
                                                 case "System.Reflection.AssemblyCompanyAttribute":
                                                     attributeArgument.Value = string.IsNullOrEmpty(AssemblyCompany) ? string.Empty : AssemblyCompany;
@@ -450,6 +488,30 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                 using (var peStream = File.Create(tmpFilename)) {
                                     PeWriter.WritePeToStream(rewrittenModule, host, peStream);
                                 }
+
+                                var ri = new ResourceInfo();
+
+                                ri.Load(tmpFilename);
+                                var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).First();
+                                var versionResource = ri.Resources[versionKey].First() as VersionResource;
+                                var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
+
+                                versionStringTable["ProductName"] = ProductName;
+                                versionStringTable["CompanyName"] = CompanyName;
+                                versionStringTable["FileDescription"] = FileDescription;
+
+                                versionStringTable["Comments"] = _comments;
+
+
+                                versionStringTable["Assembly Version"] = _assemblyVersion;
+                                versionStringTable["FileVersion"] = _fileVersion;
+                                versionStringTable["InternalName"] = _internalName;
+                                versionStringTable["OriginalFilename"] = _originalFilename;
+                                versionStringTable["LegalCopyright"] = _legalCopyright;
+                                versionStringTable["LegalTrademarks"] = _legalTrademarks;
+                                versionStringTable["BugTracker"] = _bugTracker;
+
+                                versionResource.SaveTo(tmpFilename);
 
                                 if (StrongNameKeyCertificate != null && (StrongNameKeyCertificate.Certificate.PrivateKey is RSACryptoServiceProvider) ) {
                                     // strong name the assembly
