@@ -25,7 +25,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
     using Microsoft.Cci.MutableCodeModel;
     using ResourceLib;
 
-    public class PeBinary {
+    public class PeBinary : IDisposable {
 
         // const byte PUBLICKEYBLOB	= 	0x06;
         // const byte CUR_BLOB_VERSION	= 	0x02;
@@ -39,26 +39,40 @@ namespace CoApp.Developer.Toolkit.Publishing {
         // Private Key Blobs are documented here: http://msdn.microsoft.com/en-us/library/Aa387401
 
 
-        private string _filename;
+        private readonly string _filename;
         private bool _pendingChanges;
         private readonly PEInfo _info;
+        private MetadataReaderHost _host;
+        private static Dictionary<string, PeBinary> _cache = new Dictionary<string, PeBinary>();
 
-        /* example:
-         * var x = new PeBinary("test.exe");
+        public static PeBinary Load(string filename) {
+            return !_cache.ContainsKey(filename) ? new PeBinary(filename) : _cache[filename];
+        }
 
-            x.ProductName = "Super Fantastic Product";
-
-            if( x.IsManaged ) {
-                x.StrongNameKeyCertificate = cert;
-                x.AssemblyTitle = "Super Fantastic Product";
+        public static PeBinary FindAssembly(string assemblyname, string version) {
+            Console.WriteLine("Finding {0}-{1}", assemblyname,version);
+            var asm =
+                _cache.Values.Where(
+                    each => each.IsManaged && each.MutableAssembly.Name.Value == assemblyname && each.MutableAssembly.Version.ToString() == version).FirstOrDefault();
+            if( asm == null ) {
+                Console.WriteLine("Not Found Yet {0}-{1}", assemblyname, version);
+                // see if we can find it in the same folder as one of the assemblies we already have.
+                foreach( var folder in _cache.Keys.Select(each => Path.GetDirectoryName(each.GetFullPath()).ToLower()).Distinct() ) {
+                    var probe = Path.Combine(folder, assemblyname)+".dll";
+                    Console.WriteLine("  Searching for {0}-{1} at {2}",assemblyname,version, probe);
+                    if( File.Exists(probe)) {
+                        var probeAsm = Load(probe);
+                        if( probeAsm.IsManaged && probeAsm.MutableAssembly.Name.Value == assemblyname && probeAsm.MutableAssembly.Version.ToString() == version) {
+                            asm = probeAsm;
+                            break;
+                        }
+                    }
+                }
             }
+            return asm;
+        }
 
-            x.SigningCertificate = cert;
-
-            x.Save();
-         */
-
-        public PeBinary(string filename) {
+        private PeBinary(string filename) {
             filename = filename.GetFullPath();
             if(!File.Exists(filename) ) {
                 throw new FileNotFoundException("Unable to find file", filename);
@@ -97,104 +111,93 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 }
 
                 if (IsManaged) { // we can read in the binary using CCI
+                    _host = new PeReader.DefaultHost();
+
                     try {
-                        using (var host = new PeReader.DefaultHost()) {
-                            var tmpFilename = Path.GetTempFileName();
-                            File.Delete(tmpFilename);
-                            File.Copy(_filename, tmpFilename);
-                            var module = host.LoadUnitFrom(tmpFilename) as IModule;
-                            if (module == null || module is Dummy) {
-                                throw new Exception("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
-                            }
-                            tmpFilename.TryHardToDeleteFile();
+                        
+                        if (MutableAssembly != null) {
+                           
 
-
-                            //Make a mutable copy of the module.
-                            var copier = new MetadataDeepCopier(host);
-                            var mutableModule = copier.Copy(module);
-
-                            //Traverse the module. In a real application the MetadataVisitor and/or the MetadataTravers will be subclasses
-                            //and the traversal will gather information to use during rewriting.
-                            var traverser = new MetadataTraverser()
-                            {
-                                PreorderVisitor = new MetadataVisitor(),
-                                TraverseIntoMethodBodies = true
-                            };
-                            traverser.Traverse(mutableModule);
-
-                            //Rewrite the mutable copy. In a real application the rewriter would be a subclass of MetadataRewriter that actually does something.
-                            var rewriter = new MetadataRewriter(host);
-                            var rewrittenModule = rewriter.Rewrite(mutableModule) as Assembly;
-                            if (rewrittenModule != null) {
-                                // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
-                                foreach( var ar in rewrittenModule.AssemblyReferences ) {
-                                    if( !ar.PublicKeyToken.Any() ) {
-                                        Console.WriteLine("Dependent Reference : {0}-{1} is not strong named", ar.Name, ar.Version);
-                                    }
-                                }
-
-                                foreach (var a in rewrittenModule.ContainingAssembly.AssemblyAttributes) {
-                                    var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
-                                    if (attributeArgument != null) {
-                                        var attributeName = a.Type.ToString();
-                                        var attributeValue = attributeArgument.Value.ToString();
-                                        if (!string.IsNullOrEmpty(attributeValue)) {
-                                            switch (attributeName) {
-                                                case "System.Reflection.AssemblyTitleAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyTitle)) {
-                                                        AssemblyTitle = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyCompanyAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyCompany)) {
-                                                        AssemblyCompany = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyProductAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyProduct)) {
-                                                        AssemblyProduct = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyVersionAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyVersion)) {
-                                                        AssemblyVersion = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyFileVersionAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyFileVersion)) {
-                                                        AssemblyFileVersion = attributeValue;
-                                                    }
-                                                    if (string.IsNullOrEmpty(_productVersion)) {
-                                                        _productVersion = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyCopyrightAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyCopyright)) {
-                                                        AssemblyCopyright = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyTrademarkAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyTrademark)) {
-                                                        AssemblyTrademark = attributeValue;
-                                                    }
-                                                    break;
-                                                case "System.Reflection.AssemblyDescriptionAttribute":
-                                                    if (string.IsNullOrEmpty(AssemblyDescription)) {
-                                                        AssemblyDescription = attributeValue;
-                                                    }
-                                                    break;
-                                                case "BugTrackerAttribute":
-                                                    if (string.IsNullOrEmpty(BugTracker)) {
-                                                        BugTracker = attributeValue;
-                                                    }
-                                                    break;
-                                            }
+                            // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
+                            foreach (var a in MutableAssembly.ContainingAssembly.AssemblyAttributes) {
+                                var attributeArgument = (a.Arguments.FirstOrDefault() as MetadataConstant);
+                                if (attributeArgument != null) {
+                                    var attributeName = a.Type.ToString();
+                                    var attributeValue = attributeArgument.Value.ToString();
+                                    if (!string.IsNullOrEmpty(attributeValue)) {
+                                        switch (attributeName) {
+                                            case "System.Reflection.AssemblyTitleAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyTitle)) {
+                                                    AssemblyTitle = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyCompanyAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyCompany)) {
+                                                    AssemblyCompany = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyProductAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyProduct)) {
+                                                    AssemblyProduct = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyVersionAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyVersion)) {
+                                                    AssemblyVersion = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyFileVersionAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyFileVersion)) {
+                                                    AssemblyFileVersion = attributeValue;
+                                                }
+                                                if (string.IsNullOrEmpty(_productVersion)) {
+                                                    _productVersion = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyCopyrightAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyCopyright)) {
+                                                    AssemblyCopyright = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyTrademarkAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyTrademark)) {
+                                                    AssemblyTrademark = attributeValue;
+                                                }
+                                                break;
+                                            case "System.Reflection.AssemblyDescriptionAttribute":
+                                                if (string.IsNullOrEmpty(AssemblyDescription)) {
+                                                    AssemblyDescription = attributeValue;
+                                                }
+                                                break;
+                                            case "BugTrackerAttribute":
+                                                if (string.IsNullOrEmpty(BugTracker)) {
+                                                    BugTracker = attributeValue;
+                                                }
+                                                break;
                                         }
                                     }
                                 }
                             }
                         }
-                    } catch {
+
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            _cache.Add(_filename, this);
+
+            // check each of the assembly references, 
+            if (IsManaged) {
+                foreach (var ar in MutableAssembly.AssemblyReferences) {
+                    if (!ar.PublicKeyToken.Any()) {
+                        // dependent assembly isn't signed. 
+                        // look for it.
+                        var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
+                        if( dep == null) {
+                            Console.WriteLine("WARNING: Unsigned Dependent Assembly {0}-{1} not found.",ar.Name.Value, ar.Version.ToString());
+                        }
                     }
                 }
             }
@@ -217,6 +220,51 @@ namespace CoApp.Developer.Toolkit.Publishing {
         public bool IsManaged {
             get {
                 return _info.IsManaged;
+            }
+        }
+
+        private Assembly _mutableAssembly;
+        private Assembly MutableAssembly { 
+            get {
+                if( !IsManaged ) {
+                    return null;
+                }
+
+                if (_mutableAssembly == null) {
+                    // copy this to a temporary file, because it locks the file until we're *really* done.
+                    var temporaryCopy = Path.GetTempFileName();
+                    try {
+                        File.Delete(temporaryCopy); // remove the one it made for us.
+                        File.Copy(_filename, temporaryCopy); 
+
+                        var module = _host.LoadUnitFrom(temporaryCopy) as IModule;
+
+                        if (module == null || module is Dummy) {
+                            throw new Exception("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
+                        }
+
+                        //Make a mutable copy of the module.
+                        var copier = new MetadataDeepCopier(_host);
+                        var mutableModule = copier.Copy(module);
+
+                        //Traverse the module. In a real application the MetadataVisitor and/or the MetadataTravers will be subclasses
+                        //and the traversal will gather information to use during rewriting.
+                        var traverser = new MetadataTraverser() {
+                            PreorderVisitor = new MetadataVisitor(),
+                            TraverseIntoMethodBodies = true
+                        };
+                        traverser.Traverse(mutableModule);
+
+                        //Rewrite the mutable copy. In a real application the rewriter would be a subclass of MetadataRewriter that actually does something.
+                        var rewriter = new MetadataRewriter(_host);
+                        _mutableAssembly = rewriter.Rewrite(mutableModule) as Assembly;
+                    }
+                    finally {
+                        // delete it, or at least trash it & queue it up for next reboot.
+                        temporaryCopy.TryHardToDeleteFile();
+                    }
+                }
+                return _mutableAssembly;
             }
         }
 
@@ -392,142 +440,125 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 // saves any changes made to the binary.
                 lock (typeof (PeBinary)) {
                     // operations are not always threadsafe. :S
-                    // back up file before we go-go
+                    // work on a back up of the file
                     var tmpFilename = Path.GetTempFileName();
                     File.Delete(tmpFilename);
                     File.Copy(_filename, tmpFilename);
 
                     try {
                         // remove any digital signatures from the binary before doing anything
-                        StripSignatures(tmpFilename);
-
+                        if (!IsManaged) {
+                            StripSignatures(tmpFilename); // this is irrelevant if the binary is managed--we'll be writing out a new one.
+                        }
                         // rewrite any native resources that we want to change.
 
-                        // [if managed] load the binary from disk
                         if (IsManaged) {
                             // set the strong name key data
-                            using (var host = new PeReader.DefaultHost()) {
-                                var newtmpFilename = Path.GetTempFileName();
-                                File.Delete(newtmpFilename);
-                                File.Copy(tmpFilename, newtmpFilename);
-                                var module = host.LoadUnitFrom(newtmpFilename) as IModule;
-                                if (module == null || module is Dummy) {
-                                    throw new Exception("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
-                                }
-                                newtmpFilename.TryHardToDeleteFile();
-                                
+                            MutableAssembly.PublicKey = StrongNameKey.ToList();
 
-                                //Make a mutable copy of the module.
-                                var copier = new MetadataDeepCopier(host);
-                                var mutableModule = copier.Copy(module);
-
-                                //Traverse the module. In a real application the MetadataVisitor and/or the MetadataTravers will be subclasses
-                                //and the traversal will gather information to use during rewriting.
-                                var traverser = new MetadataTraverser() {
-                                    PreorderVisitor = new MetadataVisitor(),
-                                    TraverseIntoMethodBodies = true
-                                };
-                                traverser.Traverse(mutableModule);
-
-                                //Rewrite the mutable copy. In a real application the rewriter would be a subclass of MetadataRewriter that actually does something.
-                                var rewriter = new MetadataRewriter(host);
-                                var rewrittenModule = rewriter.Rewrite(mutableModule) as Assembly;
-                                if (PublicKeyToken != null) {
-                                    rewrittenModule.PublicKey = StrongNameKey.ToList();
-                                }
-
-                                // change any assembly attributes we need to change
-
-                                if (rewrittenModule != null) {
-                                    foreach (var ar in rewrittenModule.AssemblyReferences) {
+                            // change any assembly attributes we need to change
+                            if (MutableAssembly != null) {
+                                if (StrongNameKeyCertificate != null) {
+                                    foreach (var ar in MutableAssembly.AssemblyReferences) {
                                         if (!ar.PublicKeyToken.Any()) {
-                                            Console.WriteLine("Note: Non-strong-named dependent reference found: {0}-{1} assuming same strong-name-key", ar.Name, ar.Version);
-                                            (ar as AssemblyReference).PublicKey = StrongNameKey.ToList();
-                                        }
-                                    }
-
-                                    // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
-                                    foreach (var a in rewrittenModule.AssemblyAttributes) {
-                                        var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
-                                        if (attributeArgument != null) {
-                                            var attributeName = a.Type.ToString();
-                                            switch (attributeName) {
-                                                case "System.Reflection.AssemblyTitleAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyTitle) ? string.Empty : AssemblyTitle;
-                                                    break;
-                                                case "System.Reflection.AssemblyDescriptionAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyDescription) ? string.Empty : AssemblyDescription;
-                                                    break;
-                                                case "System.Reflection.AssemblyCompanyAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyCompany) ? string.Empty : AssemblyCompany;
-                                                    break;
-                                                case "System.Reflection.AssemblyProductAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyProduct) ? string.Empty : AssemblyProduct;
-                                                    break;
-                                                case "System.Reflection.AssemblyVersionAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyVersion) ? string.Empty : AssemblyVersion;
-                                                    break;
-                                                case "System.Reflection.AssemblyFileVersionAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyFileVersion) ? string.Empty : AssemblyFileVersion;
-                                                    break;
-                                                case "System.Reflection.AssemblyCopyrightAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyCopyright) ? string.Empty : AssemblyCopyright;
-                                                    break;
-                                                case "System.Reflection.AssemblyTrademarkAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyTrademark) ? string.Empty : AssemblyTrademark;
-                                                    break;
-                                                case "BugTrackerAttribute":
-                                                    attributeArgument.Value = string.IsNullOrEmpty(BugTracker) ? string.Empty : BugTracker;
-                                                    break;
+                                            var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
+                                            if (dep == null) {
+                                                // can't strong name a file that doesn't have its deps all strong named.
+                                                throw new Exception(
+                                                    "Unable to strong name '{0}' -- dependent assembly '{1}-{2}' not available for strong naming".format(
+                                                        _filename, ar.Name.Value, ar.Version.ToString()));
                                             }
+                                            if (dep.StrongNameKeyCertificate == null) {
+                                                Console.WriteLine("Warning: Non-strong-named dependent reference found: '{0}-{1}' assuming same strong-name-key, forcing saving.", ar.Name, ar.Version);
+                                                dep.StrongNameKeyCertificate = StrongNameKeyCertificate;
+                                                dep.SigningCertificate= SigningCertificate;
+                                                (ar as AssemblyReference).PublicKey = dep.StrongNameKey.ToList();
+                                                dep.Save();
+                                            }
+                                            
                                         }
                                     }
                                 }
 
-                                // save it to disk
-                                using (var peStream = File.Create(tmpFilename)) {
-                                    PeWriter.WritePeToStream(rewrittenModule, host, peStream);
-                                }
-
-                                var ri = new ResourceInfo();
-
-                                ri.Load(tmpFilename);
-                                var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).First();
-                                var versionResource = ri.Resources[versionKey].First() as VersionResource;
-                                var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
-
-                                versionStringTable["ProductName"] = ProductName;
-                                versionStringTable["CompanyName"] = CompanyName;
-                                versionStringTable["FileDescription"] = FileDescription;
-
-                                versionStringTable["Comments"] = _comments;
-
-
-                                versionStringTable["Assembly Version"] = _assemblyVersion;
-                                versionStringTable["FileVersion"] = _fileVersion;
-                                versionStringTable["InternalName"] = _internalName;
-                                versionStringTable["OriginalFilename"] = _originalFilename;
-                                versionStringTable["LegalCopyright"] = _legalCopyright;
-                                versionStringTable["LegalTrademarks"] = _legalTrademarks;
-                                versionStringTable["BugTracker"] = _bugTracker;
-
-                                versionResource.SaveTo(tmpFilename);
-
-                                if (StrongNameKeyCertificate != null && (StrongNameKeyCertificate.Certificate.PrivateKey is RSACryptoServiceProvider) ) {
-                                    // strong name the assembly
-                                    // strong name the binary using the private key from the certificate.
-                                    var wszKeyContainer = Guid.NewGuid().ToString();
-                                    var privateKey = (StrongNameKeyCertificate.Certificate.PrivateKey as RSACryptoServiceProvider).ExportCspBlob(true);
-                                    if(! Mscoree.StrongNameKeyInstall(wszKeyContainer, privateKey, privateKey.Length) ) {
-                                        throw new Exception("Unable to create KeyContainer");
+                                // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
+                                foreach (var a in MutableAssembly.AssemblyAttributes) {
+                                    var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
+                                    if (attributeArgument != null) {
+                                        var attributeName = a.Type.ToString();
+                                        switch (attributeName) {
+                                            case "System.Reflection.AssemblyTitleAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyTitle) ? string.Empty : AssemblyTitle;
+                                                break;
+                                            case "System.Reflection.AssemblyDescriptionAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyDescription) ? string.Empty : AssemblyDescription;
+                                                break;
+                                            case "System.Reflection.AssemblyCompanyAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyCompany) ? string.Empty : AssemblyCompany;
+                                                break;
+                                            case "System.Reflection.AssemblyProductAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyProduct) ? string.Empty : AssemblyProduct;
+                                                break;
+                                            case "System.Reflection.AssemblyVersionAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyVersion) ? string.Empty : AssemblyVersion;
+                                                break;
+                                            case "System.Reflection.AssemblyFileVersionAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyFileVersion) ? string.Empty : AssemblyFileVersion;
+                                                break;
+                                            case "System.Reflection.AssemblyCopyrightAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyCopyright) ? string.Empty : AssemblyCopyright;
+                                                break;
+                                            case "System.Reflection.AssemblyTrademarkAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyTrademark) ? string.Empty : AssemblyTrademark;
+                                                break;
+                                            case "BugTrackerAttribute":
+                                                attributeArgument.Value = string.IsNullOrEmpty(BugTracker) ? string.Empty : BugTracker;
+                                                break;
+                                        }
                                     }
-                                    if( !Mscoree.StrongNameSignatureGeneration(tmpFilename, wszKeyContainer, IntPtr.Zero, 0, 0, 0) ){
-                                        throw new Exception("Unable Strong name assembly '{0}'.".format( _filename));
-                                    }
-                                    Mscoree.StrongNameKeyDelete(wszKeyContainer);
                                 }
                             }
+
+                            // save it to disk
+                            using (var peStream = File.Create(tmpFilename)) {
+                                PeWriter.WritePeToStream(MutableAssembly, _host, peStream);
+                            }
+
+                            var ri = new ResourceInfo();
+
+                            ri.Load(tmpFilename);
+                            var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).First();
+                            var versionResource = ri.Resources[versionKey].First() as VersionResource;
+                            var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
+
+                            versionStringTable["ProductName"] = ProductName;
+                            versionStringTable["CompanyName"] = CompanyName;
+                            versionStringTable["FileDescription"] = FileDescription;
+                            versionStringTable["Comments"] = _comments;
+                            versionStringTable["Assembly Version"] = _assemblyVersion;
+                            versionStringTable["FileVersion"] = _fileVersion;
+                            versionStringTable["InternalName"] = _internalName;
+                            versionStringTable["OriginalFilename"] = _originalFilename;
+                            versionStringTable["LegalCopyright"] = _legalCopyright;
+                            versionStringTable["LegalTrademarks"] = _legalTrademarks;
+                            versionStringTable["BugTracker"] = _bugTracker;
+
+                            versionResource.SaveTo(tmpFilename);
+
+                            if (StrongNameKeyCertificate != null && (StrongNameKeyCertificate.Certificate.PrivateKey is RSACryptoServiceProvider)) {
+                                // strong name the assembly
+                                // strong name the binary using the private key from the certificate.
+                                var wszKeyContainer = Guid.NewGuid().ToString();
+                                var privateKey = (StrongNameKeyCertificate.Certificate.PrivateKey as RSACryptoServiceProvider).ExportCspBlob(true);
+                                if (!Mscoree.StrongNameKeyInstall(wszKeyContainer, privateKey, privateKey.Length)) {
+                                    throw new Exception("Unable to create KeyContainer");
+                                }
+                                if (!Mscoree.StrongNameSignatureGeneration(tmpFilename, wszKeyContainer, IntPtr.Zero, 0, 0, 0)) {
+                                    throw new Exception("Unable Strong name assembly '{0}'.".format(_filename));
+                                }
+                                Mscoree.StrongNameKeyDelete(wszKeyContainer);
+                            }
                         }
+
 
                         // sign the binary
                         if (_signingCertificate != null) {
@@ -548,6 +579,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     }
                 }
             }
+            _pendingChanges = false;
         }
 
         public static void StripSignatures( string filename ) {
@@ -641,6 +673,12 @@ namespace CoApp.Developer.Toolkit.Publishing {
 			//
 			Console.WriteLine(ex.Message);
 		}
+        }
+
+        public void Dispose() {
+            _mutableAssembly = null;
+            _host.Dispose();
+            _host = null;
         }
     }
 }
