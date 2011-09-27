@@ -10,17 +10,16 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.Text;
-using Microsoft.Cci;
 using System.Configuration.Assemblies;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Text;
 using Microsoft.Cci.UtilityDataStructures;
-using Microsoft.Cci.WriterUtilities;
 
 //^ using Microsoft.Contracts;
 
 namespace Microsoft.Cci {
+  using Microsoft.Cci.PeWriterInternal;
 
   public class PeWriter : ITokenProvider {
 
@@ -3133,7 +3132,7 @@ namespace Microsoft.Cci {
     List<MemoryStream> customDebugMetadataForCurrentMethod = new List<MemoryStream>();
     IEnumerator<ILocalScope>/*?*/ scopeEnumerator;
     bool scopeEnumeratorIsValid;
-    System.Collections.Generic.Stack<ILocalScope> scopeStack = new System.Collections.Generic.Stack<ILocalScope>();
+    Stack<ILocalScope> scopeStack = new Stack<ILocalScope>();
       
     private void SerializeMethodBody(IMethodBody methodBody, BinaryWriter writer) {
       uint localVariableSignatureToken = this.SerializeLocalVariableSignatureAndReturnToken(methodBody);
@@ -4761,6 +4760,10 @@ namespace Microsoft.Cci {
     /// </summary>
     uint GetTokenFor(string str);
   }
+
+}
+
+namespace Microsoft.Cci.PeWriterInternal {
 
   internal class ByteArrayComparer : IEqualityComparer<byte[]> {
 #if COMPACTFX

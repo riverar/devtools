@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Microsoft.Cci {
+  using Microsoft.Cci.ILGeneratorImplementation;
+
   /// <summary>
   /// Generates Microsoft intermediate language (MSIL) instructions.
   /// </summary>
@@ -817,79 +819,6 @@ namespace Microsoft.Cci {
 
   }
 
-  internal class TryBody {
-
-    internal TryBody(ILGeneratorLabel start) {
-      this.start = start;
-    }
-
-    internal readonly ILGeneratorLabel start;
-    internal ILGeneratorLabel/*?*/ end;
-  }
-
-  internal class ExceptionHandler : IOperationExceptionInformation {
-
-    internal ExceptionHandler() {
-    }
-
-    internal ExceptionHandler(HandlerKind kind, TryBody tryBlock, ILGeneratorLabel handlerStart) {
-      this.ExceptionType = Dummy.TypeReference;
-      this.Kind = kind;
-      this.HandlerStart = handlerStart;
-      this.tryBlock = tryBlock;
-    }
-
-    internal HandlerKind Kind;
-    internal ITypeReference ExceptionType;
-    internal ILGeneratorLabel/*?*/ TryStart;
-    internal ILGeneratorLabel/*?*/ TryEnd;
-    internal ILGeneratorLabel HandlerEnd;
-    internal ILGeneratorLabel HandlerStart;
-    internal ILGeneratorLabel/*?*/ FilterDecisionStart;
-    TryBody/*?*/ tryBlock;
-
-    #region IOperationExceptionInformation Members
-
-    HandlerKind IOperationExceptionInformation.HandlerKind {
-      get { return this.Kind; }
-    }
-
-    ITypeReference IOperationExceptionInformation.ExceptionType {
-      get { return this.ExceptionType; }
-    }
-
-    uint IOperationExceptionInformation.TryStartOffset {
-      get {
-        if (this.TryStart != null) return this.TryStart.Offset;
-        return this.tryBlock.start.Offset;
-      }
-    }
-
-    uint IOperationExceptionInformation.TryEndOffset {
-      get {
-        if (this.TryEnd != null) return this.TryEnd.Offset;
-        return this.tryBlock.end.Offset;
-      }
-    }
-
-    uint IOperationExceptionInformation.FilterDecisionStartOffset {
-      get {
-        if (this.FilterDecisionStart == null) return 0;
-        return this.FilterDecisionStart.Offset;
-      }
-    }
-
-    uint IOperationExceptionInformation.HandlerStartOffset {
-      get { return this.HandlerStart.Offset; }
-    }
-
-    uint IOperationExceptionInformation.HandlerEndOffset {
-      get { return this.HandlerEnd.Offset; }
-    }
-
-    #endregion
-  }
-
   /// <summary>
   /// An object that is used to mark a location in an IL stream and that is used to indicate where branches go to.
   /// </summary>
@@ -1063,7 +992,6 @@ namespace Microsoft.Cci {
     #endregion
   }
 
-
   /// <summary>
   /// An object that keeps track of a set of local definitions (variables) and used (imported) namespaces that appear in the
   /// source code corresponding to the IL operations from Offset to Offset+Length.
@@ -1142,9 +1070,85 @@ namespace Microsoft.Cci {
     public IEnumerable<IUsedNamespace> UsedNamespaces {
       get {
         foreach (var usedNamespaceName in this.usedNamespaces)
-          yield return new xUsedNamespace(this.nameTable.GetNameFor(usedNamespaceName));
+          yield return new UsedNamespace(this.nameTable.GetNameFor(usedNamespaceName));
       }
     }
+  }
+
+}
+
+namespace Microsoft.Cci.ILGeneratorImplementation {
+  internal class TryBody {
+
+    internal TryBody(ILGeneratorLabel start) {
+      this.start = start;
+    }
+
+    internal readonly ILGeneratorLabel start;
+    internal ILGeneratorLabel/*?*/ end;
+  }
+
+  internal class ExceptionHandler : IOperationExceptionInformation {
+
+    internal ExceptionHandler() {
+    }
+
+    internal ExceptionHandler(HandlerKind kind, TryBody tryBlock, ILGeneratorLabel handlerStart) {
+      this.ExceptionType = Dummy.TypeReference;
+      this.Kind = kind;
+      this.HandlerStart = handlerStart;
+      this.tryBlock = tryBlock;
+    }
+
+    internal HandlerKind Kind;
+    internal ITypeReference ExceptionType;
+    internal ILGeneratorLabel/*?*/ TryStart;
+    internal ILGeneratorLabel/*?*/ TryEnd;
+    internal ILGeneratorLabel HandlerEnd;
+    internal ILGeneratorLabel HandlerStart;
+    internal ILGeneratorLabel/*?*/ FilterDecisionStart;
+    TryBody/*?*/ tryBlock;
+
+    #region IOperationExceptionInformation Members
+
+    HandlerKind IOperationExceptionInformation.HandlerKind {
+      get { return this.Kind; }
+    }
+
+    ITypeReference IOperationExceptionInformation.ExceptionType {
+      get { return this.ExceptionType; }
+    }
+
+    uint IOperationExceptionInformation.TryStartOffset {
+      get {
+        if (this.TryStart != null) return this.TryStart.Offset;
+        return this.tryBlock.start.Offset;
+      }
+    }
+
+    uint IOperationExceptionInformation.TryEndOffset {
+      get {
+        if (this.TryEnd != null) return this.TryEnd.Offset;
+        return this.tryBlock.end.Offset;
+      }
+    }
+
+    uint IOperationExceptionInformation.FilterDecisionStartOffset {
+      get {
+        if (this.FilterDecisionStart == null) return 0;
+        return this.FilterDecisionStart.Offset;
+      }
+    }
+
+    uint IOperationExceptionInformation.HandlerStartOffset {
+      get { return this.HandlerStart.Offset; }
+    }
+
+    uint IOperationExceptionInformation.HandlerEndOffset {
+      get { return this.HandlerEnd.Offset; }
+    }
+
+    #endregion
   }
 
   internal class Operation : IOperation {
@@ -1193,13 +1197,13 @@ namespace Microsoft.Cci {
   /// <summary>
   ///  A namespace that is used (imported) inside a namespace scope.
   /// </summary>
-  internal class xUsedNamespace : IUsedNamespace {
+  internal class UsedNamespace : IUsedNamespace {
 
     /// <summary>
     /// Allocates a namespace that is used (imported) inside a namespace scope.
     /// </summary>
     /// <param name="namespaceName">The name of a namepace that has been aliased.  For example the "y.z" of "using x = y.z;" or "using y.z" in C#.</param>
-    internal xUsedNamespace(IName namespaceName) {
+    internal UsedNamespace(IName namespaceName) {
       this.namespaceName = namespaceName;
     }
 

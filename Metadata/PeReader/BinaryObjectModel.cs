@@ -18,7 +18,6 @@ using Microsoft.Cci.UtilityDataStructures;
 using Microsoft.Cci.MetadataReader.PEFile;
 
 namespace Microsoft.Cci.MetadataReader.ObjectModelImplementation {
-    using SectionHeader = PEFile.SectionHeader;
 
     #region Base Objects for Object Model
 

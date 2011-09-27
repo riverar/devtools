@@ -10,14 +10,12 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.IO;
-using Microsoft.Cci;
-using Microsoft.Cci.Pdb;
-using Microsoft.Cci.MetadataReader;
-using System.Text;
 using System.Diagnostics.SymbolStore;
+using System.IO;
+using Microsoft.Cci.MetadataReader;
 
 namespace Microsoft.Cci {
+  using Microsoft.Cci.Pdb;
 
   /// <summary>
   /// An object that can map offsets in an IL stream to source locations and block scopes.
@@ -411,6 +409,9 @@ namespace Microsoft.Cci {
 
   }
 
+}
+
+namespace Microsoft.Cci.Pdb {
   internal sealed class UsedNamespace : IUsedNamespace {
 
     internal UsedNamespace(IName alias, IName namespaceName) {

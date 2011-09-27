@@ -1,10 +1,19 @@
-﻿using System;
-using System.Diagnostics.Contracts;
+﻿//-----------------------------------------------------------------------------
+//
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the Microsoft Public License.
+// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+//
+//-----------------------------------------------------------------------------
 using System.Collections.Generic;
-using Microsoft.Cci.UtilityDataStructures;
+using System.Diagnostics.Contracts;
 using Microsoft.Cci.Immutable;
+using Microsoft.Cci.UtilityDataStructures;
 
-namespace Microsoft.Cci {
+namespace Microsoft.Cci.ControlAndDataFlowGraph {
   /// <summary>
   /// 
   /// </summary>
@@ -12,7 +21,7 @@ namespace Microsoft.Cci {
     where BasicBlock : Microsoft.Cci.BasicBlock<Instruction>, new()
     where Instruction : Microsoft.Cci.Instruction, new() {
 
-    private TypeInferencer(IMetadataHost host, ControlAndDataFlowGraph<BasicBlock, Instruction> cfg, xStack<Instruction> stack, Queue<BasicBlock> blocksToVisit, SetOfObjects blocksAlreadyVisited) {
+    private TypeInferencer(IMetadataHost host, ControlAndDataFlowGraph<BasicBlock, Instruction> cfg, Stack<Instruction> stack, Queue<BasicBlock> blocksToVisit, SetOfObjects blocksAlreadyVisited) {
       Contract.Requires(host != null);
       Contract.Requires(cfg != null);
       Contract.Requires(stack != null);
@@ -29,7 +38,7 @@ namespace Microsoft.Cci {
 
     IPlatformType platformType;
     ControlAndDataFlowGraph<BasicBlock, Instruction> cfg;
-    xStack<Instruction> stack;
+    Stack<Instruction> stack;
     Queue<BasicBlock> blocksToVisit;
     SetOfObjects blocksAlreadyVisited;
     IInternFactory internFactory;
@@ -50,7 +59,7 @@ namespace Microsoft.Cci {
     internal static void FillInTypes(IMetadataHost host, ControlAndDataFlowGraph<BasicBlock, Instruction> cfg) {
       Contract.Requires(host != null);
       Contract.Requires(cfg != null);
-      var stack = new xStack<Instruction>(cfg.MethodBody.MaxStack, new List<Instruction>(0));
+      var stack = new Stack<Instruction>(cfg.MethodBody.MaxStack, new List<Instruction>(0));
       var numberOfBlocks = cfg.BlockFor.Count;
       var blocksToVisit = new Queue<BasicBlock>((int)numberOfBlocks);
       var blocksAlreadyVisited = new SetOfObjects(numberOfBlocks);

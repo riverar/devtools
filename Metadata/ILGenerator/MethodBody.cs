@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Cci {
+  using Microsoft.Cci.ILGeneratorImplementation;
   /// <summary>
   /// A metadata (IL) level represetation of the body of a method or of a property/event accessor.
   /// </summary>

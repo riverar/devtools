@@ -1,10 +1,21 @@
-﻿using System;
+﻿//-----------------------------------------------------------------------------
+//
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the Microsoft Public License.
+// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+//
+//-----------------------------------------------------------------------------
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.Cci.UtilityDataStructures;
 using System.Text;
+using Microsoft.Cci.UtilityDataStructures;
 
 namespace Microsoft.Cci {
+  using Microsoft.Cci.ControlAndDataFlowGraph;
 
   /// <summary>
   /// A set of basic blocks, each of which has a list of successor blocks and some other information.
@@ -282,9 +293,12 @@ namespace Microsoft.Cci {
 
   }
 
-  internal class xStack<Instruction> where Instruction : class {
+}
 
-    internal xStack(int maxStack, List<Instruction> operandStackSetup) {
+namespace Microsoft.Cci.ControlAndDataFlowGraph {
+  internal class Stack<Instruction> where Instruction : class {
+
+    internal Stack(int maxStack, List<Instruction> operandStackSetup) {
       Contract.Requires(operandStackSetup != null);
       Contract.Assume(Contract.ForAll(operandStackSetup, x => x != null)); //Making this an explicit requirement creates too many proof obligations.
 
@@ -342,5 +356,4 @@ namespace Microsoft.Cci {
       get { return this.top; }
     }
   }
-
 }

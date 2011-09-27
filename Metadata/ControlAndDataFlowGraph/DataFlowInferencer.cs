@@ -1,9 +1,18 @@
-﻿using System;
+﻿//-----------------------------------------------------------------------------
+//
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the Microsoft Public License.
+// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+//
+//-----------------------------------------------------------------------------
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Cci.UtilityDataStructures;
 
-namespace Microsoft.Cci {
+namespace Microsoft.Cci.ControlAndDataFlowGraph {
 
   internal class DataFlowInferencer<BasicBlock, Instruction>
     where BasicBlock : Microsoft.Cci.BasicBlock<Instruction>, new()
@@ -17,7 +26,7 @@ namespace Microsoft.Cci {
       this.platformType = host.PlatformType;
       this.cdfg = cdfg;
       this.operandStackSetupInstructions = new List<Instruction>(cdfg.MethodBody.MaxStack);
-      this.stack = new xStack<Instruction>(cdfg.MethodBody.MaxStack, this.operandStackSetupInstructions);
+      this.stack = new Stack<Instruction>(cdfg.MethodBody.MaxStack, this.operandStackSetupInstructions);
       this.blocksToVisit = new Queue<BasicBlock>((int)numberOfBlocks);
       this.blocksAlreadyVisited = new SetOfObjects(numberOfBlocks); ;
       this.internFactory = host.InternFactory;
@@ -25,7 +34,7 @@ namespace Microsoft.Cci {
 
     IPlatformType platformType;
     ControlAndDataFlowGraph<BasicBlock, Instruction> cdfg;
-    xStack<Instruction> stack;
+    Stack<Instruction> stack;
     List<Instruction> operandStackSetupInstructions;
     Queue<BasicBlock> blocksToVisit;
     SetOfObjects blocksAlreadyVisited;
@@ -432,7 +441,7 @@ namespace Microsoft.Cci {
       }
     }
 
-    private static void InitializeArgumentsAndPushReturnResult(Instruction instruction, xStack<Instruction> stack, ISignature signature) {
+    private static void InitializeArgumentsAndPushReturnResult(Instruction instruction, Stack<Instruction> stack, ISignature signature) {
       Contract.Requires(instruction != null);
       Contract.Requires(stack != null);
       Contract.Requires(signature != null);
@@ -445,7 +454,7 @@ namespace Microsoft.Cci {
         stack.Push(instruction);
     }
 
-    private static void InitializeArrayCreateInstruction(Instruction instruction, xStack<Instruction> stack, IOperation currentOperation) {
+    private static void InitializeArrayCreateInstruction(Instruction instruction, Stack<Instruction> stack, IOperation currentOperation) {
       Contract.Requires(instruction != null);
       Contract.Requires(stack != null);
       Contract.Requires(currentOperation != null);
@@ -460,7 +469,7 @@ namespace Microsoft.Cci {
       stack.Push(instruction);
     }
 
-    private static void InitializeArrayIndexerInstruction(Instruction instruction, xStack<Instruction> stack, IArrayTypeReference arrayType) {
+    private static void InitializeArrayIndexerInstruction(Instruction instruction, Stack<Instruction> stack, IArrayTypeReference arrayType) {
       Contract.Requires(instruction != null);
       Contract.Requires(stack != null);
       Contract.Requires(arrayType != null);
@@ -473,7 +482,7 @@ namespace Microsoft.Cci {
       stack.Push(instruction);
     }
 
-    private static void InitializeArraySetInstruction(Instruction instruction, xStack<Instruction> stack, IArrayTypeReference arrayType) {
+    private static void InitializeArraySetInstruction(Instruction instruction, Stack<Instruction> stack, IArrayTypeReference arrayType) {
       Contract.Requires(instruction != null);
       Contract.Requires(stack != null);
       Contract.Requires(arrayType != null);
