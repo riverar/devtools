@@ -78,11 +78,9 @@
     <PreBuildEvent>erase "$(TargetDir)az.exe"</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>if "$(ConfigurationName)" == "Release" start "signing" /D  "$(SolutionDir)..\solution\tools\" /wait "$(SolutionDir)..\solution\tools\simplesigner\simplesigner.exe" "$(TargetPath)" 
-if "$(ConfigurationName)" == "Debug" ilmerge /v4 /t:exe /out:az.exe "$(TargetPath)"  "C:\Program Files\Windows Azure SDK\v1.5\bin\Microsoft.WindowsAzure.StorageClient.dll" "$(TargetDir)CoApp.Toolkit.dll"
-if "$(ConfigurationName)" == "Release" ilmerge /keyfile:"$(SolutionDir)..\signing\coapp-release.snk" /v4 /t:exe /out:az.exe "$(TargetPath)" "C:\Program Files\Windows Azure SDK\v1.5\bin\Microsoft.WindowsAzure.StorageClient.dll" "$(TargetDir)CoApp.Toolkit.dll"
-
-if "$(ConfigurationName)" == "Release" start "signing" /D  "$(SolutionDir)..\solution\tools\" /wait "$(SolutionDir)..\solution\tools\simplesigner\simplesigner.exe" --sign-only "$(TargetDir)az.exe"</PostBuildEvent>
+    <PostBuildEvent>
+if "$(ConfigurationName)" == "Release" ilmerge /v4 /t:exe /out:az.exe "$(TargetPath)"  "C:\Program Files\Windows Azure SDK\v1.5\bin\Microsoft.WindowsAzure.StorageClient.dll" "$(TargetDir)CoApp.Toolkit.dll"
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
