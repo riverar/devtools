@@ -50,16 +50,13 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
 
         public static PeBinary FindAssembly(string assemblyname, string version) {
-            Console.WriteLine("Finding {0}-{1}", assemblyname,version);
             var asm =
                 _cache.Values.Where(
                     each => each.IsManaged && each.MutableAssembly.Name.Value == assemblyname && each.MutableAssembly.Version.ToString() == version).FirstOrDefault();
             if( asm == null ) {
-                Console.WriteLine("Not Found Yet {0}-{1}", assemblyname, version);
                 // see if we can find it in the same folder as one of the assemblies we already have.
                 foreach( var folder in _cache.Keys.Select(each => Path.GetDirectoryName(each.GetFullPath()).ToLower()).Distinct() ) {
                     var probe = Path.Combine(folder, assemblyname)+".dll";
-                    Console.WriteLine("  Searching for {0}-{1} at {2}",assemblyname,version, probe);
                     if( File.Exists(probe)) {
                         var probeAsm = Load(probe);
                         if( probeAsm.IsManaged && probeAsm.MutableAssembly.Name.Value == assemblyname && probeAsm.MutableAssembly.Version.ToString() == version) {
@@ -223,6 +220,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
             }
         }
 
+        public bool ILOnly { get; private set; }
+
         private Assembly _mutableAssembly;
         private Assembly MutableAssembly { 
             get {
@@ -232,17 +231,16 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
                 if (_mutableAssembly == null) {
                     // copy this to a temporary file, because it locks the file until we're *really* done.
-                    var temporaryCopy = Path.GetTempFileName();
+                    var temporaryCopy = _filename.CreateBackupWorkingCopy();
                     try {
-                        File.Delete(temporaryCopy); // remove the one it made for us.
-                        File.Copy(_filename, temporaryCopy); 
 
                         var module = _host.LoadUnitFrom(temporaryCopy) as IModule;
 
                         if (module == null || module is Dummy) {
                             throw new Exception("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
                         }
-
+                        ILOnly = module.ILOnly;
+                        
                         //Make a mutable copy of the module.
                         var copier = new MetadataDeepCopier(_host);
                         var mutableModule = copier.Copy(module);
@@ -441,9 +439,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 lock (typeof (PeBinary)) {
                     // operations are not always threadsafe. :S
                     // work on a back up of the file
-                    var tmpFilename = Path.GetTempFileName();
-                    File.Delete(tmpFilename);
-                    File.Copy(_filename, tmpFilename);
+                    var tmpFilename = _filename.CreateBackupWorkingCopy();
 
                     try {
                         // remove any digital signatures from the binary before doing anything
@@ -452,7 +448,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                         }
                         // rewrite any native resources that we want to change.
 
-                        if (IsManaged) {
+                        if (IsManaged && ILOnly) { // we can only edit the file if it's IL only, mixed mode assemblies can only be strong named, signed and native-resource-edited.
                             // set the strong name key data
                             MutableAssembly.PublicKey = StrongNameKey.ToList();
 
@@ -468,14 +464,17 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                                     "Unable to strong name '{0}' -- dependent assembly '{1}-{2}' not available for strong naming".format(
                                                         _filename, ar.Name.Value, ar.Version.ToString()));
                                             }
-                                            if (dep.StrongNameKeyCertificate == null) {
-                                                Console.WriteLine("Warning: Non-strong-named dependent reference found: '{0}-{1}' assuming same strong-name-key, forcing saving.", ar.Name, ar.Version);
+
+                                            if (dep.MutableAssembly.PublicKey.IsNullOrEmpty()) {
+                                                Console.WriteLine(
+                                                    "Warning: Non-strong-named dependent reference found: '{0}-{1}' updating with same strong-name-key.",
+                                                    ar.Name, ar.Version);
                                                 dep.StrongNameKeyCertificate = StrongNameKeyCertificate;
-                                                dep.SigningCertificate= SigningCertificate;
-                                                (ar as AssemblyReference).PublicKey = dep.StrongNameKey.ToList();
+                                                dep.SigningCertificate = SigningCertificate;
                                                 dep.Save();
                                             }
-                                            
+                                            (ar as AssemblyReference).PublicKeyToken = dep.MutableAssembly.PublicKeyToken.ToList();
+                                            (ar as AssemblyReference).PublicKey = dep.MutableAssembly.PublicKey;
                                         }
                                     }
                                 }
@@ -522,7 +521,11 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             using (var peStream = File.Create(tmpFilename)) {
                                 PeWriter.WritePeToStream(MutableAssembly, _host, peStream);
                             }
+                        }
+                        
 
+                        // update native metadata 
+                        try {
                             var ri = new ResourceInfo();
 
                             ri.Load(tmpFilename);
@@ -543,22 +546,14 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             versionStringTable["BugTracker"] = _bugTracker;
 
                             versionResource.SaveTo(tmpFilename);
-
-                            if (StrongNameKeyCertificate != null && (StrongNameKeyCertificate.Certificate.PrivateKey is RSACryptoServiceProvider)) {
-                                // strong name the assembly
-                                // strong name the binary using the private key from the certificate.
-                                var wszKeyContainer = Guid.NewGuid().ToString();
-                                var privateKey = (StrongNameKeyCertificate.Certificate.PrivateKey as RSACryptoServiceProvider).ExportCspBlob(true);
-                                if (!Mscoree.StrongNameKeyInstall(wszKeyContainer, privateKey, privateKey.Length)) {
-                                    throw new Exception("Unable to create KeyContainer");
-                                }
-                                if (!Mscoree.StrongNameSignatureGeneration(tmpFilename, wszKeyContainer, IntPtr.Zero, 0, 0, 0)) {
-                                    throw new Exception("Unable Strong name assembly '{0}'.".format(_filename));
-                                }
-                                Mscoree.StrongNameKeyDelete(wszKeyContainer);
-                            }
+                        } catch {
+                            
                         }
 
+                        // strong name the binary
+                        if (IsManaged && StrongNameKeyCertificate != null && (StrongNameKeyCertificate.Certificate.PrivateKey is RSACryptoServiceProvider)) {
+                            ApplyStrongName(tmpFilename, StrongNameKeyCertificate);
+                        }
 
                         // sign the binary
                         if (_signingCertificate != null) {
@@ -566,7 +561,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                         }
 
                         _filename.TryHardToDeleteFile();
-                        File.Move(tmpFilename, _filename);
+                        File.Move(tmpFilename, _filename);  
 
                     } catch (Exception e) {
                         // get rid of whatever we tried
@@ -582,8 +577,38 @@ namespace CoApp.Developer.Toolkit.Publishing {
             _pendingChanges = false;
         }
 
+
+        /// <summary>
+        /// This puts the strong name into the actual file on disk.
+        /// 
+        /// The file MUST be delay signed by this point.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <param name="?"></param>
+        public static void ApplyStrongName(string filename, CertificateReference certificate) {
+            filename = filename.GetFullPath();
+            filename.TryHardToMakeFileWriteable();
+
+            if (!File.Exists(filename)) {
+                throw new FileNotFoundException("Can't find file", filename);
+            }
+
+            // strong name the binary using the private key from the certificate.
+            var wszKeyContainer = Guid.NewGuid().ToString();
+            var privateKey = (certificate.Certificate.PrivateKey as RSACryptoServiceProvider).ExportCspBlob(true);
+            if (!Mscoree.StrongNameKeyInstall(wszKeyContainer, privateKey, privateKey.Length)) {
+                throw new Exception("Unable to create KeyContainer");
+            }
+            if (!Mscoree.StrongNameSignatureGeneration(filename, wszKeyContainer, IntPtr.Zero, 0, 0, 0)) {
+                throw new Exception("Unable Strong name assembly '{0}'.".format(filename));
+            }
+            Mscoree.StrongNameKeyDelete(wszKeyContainer);
+        }
+
         public static void StripSignatures( string filename ) {
             filename = filename.GetFullPath();
+            filename.TryHardToMakeFileWriteable();
+
             if( !File.Exists(filename)) {
                 throw new FileNotFoundException("Can't find file", filename );
             }
@@ -610,6 +635,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
         public static void SignFile(string filename, X509Certificate2 certificate) {
             filename = filename.GetFullPath();
+            filename.TryHardToMakeFileWriteable();
+
             if (!File.Exists(filename)) {
                 throw new FileNotFoundException("Can't find file", filename);
             }
