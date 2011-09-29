@@ -317,8 +317,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
             set { _pendingChanges = true; _originalFilename = value; }
         }
         public string ProductVersion {
-            get { return FileVersion; }
-            set { FileVersion = value; }
+            get { return _productVersion; }
+            set { _productVersion= value; }
         } 
         public string AssemblyFileVersion {
             get { return FileVersion; }
