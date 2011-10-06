@@ -572,6 +572,12 @@ pTK [options] action [buildconfiguration...]
             try {
                 // load and parse. propertySheet will contain everything else we need for later
                 propertySheet = PropertySheet.Load(buildinfo);
+                propertySheet.NeedMacroValue += (valueName) => {
+                    return null;
+                };
+                propertySheet.NeedCollection += (collectionName) => {
+                    return Enumerable.Empty<object>();
+                };
             }
             catch (EndUserParseException pspe) {
                 using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
@@ -624,15 +630,15 @@ pTK [options] action [buildconfiguration...]
                     case "list":
                         Console.WriteLine("Buildinfo from [{0}]", buildinfo);
                         (from build in builds
-                            let compiler = build["compiler"].FirstOrDefault()
-                            let sdk = build["sdk"].FirstOrDefault()
-                            let platform = build["platform"].FirstOrDefault()
-                            let targets = build["targets"].FirstOrDefault()
+                            let compiler = build["compiler"] 
+                            let sdk = build["sdk"]
+                            let platform = build["platform"]
+                            let targets = build["targets"]
                             select new {
                                 Configuration = build.Name,
-                                Compiler = compiler != null ? compiler.LValue : "sdk7.1",
-                                Sdk = sdk != null ? sdk.LValue : "sdk7.1",
-                                Platform = platform != null ? platform.LValue : "x86",
+                                Compiler = compiler != null ? compiler.Value : "sdk7.1",
+                                Sdk = sdk != null ? sdk.Value : "sdk7.1",
+                                Platform = platform != null ? platform.Value : "x86",
                                 Number_of_Outputs = targets != null ? targets.Values.Count() : 0
                             }).ToTable().ConsoleOut();
                         break;
@@ -733,14 +739,15 @@ pTK [options] action [buildconfiguration...]
         private void SetCompilerSdkAndPlatform( Rule build ) {
             ResetEnvironment();
 
-            var compilerProperty = build["compiler"].FirstOrDefault();
-            var compiler = compilerProperty != null ? compilerProperty.LValue : "sdk7.1";
+            var compilerProperty = build["compiler"];
 
-            var sdkProperty = build["sdk"].FirstOrDefault();
-            var sdk = sdkProperty != null ? sdkProperty.LValue : "sdk7.1";
+            var compiler = compilerProperty != null ? compilerProperty.Value : "sdk7.1";
 
-            var platformProperty = build["platform"].FirstOrDefault();
-            var platform = platformProperty != null ? platformProperty.LValue : "x86";
+            var sdkProperty = build["sdk"];
+            var sdk = sdkProperty != null ? sdkProperty.Value : "sdk7.1";
+
+            var platformProperty = build["platform"];
+            var platform = platformProperty != null ? platformProperty.Value : "x86";
 
             if (!compiler.Contains("sdk") && !compiler.Contains("wdk")) {
                 SwitchSdk(sdk, platform);
@@ -755,12 +762,12 @@ pTK [options] action [buildconfiguration...]
                 SetCompilerSdkAndPlatform(build);
 
 
-                var cmd = build["clean-command"].FirstOrDefault();
+                var cmd = build["clean-command"];
                 if( cmd == null ) 
                     throw new ConsoleException("missing clean command in build {0}",build.Name);
 
                 try {
-                    Exec(cmd.LValue);
+                    Exec(cmd.Value);
                 } catch
                 {
                     //ignoring any failures from clean command.
@@ -777,35 +784,37 @@ pTK [options] action [buildconfiguration...]
             // save current directory
             var pwd = Environment.CurrentDirectory;
 
-            foreach (var use in build["uses"]) {
-                var config = string.Empty;
-                var folder = string.Empty;
+            var uses = build["uses"];
+            if (uses != null) {
+                foreach (var useLabel in uses.Labels) {
+                    var use = build["uses"][useLabel];
 
-                // set folder and configuration as needed
-                if (use.IsCompoundProperty) {
-                    config = use.LValue;
-                    folder = use.RValue;
-                }
-                else {
-                    folder = use.LValue;
-                }
-                folder = folder.GetFullPath();
-                if (!Directory.Exists(folder)) {
-                    throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
-                }
-                var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
-                if (!File.Exists(depBuildinfo)) {
-                    throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
-                }
+                    var config = string.Empty;
+                    var folder = string.Empty;
 
-                // switch project directory
-                Environment.CurrentDirectory = folder;
-                // build dependency project
-                _ptk.ExecNoRedirections("--nologo build {0}", config);
-                if (_ptk.ExitCode != 0)
-                    throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
-                // reset directory to where we came from
-                Environment.CurrentDirectory = pwd;
+                    // set folder and configuration as needed
+                    config = useLabel;
+                    folder = use.Value;
+
+                    folder = folder.GetFullPath();
+                    if (!Directory.Exists(folder)) {
+                        throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                    }
+                    var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
+                    if (!File.Exists(depBuildinfo)) {
+                        throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
+                    }
+
+                    // switch project directory
+                    Environment.CurrentDirectory = folder;
+                    // build dependency project
+                    _ptk.ExecNoRedirections("--nologo build {0}", config);
+                    if (_ptk.ExitCode != 0)
+                        throw new ConsoleException(
+                            "Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
+                    // reset directory to where we came from
+                    Environment.CurrentDirectory = pwd;
+                }
             }
         }
 
@@ -821,7 +830,7 @@ pTK [options] action [buildconfiguration...]
                 SetCompilerSdkAndPlatform(build);
 
                 // read the build command from PropertySheet
-                var cmd = build["build-command"].FirstOrDefault();
+                var cmd = build["build-command"];
                 if (cmd == null)
                     throw new ConsoleException("missing build command in build {0}", build.Name);
 
@@ -831,7 +840,7 @@ pTK [options] action [buildconfiguration...]
                 }
 
                 // run this build command
-                Exec(cmd.LValue);
+                Exec(cmd.Value);
             }
         }
 
@@ -847,24 +856,13 @@ pTK [options] action [buildconfiguration...]
                 Clean( build.SingleItemAsEnumerable());
                 Build(build.SingleItemAsEnumerable());
                 
-                foreach( var targ in build["targets"] ) {
-                    if(targ.IsCollection) {
-                        foreach( var file in targ.Values ) {
-                            if( !File.Exists(file) ) {
-                                throw new ConsoleException("Target [{0}] was not found.", file);
-                            }
-                        }
-                    } else if( targ.IsValue ) {
-                        if (!File.Exists(targ.LValue)) {
-                            throw new ConsoleException("Target [{0}] was not found.", targ.LValue);
-                        }
-                    }
+                foreach (var targ in build["targets"].Values.Where(targ => !File.Exists(targ))) {
+                    throw new ConsoleException("Target [{0}] was not found.", targ);
                 }
 
                 using (new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black)) {
                     Console.WriteLine("Targets Verified.");
                 }
-                
 
                 Clean(build.SingleItemAsEnumerable());
                 Status(build.SingleItemAsEnumerable());
@@ -914,12 +912,12 @@ pTK [options] action [buildconfiguration...]
                 SetCompilerSdkAndPlatform(build);
 
                 // does this build rule contain a build command?
-                var cmd = build["build-command"].FirstOrDefault();
+                var cmd = build["build-command"];
                 if (cmd == null)
                     throw new ConsoleException("missing build command in build {0}", build.Name);
 
                 // run trace
-                TraceExec(cmd.LValue, Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
+                TraceExec(cmd.Value, Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
             }
         }
 
