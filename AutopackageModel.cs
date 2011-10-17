@@ -11,6 +11,8 @@
 namespace CoApp.Autopackage {
     using System;
     using System.Collections.Generic;
+    using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using System.Xml.Serialization;
@@ -398,6 +400,85 @@ namespace CoApp.Autopackage {
                     }
                 }
             }
+        }
+
+        internal void ProcessCosmeticMetadata() {
+            PackageDetails.Description = Source.MetadataRules.GetPropertyValue("description").LiteralOrFileText();
+            PackageDetails.SummaryDescription = Source.MetadataRules.GetPropertyValue("summary");
+
+            var iconFilename = Source.MetadataRules.GetPropertyValue("icon");
+
+            if (File.Exists(iconFilename)) {
+                try {
+                    Image img = Image.FromFile(iconFilename);
+                    if (img.Width > 256 || img.Height > 256) {
+                        var widthIsConstraining = img.Width > img.Height;
+                        // Prevent using images internal thumbnail
+                        img.RotateFlip(RotateFlipType.Rotate180FlipNone);
+                        img.RotateFlip(RotateFlipType.Rotate180FlipNone);
+                        var newWidth = widthIsConstraining ? 256 : img.Width * 256 / img.Height;
+                        var newHeight = widthIsConstraining ? img.Height * 256 / img.Width : 256;
+                        var newImage = img.GetThumbnailImage(newWidth, newHeight, null, IntPtr.Zero);
+                        img.Dispose();
+                        img = newImage;
+                    }
+
+                    using (var ms = new MemoryStream()) {
+                        img.Save(ms, ImageFormat.Png);
+                        PackageDetails.Icon = Convert.ToBase64String(ms.ToArray());
+
+                    }
+                }
+                catch (Exception e) {
+                    AutopackageMessages.Invoke.Warning(MessageCode.BadIconReference, Source.MetadataRules.GetProperty("icon").SourceLocation,
+                        "Unable to use specified image for icon {0}", e.Message);
+                }
+            }
+            else {
+                AutopackageMessages.Invoke.Warning(MessageCode.NoIcon, Source.MetadataRules.GetProperty("icon").SourceLocation,
+                    "Image for icon not specified (or not found) {0}", iconFilename);
+            }
+            var licenses = Source.MetadataRules.GetPropertyValues("licenses");
+            if( licenses.Any()) {
+                PackageDetails.Licenses = new List<License>();
+            }
+            foreach( var l in licenses) {
+
+                LicenseId lid;
+                if( LicenseId.TryParse(l, true, out lid)) {
+                    PackageDetails.Licenses.Add(new License { 
+                        LicenseId = lid, 
+                        Location = lid.GetUrl(), 
+                        Name = lid.GetDescription(),
+                       // Text = lid.GetText(),
+                    });
+                }
+
+                // todo : let the user specify the license data in a license rule.
+            }
+
+            PackageDetails.AuthorVersion = Source.MetadataRules.GetPropertyValue("author-version");
+            PackageDetails.BugTracker = Source.MetadataRules.GetPropertyValue("bug-tracker");
+            var pubDate = Source.MetadataRules.GetPropertyValue("publish-date");
+            PackageDetails.PublishDate = DateTime.Now;
+
+            if( !string.IsNullOrEmpty(pubDate) && pubDate != "auto") {
+                DateTime dt;
+                if( DateTime.TryParse(pubDate,out dt) ) {
+                    PackageDetails.PublishDate = dt;
+                } else {
+                    AutopackageMessages.Invoke.Warning(MessageCode.BadDate, Source.MetadataRules.GetProperty("publish-date").SourceLocation,
+                       "Can't parse publish date {0}, assuming now", pubDate);
+                }
+            }
+            
+            PackageDetails.IsNsfw = Source.MetadataRules.GetPropertyValue("nsfw").IsTrue();
+            PackageDetails.Stability = (sbyte)(Source.MetadataRules.GetPropertyValue("stability").ToInt32());
+            
+
+            PackageDetails.Tags = Source.MetadataRules.GetPropertyValues("tags").ToList();
+            // todo: contributors
+
         }
     }
 }

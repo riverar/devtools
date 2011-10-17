@@ -52,12 +52,18 @@ namespace CoApp.Autopackage {
         AssemblyHasNoVersion,
         UnableToDeterminePackageVersion,
         UnableToDeterminePackageArchitecture,
+        
 
         // warnings
         WarningUnknown = 500,
         TrimPathOptionInvalid,
         AssumingVersionFromAssembly,
         AssumingVersionFromApplicationFile,
+        BadIconReference,
+        NoIcon,
+        BadLicenseLocation,
+        BadDate,
+
 
         // other stuff.
         WixCompilerError = 600,
@@ -305,6 +311,8 @@ namespace CoApp.Autopackage {
             PackageModel = new AutopackageModel(PackageSource);
             PackageFeed.Add(PackageModel);
            
+            PackageModel.ProcessCosmeticMetadata();
+
             PackageModel.ProcessCertificateInformation();
 
             // find the xml templates that we're going to generate content with
