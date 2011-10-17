@@ -1,0 +1,17 @@
+Usage:
+-------
+
+Autopackage [options] <file.autopkg>
+
+	<file.autopkg> - the property sheet file for the package to create
+
+Options:
+--------
+    --help                      this help
+    --nologo                    don't display the logo
+    --load-config=<file>        loads configuration from <file>
+    --verbose                   prints verbose messages (not used now)
+
+	--certificate-path=<c.pfx>  path to load signing certificate (w/pvt key)
+    --password=<pwd>            password for certificate file
+    --remember                  store certificate details in registry (encrypted)
