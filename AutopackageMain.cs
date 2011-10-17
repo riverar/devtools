@@ -308,7 +308,7 @@ namespace CoApp.Autopackage {
 
         private void CreatePackageModel() {
             PackageFeed = new AtomFeed();
-            PackageModel = new AutopackageModel(PackageSource);
+            PackageModel = new AutopackageModel(PackageSource, PackageFeed);
             PackageFeed.Add(PackageModel);
 
             PackageModel.ProcessCertificateInformation();

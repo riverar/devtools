@@ -15,6 +15,8 @@ namespace CoApp.Autopackage {
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
+    using System.ServiceModel.Syndication;
+    using System.Xml;
     using System.Xml.Serialization;
     using Developer.Toolkit.Publishing;
     using Properties;
@@ -22,6 +24,7 @@ namespace CoApp.Autopackage {
     using Toolkit.Engine;
     using Toolkit.Engine.Client;
     using Toolkit.Engine.Model;
+    using Toolkit.Engine.Model.Atom;
     using Toolkit.Extensions;
     using Toolkit.Win32;
 
@@ -54,18 +57,22 @@ namespace CoApp.Autopackage {
         [XmlIgnore]
         internal string WixTemplate;
 
+        [XmlIgnore]
+        private AtomFeed AtomFeed;
+
         internal AutopackageModel() {
             DestinationDirectoryFiles = Enumerable.Empty<FileEntry>();
             Assemblies = new List<PackageAssembly>();
         }
 
-        internal AutopackageModel(PackageSource source) {
+        internal AutopackageModel(PackageSource source, AtomFeed feed) {
             Source = source;
             DestinationDirectoryFiles = Enumerable.Empty<FileEntry>();
             Assemblies = new List<PackageAssembly>();
             foreach( var sheet in Source.PropertySheets ) {
                 sheet.GetMacroValue += GetMacroValue;
             }
+            AtomFeed = feed;
         }
 
         internal string GetMacroValue( string macroKey ) {
@@ -114,9 +121,6 @@ namespace CoApp.Autopackage {
                 }
                 DestinationDirectoryFiles = DestinationDirectoryFiles.Union(files);
 
-            }
-            foreach (var file in DestinationDirectoryFiles) {
-                Console.WriteLine("{0} => {1}", file.SourcePath, file.DestinationPath);
             }
         }
 
@@ -197,6 +201,15 @@ namespace CoApp.Autopackage {
                 } catch (Exception e) {
                     AutopackageMessages.Invoke.Error(
                         MessageCode.FailedToFindRequiredPackage, null, "Failed to find package '{0}'. [{1}]", pkgName, e.Message);
+                }
+            }
+
+            foreach( var pkg in dependentPackages) {
+                Dependencies.Add(new Guid(pkg.ProductCode));
+                // also, add that package's atom feed items to this package's feed.
+                if(! string.IsNullOrEmpty(pkg.PackageItemText) ) {
+                    var item = SyndicationItem.Load<AtomItem>(XmlReader.Create(new StringReader(pkg.PackageItemText)));
+                    AtomFeed.Add(item);
                 }
             }
 
