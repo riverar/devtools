@@ -5,10 +5,12 @@ using System.Text;
 
 namespace CoApp.Developer.Toolkit.Publishing {
     using System.IO;
+    using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text.RegularExpressions;
     using CoApp.Toolkit.Configuration;
     using CoApp.Toolkit.Extensions;
+    using Microsoft.Cci;
 
     internal static class MatchExtensions {
         internal static string Value(this Match match, string group, string _default = null) {
@@ -130,6 +132,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     throw new Exception("Certificate '{0}' does not have private key".format(_location));
                 }
             }
+
+            ComputePublicKeyToken();
         }
 
         /// <summary>
@@ -165,8 +169,51 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     throw new Exception("Unable to load certificate '{0}' with a private key".format(_location));
                 }
             }
+
+            ComputePublicKeyToken();
         }
 
+
+        private void ComputePublicKeyToken() {
+            var pubKey = (_certificate.PublicKey.Key as RSACryptoServiceProvider).ExportCspBlob(false);
+            var strongNameKey = new byte[pubKey.Length + 12];
+            // the strong name key requires a header in front of the public key:
+            // unsigned int SigAlgId;
+            // unsigned int HashAlgId;
+            // ULONG cbPublicKey;
+
+            pubKey.CopyTo(strongNameKey, 12);
+
+            // Set the AlgId in the header (CALG_RSA_SIGN)
+            strongNameKey[0] = 0;
+            strongNameKey[1] = 0x24;
+            strongNameKey[2] = 0;
+            strongNameKey[3] = 0;
+
+            // Set the AlgId in the key blob (CALG_RSA_SIGN)
+            // I've noticed this comes from the RSACryptoServiceProvider as CALG_RSA_KEYX
+            // but for strong naming we need it to be marked CALG_RSA_SIGN
+            strongNameKey[16] = 0;
+            strongNameKey[17] = 0x24;
+            strongNameKey[18] = 0;
+            strongNameKey[19] = 0;
+
+            // set the hash id (SHA_1-Hash -- 0x8004)
+            // Still not sure *where* this value comes from. 
+            strongNameKey[4] = 0x04;
+            strongNameKey[5] = 0x80;
+            strongNameKey[6] = 0;
+            strongNameKey[7] = 0;
+
+            strongNameKey[8] = (byte)(pubKey.Length);
+            strongNameKey[9] = (byte)(pubKey.Length >> 8);
+            strongNameKey[10] = (byte)(pubKey.Length >> 16);
+            strongNameKey[11] = (byte)(pubKey.Length >> 24);
+
+            StrongNameKey = strongNameKey;
+
+            PublicKeyToken = UnitHelper.ComputePublicKeyToken(StrongNameKey).ToHexString();
+        }
         public void RememberPassword() {
             _settings[Path.GetFileName(_location), "Password"].EncryptedStringValue = _password;
         }
@@ -179,10 +226,24 @@ namespace CoApp.Developer.Toolkit.Publishing {
             RegistryView.CoAppUser.DeleteSubkey("Certificates");
         }
 
+        public string PublicKeyToken { get; private set; }
+        public byte[] StrongNameKey { get; private set; }
+
         public string Location {
             get { return _location; }
         }
 
         internal X509Certificate2 Certificate { get { return _certificate; }}
+
+        public string CommonName { get {
+            return SubjectNameParts.First(each => each.Key == "CN").Value;
+        }}
+
+        private IEnumerable<KeyValuePair<string,string>> SubjectNameParts {
+            get {
+                return from v in (Certificate.SubjectName.Name ?? "").Split(',') select v.Split('=') into bits select new KeyValuePair<string, string>(bits[0].Trim(),bits[bits.Length-1]);
+            }
+        }
+
     }
 }

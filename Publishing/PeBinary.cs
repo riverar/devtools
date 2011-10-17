@@ -50,23 +50,27 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
 
         public static PeBinary FindAssembly(string assemblyname, string version) {
-            var asm =
-                _cache.Values.Where(
-                    each => each.IsManaged && each.MutableAssembly.Name.Value == assemblyname && each.MutableAssembly.Version.ToString() == version).FirstOrDefault();
-            if( asm == null ) {
-                // see if we can find it in the same folder as one of the assemblies we already have.
-                foreach( var folder in _cache.Keys.Select(each => Path.GetDirectoryName(each.GetFullPath()).ToLower()).Distinct() ) {
-                    var probe = Path.Combine(folder, assemblyname)+".dll";
-                    if( File.Exists(probe)) {
-                        var probeAsm = Load(probe);
-                        if( probeAsm.IsManaged && probeAsm.MutableAssembly.Name.Value == assemblyname && probeAsm.MutableAssembly.Version.ToString() == version) {
-                            asm = probeAsm;
-                            break;
+            lock (_cache) {
+                var asm =
+                    _cache.Values.Where(
+                        each => each.IsManaged && each.MutableAssembly.Name.Value == assemblyname && each.MutableAssembly.Version.ToString() == version).
+                        FirstOrDefault();
+                if (asm == null) {
+                    // see if we can find it in the same folder as one of the assemblies we already have.
+                    foreach (var folder in _cache.Keys.Select(each => Path.GetDirectoryName(each.GetFullPath()).ToLower()).Distinct()) {
+                        var probe = Path.Combine(folder, assemblyname) + ".dll";
+                        if (File.Exists(probe)) {
+                            var probeAsm = Load(probe);
+                            if (probeAsm.IsManaged && probeAsm.MutableAssembly.Name.Value == assemblyname &&
+                                probeAsm.MutableAssembly.Version.ToString() == version) {
+                                asm = probeAsm;
+                                break;
+                            }
                         }
                     }
                 }
+                return asm;
             }
-            return asm;
         }
 
         private PeBinary(string filename) {
@@ -183,7 +187,9 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     }
                 }
             }
-            _cache.Add(_filename, this);
+            lock (_cache) {
+                _cache.Add(_filename, this);
+            }
 
             // check each of the assembly references, 
             if (IsManaged) {
@@ -294,7 +300,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
         public string AssemblyTrademark {
             get { return LegalTrademarks; }
-            set { LegalTrademarks = value; }
+            set { _pendingChanges = true; LegalTrademarks = value; }
         } 
         public string LegalTrademarks {
             get { return _legalTrademarks; }
@@ -302,7 +308,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
         public string AssemblyCopyright {
             get { return LegalCopyright; }
-            set { LegalCopyright = value; }
+            set { _pendingChanges = true;  LegalCopyright = value; }
         } 
         public string LegalCopyright {
             get { return _legalCopyright; }
@@ -318,11 +324,11 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
         public string ProductVersion {
             get { return _productVersion; }
-            set { _productVersion= value; }
+            set { _pendingChanges = true; _productVersion = value; }
         } 
         public string AssemblyFileVersion {
             get { return FileVersion; }
-            set { FileVersion = value; }
+            set { _pendingChanges = true; FileVersion = value; }
         } 
         public string FileVersion {
             get { return _fileVersion; }
@@ -334,7 +340,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
         public string AssemblyProduct {
             get { return ProductName; }
-            set { ProductName = value; }
+            set { _pendingChanges = true; ProductName = value; }
         } 
         public string ProductName {
             get { return _productName; }
@@ -342,7 +348,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
         public string AssemblyDescription {
             get { return Comments; }
-            set { Comments = value; }
+            set { _pendingChanges = true; Comments = value; }
         } 
         public string Comments {
             get { return _comments; }
@@ -350,7 +356,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
         public string AssemblyCompany {
             get { return CompanyName; }
-            set { CompanyName = value; }
+            set { _pendingChanges = true; CompanyName = value; }
         } 
         public string CompanyName {
             get { return _companyName; }
@@ -480,40 +486,44 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                 }
 
                                 // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
-                                foreach (var a in MutableAssembly.AssemblyAttributes) {
-                                    var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
-                                    if (attributeArgument != null) {
-                                        var attributeName = a.Type.ToString();
-                                        switch (attributeName) {
-                                            case "System.Reflection.AssemblyTitleAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyTitle) ? string.Empty : AssemblyTitle;
-                                                break;
-                                            case "System.Reflection.AssemblyDescriptionAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyDescription) ? string.Empty : AssemblyDescription;
-                                                break;
-                                            case "System.Reflection.AssemblyCompanyAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyCompany) ? string.Empty : AssemblyCompany;
-                                                break;
-                                            case "System.Reflection.AssemblyProductAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyProduct) ? string.Empty : AssemblyProduct;
-                                                break;
-                                            case "System.Reflection.AssemblyVersionAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyVersion) ? string.Empty : AssemblyVersion;
-                                                break;
-                                            case "System.Reflection.AssemblyFileVersionAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyFileVersion) ? string.Empty : AssemblyFileVersion;
-                                                break;
-                                            case "System.Reflection.AssemblyCopyrightAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyCopyright) ? string.Empty : AssemblyCopyright;
-                                                break;
-                                            case "System.Reflection.AssemblyTrademarkAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(AssemblyTrademark) ? string.Empty : AssemblyTrademark;
-                                                break;
-                                            case "BugTrackerAttribute":
-                                                attributeArgument.Value = string.IsNullOrEmpty(BugTracker) ? string.Empty : BugTracker;
-                                                break;
+                                try {
+                                    foreach (var a in MutableAssembly.AssemblyAttributes) {
+                                        var attributeArgument = (a.Arguments.FirstOrDefault() as Microsoft.Cci.MutableCodeModel.MetadataConstant);
+                                        if (attributeArgument != null) {
+                                            var attributeName = a.Type.ToString();
+                                            switch (attributeName) {
+                                                case "System.Reflection.AssemblyTitleAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyTitle) ? string.Empty : AssemblyTitle;
+                                                    break;
+                                                case "System.Reflection.AssemblyDescriptionAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyDescription) ? string.Empty : AssemblyDescription;
+                                                    break;
+                                                case "System.Reflection.AssemblyCompanyAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyCompany) ? string.Empty : AssemblyCompany;
+                                                    break;
+                                                case "System.Reflection.AssemblyProductAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyProduct) ? string.Empty : AssemblyProduct;
+                                                    break;
+                                                case "System.Reflection.AssemblyVersionAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyVersion) ? string.Empty : AssemblyVersion;
+                                                    break;
+                                                case "System.Reflection.AssemblyFileVersionAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyFileVersion) ? string.Empty : AssemblyFileVersion;
+                                                    break;
+                                                case "System.Reflection.AssemblyCopyrightAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyCopyright) ? string.Empty : AssemblyCopyright;
+                                                    break;
+                                                case "System.Reflection.AssemblyTrademarkAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(AssemblyTrademark) ? string.Empty : AssemblyTrademark;
+                                                    break;
+                                                case "BugTrackerAttribute":
+                                                    attributeArgument.Value = string.IsNullOrEmpty(BugTracker) ? string.Empty : BugTracker;
+                                                    break;
+                                            }
                                         }
                                     }
+                                } catch {
+                                    // hmm. carry on.
                                 }
                             }
 
@@ -644,12 +654,12 @@ namespace CoApp.Developer.Toolkit.Publishing {
             // Variables
             //
             var digitalSignInfo = default(DigitalSignInfo);
-            var signContext = default(DigitalSignContext);
+            // var signContext = default(DigitalSignContext);
             var pSignContext = IntPtr.Zero;
 
-            FileStream fileOut = null;
-            BinaryWriter binWriter = null;
-            byte[] blob = null;
+            // FileStream fileOut = null;
+            // BinaryWriter binWriter = null;
+            // byte[] blob = null;
 
             try {
                 // Prepare signing info: exe and cert
