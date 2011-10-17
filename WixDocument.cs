@@ -171,8 +171,6 @@ namespace CoApp.Autopackage {
 
                 foreach( var file in filesInFolder ) {
                     var filename = Path.GetFileName(file.DestinationPath);
-
-                    Console.WriteLine("Sticking {0} into folder {1}\\{2}", file.SourcePath, folder, filename);
                     var newFile = component.Add("File");
                     newFile.Attributes.Id = filename.MakeSafeDirectoryId();
                     newFile.Attributes.Name = filename;
