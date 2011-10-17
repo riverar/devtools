@@ -572,10 +572,10 @@ pTK [options] action [buildconfiguration...]
             try {
                 // load and parse. propertySheet will contain everything else we need for later
                 propertySheet = PropertySheet.Load(buildinfo);
-                propertySheet.NeedMacroValue += (valueName) => {
+                propertySheet.GetMacroValue += (valueName) => {
                     return null;
                 };
-                propertySheet.NeedCollection += (collectionName) => {
+                propertySheet.GetCollection += (collectionName) => {
                     return Enumerable.Empty<object>();
                 };
             }
