@@ -310,8 +310,6 @@ namespace CoApp.Autopackage {
             PackageFeed = new AtomFeed();
             PackageModel = new AutopackageModel(PackageSource);
             PackageFeed.Add(PackageModel);
-           
-            PackageModel.ProcessCosmeticMetadata();
 
             PackageModel.ProcessCertificateInformation();
 
@@ -352,15 +350,22 @@ namespace CoApp.Autopackage {
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
 
+            PackageModel.ProcessCosmeticMetadata();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
         }
 
         private void CreatePackageFile() {
+            var msiFile = Path.Combine(Environment.CurrentDirectory, "{0}-{1}-{2}.msi".format(PackageModel.Name, PackageModel.Version.UInt64VersiontoString(), PackageModel.Architecture));
+            PackageSource.MacroValues.Add("OutputFilename", Path.GetFileName(msiFile));
+            PackageSource.MacroValues.Add("Name", Path.GetFileNameWithoutExtension(msiFile));
+            PackageSource.MacroValues.Add("CanonicalName", Path.GetFileNameWithoutExtension(PackageModel.CanonicalName));
+
             var wixDocument = new WixDocument(PackageSource, PackageModel, PackageFeed);
             wixDocument.FillInTemplate();
             FailOnErrors();
 
-            // Run WiX to generate the MSI
-            wixDocument.CreatePackageFile();
+            wixDocument.CreatePackageFile(msiFile);
             FailOnErrors();
         }
 

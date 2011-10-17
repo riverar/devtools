@@ -220,14 +220,15 @@ namespace CoApp.Autopackage {
        
 
         private void AddCoAppProperties() {
-            var property = wix.Product.Add("Property", Feed.ToString());
+            var feed = Feed.ToString().FormatWithMacros(Source.PropertySheets.First().GetMacroValue,null);
+            var property = wix.Product.Add("Property", feed);
             property.Attributes.Id = "CoAppPackageFeed";
 
-            property = wix.Product.Add("Property", Model.CompositionRules.ToXml());
+            property = wix.Product.Add("Property", Model.CompositionRules.ToXml().FormatWithMacros(Source.PropertySheets.First().GetMacroValue, null));
             property.Attributes.Id = "CoAppCompositionRules";
         }
 
-        public string CreatePackageFile() {
+        public string CreatePackageFile(string msiFilename) {
             // -----------------------------------------------------------------------------------------------------------------------------------
             // Run WiX to generate the MSI
 
@@ -244,8 +245,8 @@ namespace CoApp.Autopackage {
             // file names
             var wixfile = (Path.GetTempFileName() + ".wxs").DisposeWhenDone();
             var wixobj = wixfile.ChangeFileExtensionTo("wixobj");
-            var msiFile = Path.Combine(Environment.CurrentDirectory, Model.CanonicalName + ".msi");
-            msiFile.TryHardToDeleteFile();
+
+            msiFilename.TryHardToDeleteFile();
 
             // Write out the WixFile
             wixXml.Save(wixfile);
@@ -260,13 +261,13 @@ namespace CoApp.Autopackage {
 
             AutopackageMessages.Invoke.Verbose("==> Linking Wix object files into MSI.");
 
-            rc = Tools.WixLinker.Exec(@"-nologo -sw1076  -out ""{0}"" ""{1}""", msiFile, wixobj);
+            rc = Tools.WixLinker.Exec(@"-nologo -sw1076  -out ""{0}"" ""{1}""", msiFilename, wixobj);
             if (rc != 0) {
                 AutopackageMessages.Invoke.Error(MessageCode.WixLinkerError, null, "{0}\r\n{1}", Tools.WixLinker.StandardOut, Tools.WixLinker.StandardError);
                 return null;
             }
-            AutopackageMessages.Invoke.Verbose("MSI Generated [{0}].", msiFile);
-            return msiFile;
+            AutopackageMessages.Invoke.Verbose("MSI Generated [{0}].", msiFilename);
+            return msiFilename;
 
         }
     }

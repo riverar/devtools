@@ -63,6 +63,21 @@ namespace CoApp.Autopackage {
             Source = source;
             DestinationDirectoryFiles = Enumerable.Empty<FileEntry>();
             Assemblies = new List<PackageAssembly>();
+            foreach( var sheet in Source.PropertySheets ) {
+                sheet.GetMacroValue += GetMacroValue;
+            }
+        }
+
+        internal string GetMacroValue( string macroKey ) {
+            if( macroKey.StartsWith("Model.") ) {
+                var result = this.SimpleEval(macroKey.Substring(6));
+                if (result == null || string.Empty == result.ToString()) {
+                    return null;
+                }
+
+                return result.ToString();
+            }
+            return null;
         }
 
         internal void ProcessCertificateInformation() {
@@ -92,7 +107,6 @@ namespace CoApp.Autopackage {
             foreach (var AppRule in Source.ApplicationRules) {
                 var files = FileList.ProcessIncludes(null, AppRule, "application", Source.FileRules, Environment.CurrentDirectory);
                 var name = AppRule.Parameter;
-                Console.WriteLine("APPRULEPARAM: {0}", AppRule.Parameter);
 
                 if (!string.IsNullOrEmpty(name)) {
                     files = files.Select(
@@ -100,8 +114,6 @@ namespace CoApp.Autopackage {
                 }
                 DestinationDirectoryFiles = DestinationDirectoryFiles.Union(files);
 
-
-               
             }
             foreach (var file in DestinationDirectoryFiles) {
                 Console.WriteLine("{0} => {1}", file.SourcePath, file.DestinationPath);
@@ -312,6 +324,34 @@ namespace CoApp.Autopackage {
             if (string.IsNullOrEmpty(PublicKeyToken)) {
                 PublicKeyToken = Source.Certificate.PublicKeyToken;
             }
+
+            var locations = Source.PackageRules.GetPropertyValues("location").Union(Source.PackageRules.GetPropertyValues("locations"));
+            if( !locations.IsNullOrEmpty()) {
+                Locations = new List<Uri>();
+                Locations.AddRange(locations.Select(location => location.ToUri()).Where(uri => uri != null));
+            }
+            
+
+            var feeds = Source.PackageRules.GetPropertyValues("feed").Union(Source.PackageRules.GetPropertyValues("feeds"));
+            if (!feeds.IsNullOrEmpty()) {
+                Feeds = new List<Uri>();
+                Feeds.AddRange(feeds.Select(feed => feed.ToUri()).Where(uri => uri != null));
+            }
+
+            var publisher = Source.PackageRules.GetPropertyValue("publisher");
+
+            if( !string.IsNullOrEmpty(publisher)) {
+                var identityRules = Source.IdentityRules.GetRulesByParameter(publisher);
+                if (!identityRules.IsNullOrEmpty()) {
+                    PackageDetails.Publisher = new Identity {
+                        Name = identityRules.GetPropertyValue("name"),
+                        Email = identityRules.GetPropertyValue("email"),
+                        Location = identityRules.GetPropertyValue("website").ToUri()
+                    };
+                }
+
+            }
+
         }
 
         internal void ProcessAssemblyManifests() {
@@ -342,6 +382,12 @@ namespace CoApp.Autopackage {
                     // TODO: SOON
                 }
             }
+
+            if (minimum > 0) {
+                BindingPolicyMinVersion = minimum;
+                BindingPolicyMaxVersion = maximum;
+            }
+
 
             var nativeAssemblies = Assemblies.Where(each => !each.IsManaged).ToArray();
             foreach (var nativeAssembly in nativeAssemblies) {
@@ -477,8 +523,28 @@ namespace CoApp.Autopackage {
             
 
             PackageDetails.Tags = Source.MetadataRules.GetPropertyValues("tags").ToList();
-            // todo: contributors
+            
+
+            var contributors = Source.MetadataRules.GetPropertyValues("contributors");
+
+            if (!contributors.IsNullOrEmpty()) {
+                PackageDetails.Contributors = new List<Identity>();
+
+                foreach( var contributor in contributors ) {
+                    var identityRules = Source.IdentityRules.GetRulesByParameter(contributor);
+                    if (!identityRules.IsNullOrEmpty()) {
+                        PackageDetails.Contributors.Add(  new Identity {
+                            Name = identityRules.GetPropertyValue("name"),
+                            Email = identityRules.GetPropertyValue("email"),
+                            Location = identityRules.GetPropertyValue("website").ToUri()
+                        });
+                    }
+                }
+            }
+
 
         }
+
+
     }
 }

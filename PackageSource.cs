@@ -83,13 +83,25 @@ namespace CoApp.Autopackage {
             CollectRoleRules();
         }
 
+        internal Dictionary<string, string> MacroValues = new Dictionary<string, string>();
+
         internal string GetMacroValue(string valuename) {
-            if (DefineRules.Length == 0) {
-                return null;
+            var parts = valuename.Split('.');
+            if( parts.Length == 3) {
+                var result = AllRules.GetRulesByName(parts[0]).GetRulesByParameter(parts[1]).GetPropertyValue(parts[2]);
+                if( result != null ) {
+                    return result;
+                }
             }
 
-            var value = DefineRules.GetProperty(valuename);
-            return value != null ? value.Value : null;
+            if( parts.Length == 2) {
+                var result = AllRules.GetRulesByName(parts[0]).GetPropertyValue(parts[1]);
+                if( result != null ) {
+                    return result;
+                }
+            }
+
+            return DefineRules.GetPropertyValue(valuename) ?? (MacroValues.ContainsKey(valuename) ? MacroValues[valuename] : null);
         }
 
         internal IEnumerable<object> GetFileCollection(string collectionname) {
