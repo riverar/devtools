@@ -372,6 +372,9 @@ namespace CoApp.Autopackage {
 
             wixDocument.CreatePackageFile(msiFile);
             FailOnErrors();
+
+            PeBinary.SignFile(msiFile, PackageSource.Certificate);
+            Console.WriteLine("\r\n ==========\r\n DONE : Signed MSI File: {0}", msiFile);
         }
 
         private void HandleWarnings(MessageCode code, SourceLocation sourceLocation, string message, object[] args) {
