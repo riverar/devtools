@@ -6,10 +6,8 @@ using System.Text;
 namespace CoApp.Autopackage {
     using System.IO;
     using System.Xml.Linq;
-    using System.Xml.Serialization;
     using Developer.Toolkit.Publishing;
     using Toolkit.DynamicXml;
-    using Toolkit.Engine.Model;
     using Toolkit.Engine.Model.Atom;
     using Toolkit.Extensions;
 
@@ -22,10 +20,10 @@ namespace CoApp.Autopackage {
 
         private dynamic TargetDir;
         private dynamic VendorDir { get {
-            return FindOrCreateDirectory(TargetDir, Model.Vendor.MakeAttractiveFilename());
+            return FindOrCreateDirectory(TargetDir, Model.PublisherDirectory);
         }}
         private dynamic ProductDir { get {
-            return FindOrCreateDirectory(VendorDir, Model.Name.MakeAttractiveFilename());
+            return FindOrCreateDirectory(VendorDir, "{0}-{1}-{2}".format(Model.Name, Model.Version.UInt64VersiontoString(), Model.Architecture).MakeAttractiveFilename());
         }}
 
         internal WixDocument(PackageSource source, AutopackageModel model, AtomFeed feed) {
@@ -62,7 +60,7 @@ namespace CoApp.Autopackage {
         public void SetBasicWixProperties() {
             wix.Product.Attributes.Id = Model.ProductCode;
             wix.Product.Attributes.Manufacturer = Model.Vendor;
-            wix.Product.Attributes.Name = Model.Name;
+            wix.Product.Attributes.Name = Model.CanonicalName;
             wix.Product.Attributes.Version = Model.Version.UInt64VersiontoString();
 
             TargetDir = wix.Product["Id=TARGETDIR"];
@@ -222,7 +220,7 @@ namespace CoApp.Autopackage {
             var property = wix.Product.Add("Property", feed);
             property.Attributes.Id = "CoAppPackageFeed";
 
-            property = wix.Product.Add("Property", Model.CompositionRules.ToXml().FormatWithMacros(Source.PropertySheets.First().GetMacroValue, null));
+            property = wix.Product.Add("Property", Model.CompositionRules.ToXml("CompositionRules").FormatWithMacros(Source.PropertySheets.First().GetMacroValue, null));
             property.Attributes.Id = "CoAppCompositionRules";
         }
 

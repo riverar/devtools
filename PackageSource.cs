@@ -105,7 +105,21 @@ namespace CoApp.Autopackage {
         }
 
         internal IEnumerable<object> GetFileCollection(string collectionname) {
-            return null;
+            // we use this to pick up file collections.
+            var fileRule = FileRules.Where(each => each.Parameter == collectionname).FirstOrDefault();
+
+            if( fileRule == null) {
+                AutopackageMessages.Invoke.Error(MessageCode.UnknownFileList, null, "Reference to unknown file list '{0}'", collectionname);
+            } else {
+                var list = FileList.GetFileList(collectionname, FileRules);
+                return list.FileEntries.Select(each => new {
+                    name = Path.GetFileName(each.DestinationPath),
+                    extension = Path.GetExtension(each.DestinationPath),
+                    nameWithoutExtension = Path.GetFileNameWithoutExtension(each.DestinationPath),
+                });
+            }
+            
+            return Enumerable.Empty<object>();
         }
 
         internal void LoadPropertySheets(IEnumerable<string> parameters) {
@@ -182,7 +196,7 @@ namespace CoApp.Autopackage {
             }
 
             PackageManager = PackageManager.Instance;
-            PackageManager.AddFeed(Environment.CurrentDirectory);
+            PackageManager.AddFeed(Environment.CurrentDirectory,true);
         }
     }
 }

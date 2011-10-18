@@ -52,6 +52,7 @@ namespace CoApp.Autopackage {
         AssemblyHasNoVersion,
         UnableToDeterminePackageVersion,
         UnableToDeterminePackageArchitecture,
+        UnknownCompositionRuleType,
         
 
         // warnings
@@ -351,6 +352,10 @@ namespace CoApp.Autopackage {
             FailOnErrors();
 
             PackageModel.ProcessCosmeticMetadata();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
+            PackageModel.ProcessCompositionRules();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
         }

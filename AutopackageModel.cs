@@ -89,6 +89,7 @@ namespace CoApp.Autopackage {
 
         internal void ProcessCertificateInformation() {
             Vendor = Source.Certificate.CommonName;
+            PublisherDirectory = Vendor.MakeAttractiveFilename();
         }
 
         internal void ProcessPackageTemplates() {
@@ -194,17 +195,28 @@ namespace CoApp.Autopackage {
                 // for now, lets just see if we can do a package match, and grab just that packages
                 // in the future, we should figure out how to make better decisions for this.
                 try {
-                    var package =
-                        Source.PackageManager.GetPackages(pkgName, null, null, null, null, null, null, null, false, null, false, AutopackageMain._messages).
-                            Result;
+                    var package = Source.PackageManager.GetPackages(pkgName, null, null, null, null, null, null, null, false, null, false, AutopackageMain._messages).Result;
+
+                    if( package.IsNullOrEmpty()) {
+                        AutopackageMessages.Invoke.Error( MessageCode.FailedToFindRequiredPackage, null, "Failed to find package '{0}'.", pkgName);
+                    }
+
+                    var pkg = package.FirstOrDefault();
+                    Source.PackageManager.GetPackageDetails(pkg.CanonicalName,AutopackageMain._messages).Wait();
+
                     dependentPackages.Add(package.FirstOrDefault());
+                    
                 } catch (Exception e) {
                     AutopackageMessages.Invoke.Error(
                         MessageCode.FailedToFindRequiredPackage, null, "Failed to find package '{0}'. [{1}]", pkgName, e.Message);
                 }
             }
 
+            
             foreach( var pkg in dependentPackages) {
+                if (Dependencies == null ) {
+                    Dependencies = new List<Guid>();
+                }
                 Dependencies.Add(new Guid(pkg.ProductCode));
                 // also, add that package's atom feed items to this package's feed.
                 if(! string.IsNullOrEmpty(pkg.PackageItemText) ) {
@@ -558,6 +570,61 @@ namespace CoApp.Autopackage {
 
         }
 
+        internal void ProcessCompositionRules() {
+            CompositionRules = new List<CompositionRule>();
+            // PackageCompositionRules = AllRules.GetRulesByName("package-composition");
+            var compositionRuleCategories = Source.PackageCompositionRules.Select(each => each.Parameter).Distinct();
+            
+            foreach( var category in compositionRuleCategories) {
+                var categoryRules = Source.PackageCompositionRules.GetRulesByParameter(category);
+                foreach(var rule in categoryRules) {
+                    foreach( var propertyName in rule.PropertyNames) {
+                        CompositionAction type;
 
+                        switch( propertyName ) {
+                            case "symlink":
+                            case "symlinks":
+                            case "symlink-file":
+                            case "symlink-files":
+                                type = CompositionAction.SymlinkFile;
+                                break;
+                            case "registry":
+                            case "registry-keys":
+                                type = CompositionAction.Registry;
+                                break;
+                            case "symlink-folder":
+                            case "symlink-folderss":
+                                type = CompositionAction.SymlinkFolder;
+                                break;
+                            case "environment-variable":
+                            case "environment-variables":
+                                type = CompositionAction.EnvironmentVariable;
+                                break;
+                            case "shortcut":
+                            case "shortcuts":
+                                type = CompositionAction.Shortcut;
+                                break;
+                            default:
+                                AutopackageMessages.Invoke.Error(MessageCode.UnknownCompositionRuleType, rule.SourceLocation, "Unknown composition rule '{0}'",
+                                    propertyName);
+                                continue;
+                        }
+
+                        var propertyValue = rule[propertyName];
+
+                        if (!propertyValue.Labels.IsNullOrEmpty()) {
+                            foreach (var label in propertyValue.Labels) {
+                                CompositionRules.Add( new CompositionRule {
+                                    Action = type,
+                                    Category = category,
+                                    Link = label,
+                                    Target = propertyValue[label].Value
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
