@@ -34,6 +34,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>0649</NoWarn>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>..\solution\ext\resources\CoApp.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -182,6 +185,7 @@
     <Compile Include="Metadata\PeWriter\PdbWriterInterface.cs" />
     <Compile Include="Metadata\PeWriter\PeWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="$(SolutionDir)\..\solution\Source\CoApp.Devtools.AssemblyStrongName.cs" />
     <Compile Include="Metadata\ReflectionEmitter\Emitter.cs" />
     <Compile Include="Metadata\ReflectionEmitter\Mapper.cs" />
     <Compile Include="Metadata\SourceModel\DummyObjects.cs" />
@@ -203,6 +207,9 @@
     <Folder Include="Ast\ILToCodeModel\Properties\" />
     <Folder Include="Ast\MutableCodeModel\Properties\" />
     <Folder Include="Metadata\Microsoft.Contracts\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(SolutionDir)\..\solution\ext\resources\CoApp.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -12,9 +12,9 @@ using System.Runtime.InteropServices;
 #else
 [assembly: AssemblyConfiguration("RELEASE - Built from SVN (https://cciast.svn.codeplex.com/svn) Changeset #65497")]
 #endif
-[assembly: AssemblyCompany("")]
+// [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("CoApp.CCI")]
-[assembly: AssemblyCopyright("Microsoft.CCI (http://cciast.codeplex.com/) Copyright © Microsoft 2011")]
+// [assembly: AssemblyCopyright("Microsoft.CCI (http://cciast.codeplex.com/) Copyright © Microsoft 2011")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -36,8 +36,8 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("2.0.8.17659")]
-[assembly: AssemblyFileVersion("2.0.8.17659")]
+// [assembly: AssemblyVersion("2.0.8.17659")]
+// [assembly: AssemblyFileVersion("2.0.8.17659")]
 
 /*
  * Instructions for merging with upstream SVN 
