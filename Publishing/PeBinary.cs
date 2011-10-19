@@ -642,6 +642,9 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 }
             }
         }
+        public static void SignFile(string filename, CertificateReference certificate) {
+            SignFile(filename, certificate.Certificate);
+        }
 
         public static void SignFile(string filename, X509Certificate2 certificate) {
             filename = filename.GetFullPath();
@@ -684,7 +687,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 // Sign exe
                 //
                 if ((!CryptUi.CryptUIWizDigitalSign(DigitalSignFlags.NoUI, IntPtr.Zero, null, ref digitalSignInfo, ref pSignContext))) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CryptUIWizDigitalSign");
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CryptUIWizDigitalSign - "+filename);
                 }
 
 
