@@ -76,7 +76,7 @@ namespace CoApp.Autopackage {
         }
 
         internal string GetMacroValue( string macroKey ) {
-            if( macroKey.StartsWith("Model.") ) {
+            if( macroKey.StartsWith("Package.") ) {
                 var result = this.SimpleEval(macroKey.Substring(6));
                 if (result == null || string.Empty == result.ToString()) {
                     return null;
