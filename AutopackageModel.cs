@@ -474,6 +474,12 @@ namespace CoApp.Autopackage {
         }
 
         internal void ProcessCosmeticMetadata() {
+
+            DisplayName = Source.PackageRules.GetPropertyValue("diplay-name");
+            if( string.IsNullOrEmpty(DisplayName )) {
+                DisplayName = Name;
+            }
+
             PackageDetails.Description = Source.MetadataRules.GetPropertyValue("description").LiteralOrFileText();
             PackageDetails.SummaryDescription = Source.MetadataRules.GetPropertyValue("summary");
 
