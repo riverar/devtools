@@ -24,6 +24,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
     using Microsoft.Cci;
     using Microsoft.Cci.MutableCodeModel;
     using ResourceLib;
+    using Resource = ResourceLib.Resource;
 
     public class PeBinary : IDisposable {
 
@@ -90,7 +91,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     // lets pull out the relevant resources first.
                     ri.Load(_filename);
                     try {
-                        var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).First();
+                        
+                        var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).FirstOrDefault();
                         var versionResource = ri.Resources[versionKey].First() as VersionResource;
                         var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
 
@@ -539,9 +541,31 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             var ri = new ResourceInfo();
 
                             ri.Load(tmpFilename);
-                            var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).First();
-                            var versionResource = ri.Resources[versionKey].First() as VersionResource;
-                            var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
+
+                            VersionResource versionResource;
+                            StringTable versionStringTable;
+
+                            var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).FirstOrDefault();
+                            if( versionKey != null ) {
+                                versionResource = ri.Resources[versionKey].First() as VersionResource;    
+                                versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
+                            } else {
+                                versionResource = new VersionResource();
+                                ri.Resources.Add(new ResourceId(ResourceTypes.RT_VERSION), new List<Resource> {versionResource});
+                                
+                                var sfi = new StringFileInfo();
+                                versionResource["StringFileInfo"] = sfi;
+                                sfi.Strings["040904b0"] = (versionStringTable = new StringTable("040904b0"));
+
+                                var vfi = new VarFileInfo();
+                                versionResource["VarFileInfo"] = vfi;
+                                var translation = new VarTable("Translation");
+                                vfi.Vars["Translation"] = translation;
+                                translation[0x0409] = 0x04b0;
+                            }
+
+                            versionResource.FileVersion = FileVersion;
+                            versionResource.ProductVersion = ProductVersion;
 
                             versionStringTable["ProductName"] = ProductName;
                             versionStringTable["CompanyName"] = CompanyName;
@@ -549,6 +573,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             versionStringTable["Comments"] = _comments;
                             versionStringTable["Assembly Version"] = _assemblyVersion;
                             versionStringTable["FileVersion"] = _fileVersion;
+                            versionStringTable["ProductVersion"] = _productVersion;
                             versionStringTable["InternalName"] = _internalName;
                             versionStringTable["OriginalFilename"] = _originalFilename;
                             versionStringTable["LegalCopyright"] = _legalCopyright;

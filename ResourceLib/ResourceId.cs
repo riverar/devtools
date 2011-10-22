@@ -93,8 +93,8 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
                 if (IsIntResource()) {
                     return (ResourceTypes) _name;
                 }
-
-                throw new InvalidCastException(string.Format("Resource {0} is not of built-in type.", Name));
+                return ResourceTypes.RT_OTHER;
+                // throw new InvalidCastException(string.Format("Resource {0} is not of built-in type.", Name));
             }
             set { _name = (IntPtr) value; }
         }
