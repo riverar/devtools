@@ -178,7 +178,7 @@ pTK [options] action [buildconfiguration...]
 
 
             if (string.IsNullOrEmpty(compilerBatchFile))
-                throw new Exception("Cannot locate Visual C++ vcvars batch file command. Please install {0} (and use --rescan-tools). ".format(compilerName));
+                throw new CoAppException("Cannot locate Visual C++ vcvars batch file command. Please install {0} (and use --rescan-tools). ".format(compilerName));
 
             _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", compilerBatchFile, arch == "x86" ? "x86" : "x64");
 
@@ -207,7 +207,7 @@ pTK [options] action [buildconfiguration...]
             if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
 
                 if (string.IsNullOrEmpty(sdkBatchFile))
-                    throw new Exception("Cannot locate SDK SetEnv command for SDK ({0}). Please install the Windows SDK {0}".format(sdkName));
+                    throw new CoAppException("Cannot locate SDK SetEnv command for SDK ({0}). Please install the Windows SDK {0}".format(sdkName));
 
                 // Console.WriteLine(@"/c ""{0}"" /{1} & set ", _setenvcmd, arch == "x86" ? "x86" : "x64");
 
@@ -225,7 +225,7 @@ pTK [options] action [buildconfiguration...]
                 if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
                     Console.WriteLine("Arch: {0}", arch);
                     Console.WriteLine("TargetCPU: {0}", targetCpu);
-                    throw new Exception("Cannot set the SDK environment. Please install the Windows SDK ({0}) and use the setenv.cmd command to set your environment".format(sdkName));
+                    throw new CoAppException("Cannot set the SDK environment. Please install the Windows SDK ({0}) and use the setenv.cmd command to set your environment".format(sdkName));
                 }
                  */
             }
