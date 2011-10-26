@@ -19,6 +19,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
     using System.Runtime.InteropServices;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
+    using CoApp.Toolkit.Exceptions;
     using CoApp.Toolkit.Extensions;
     using CoApp.Toolkit.Win32;
     using Microsoft.Cci;
@@ -43,7 +44,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
         private readonly string _filename;
         private bool _pendingChanges;
         private readonly PEInfo _info;
-        private MetadataReaderHost _host;
+        private MetadataReaderHost _host = new PeReader.DefaultHost();
+
         private static Dictionary<string, PeBinary> _cache = new Dictionary<string, PeBinary>();
 
         public static PeBinary Load(string filename) {
@@ -83,10 +85,10 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
             _info = PEInfo.Scan(filename);
             if(!_info.IsPEBinary) {
-                throw new Exception("File {0} does not appear to be a PE Binary".format(filename));
+                throw new CoAppException("File {0} does not appear to be a PE Binary".format(filename));
             }
 
-            lock (typeof (PeBinary)) { // CCI operations are not always threadsafe. :S
+            //lock (typeof (PeBinary)) { // CCI operations are not always threadsafe. :S
                 using (var ri = new ResourceInfo()) {
                     // lets pull out the relevant resources first.
                     ri.Load(_filename);
@@ -114,7 +116,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 }
 
                 if (IsManaged) { // we can read in the binary using CCI
-                    _host = new PeReader.DefaultHost();
+                    
 
                     try {
                         
@@ -188,7 +190,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     {
                     }
                 }
-            }
+            
             lock (_cache) {
                 _cache.Add(_filename, this);
             }
@@ -245,7 +247,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                         var module = _host.LoadUnitFrom(temporaryCopy) as IModule;
 
                         if (module == null || module is Dummy) {
-                            throw new Exception("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
+                            throw new CoAppException("{0} is not a PE file containing a CLR module or assembly.".format(_filename));
                         }
                         ILOnly = module.ILOnly;
                         
@@ -444,7 +446,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
         public void Save() {
             if (_pendingChanges) {
                 // saves any changes made to the binary.
-                lock (typeof (PeBinary)) {
+                //lock (typeof (PeBinary)) {
                     // operations are not always threadsafe. :S
                     // work on a back up of the file
                     var tmpFilename = _filename.CreateBackupWorkingCopy();
@@ -468,7 +470,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                             var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
                                             if (dep == null) {
                                                 // can't strong name a file that doesn't have its deps all strong named.
-                                                throw new Exception(
+                                                throw new CoAppException(
                                                     "Unable to strong name '{0}' -- dependent assembly '{1}-{2}' not available for strong naming".format(
                                                         _filename, ar.Name.Value, ar.Version.ToString()));
                                             }
@@ -607,7 +609,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                         // as you were...
                         throw;
                     }
-                }
+                // }
             }
             _pendingChanges = false;
         }
@@ -632,10 +634,10 @@ namespace CoApp.Developer.Toolkit.Publishing {
             var wszKeyContainer = Guid.NewGuid().ToString();
             var privateKey = (certificate.Certificate.PrivateKey as RSACryptoServiceProvider).ExportCspBlob(true);
             if (!Mscoree.StrongNameKeyInstall(wszKeyContainer, privateKey, privateKey.Length)) {
-                throw new Exception("Unable to create KeyContainer");
+                throw new CoAppException("Unable to create KeyContainer");
             }
             if (!Mscoree.StrongNameSignatureGeneration(filename, wszKeyContainer, IntPtr.Zero, 0, 0, 0)) {
-                throw new Exception("Unable Strong name assembly '{0}'.".format(filename));
+                throw new CoAppException("Unable Strong name assembly '{0}'.".format(filename));
             }
             Mscoree.StrongNameKeyDelete(wszKeyContainer);
         }
@@ -652,7 +654,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 uint certCount = 0;
                 var rc = ImageHlp.ImageEnumerateCertificates(f.SafeFileHandle, CertSectionType.Any, out certCount, IntPtr.Zero, 0);
                 if (!rc) {
-                    throw new Exception("Failed to find certificates in file {0}".format(filename));
+                    throw new CoAppException("Failed to find certificates in file {0}".format(filename));
                 }
 
                 var errCount = 0;
@@ -663,7 +665,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 }
 
                 if (errCount != 0) {
-                    throw new Exception("Had errors removing {0} certificates from file {1}".format(errCount, filename));
+                    throw new CoAppException("Had errors removing {0} certificates from file {1}".format(errCount, filename));
                 }
             }
         }

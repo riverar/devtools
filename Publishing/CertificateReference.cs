@@ -9,6 +9,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
     using System.Security.Cryptography.X509Certificates;
     using System.Text.RegularExpressions;
     using CoApp.Toolkit.Configuration;
+    using CoApp.Toolkit.Exceptions;
     using CoApp.Toolkit.Extensions;
     using Microsoft.Cci;
 
@@ -129,7 +130,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     _certificate = new X509Certificate2(_location , _password, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable );
                 }
                 if( !_certificate.HasPrivateKey ) {
-                    throw new Exception("Certificate '{0}' does not have private key".format(_location));
+                    throw new CoAppException("Certificate '{0}' does not have private key".format(_location));
                 }
             }
 
@@ -161,12 +162,12 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     _certificate = new X509Certificate2(_location , _password, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable );
                 }
                 if( !_certificate.HasPrivateKey ) {
-                    throw new Exception("Certificate '{0}' does not have private key".format(_location));
+                    throw new CoAppException("Certificate '{0}' does not have private key".format(_location));
                 }
             } else {
                 _certificate = LoadCertificateFromStore(location);
                 if( _certificate == null ) {
-                    throw new Exception("Unable to load certificate '{0}' with a private key".format(_location));
+                    throw new CoAppException("Unable to load certificate '{0}' with a private key".format(_location));
                 }
             }
 
