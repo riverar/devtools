@@ -22,6 +22,7 @@ namespace CoApp.Autopackage {
     using Toolkit.Engine.Model.Atom;
     using Toolkit.Exceptions;
     using Toolkit.Extensions;
+    using Toolkit.Logging;
     using Toolkit.Network;
     using Toolkit.Scripting.Languages.PropertySheet;
     using Toolkit.Tasks;
@@ -89,7 +90,7 @@ namespace CoApp.Autopackage {
         public VerboseHandler Verbose;
     }
 
-    public class AutopackageException : Exception {
+    public class AutopackageException : CoAppException {
     }
 
     /// <summary>
@@ -104,11 +105,10 @@ namespace CoApp.Autopackage {
         private readonly List<string> _msgs = new List<string>();
 
         internal static PackageManagerMessages _messages;
-        internal static List<string> DisposableFilenames  = new List<string>();
         
         // command line stuff
         
-        private bool _verbose;
+        internal static bool _verbose;
 
         internal PackageSource PackageSource;
         internal AutopackageModel PackageModel;
@@ -131,9 +131,7 @@ namespace CoApp.Autopackage {
         /// </returns>
         public static int Main(string[] args) {
             var rc = new AutopackageMain().Startup(args);
-            foreach (var f in DisposableFilenames.Where(File.Exists)) {
-                f.TryHardToDeleteFile();
-            }
+            FilesystemExtensions.RemoveTemporaryFiles();
             return rc;
         }
 
@@ -214,6 +212,9 @@ namespace CoApp.Autopackage {
                             /* global switches */
                         case "verbose":
                             _verbose = lastAsBool;
+                            Logger.Messages = true;
+                            Logger.Warnings = true;
+                            Logger.Errors = true;
                             break;
 
                         case "load-config":

@@ -71,7 +71,8 @@ namespace CoApp.Autopackage {
 
             var coappBootstrapNativeBin = wix.Product["Id=bootstrap.exe"];
             if (coappBootstrapNativeBin != null) {
-                var bootstrapTempFile = (Path.GetTempFileName() + "bootstrap.exe").DisposeWhenDone();
+                var bootstrapTempFile = "bootstrap.exe".GenerateTemporaryFilename();
+
                 using (var fs = System.IO.File.Create(bootstrapTempFile)) {
                     fs.Write(Properties.Resources.coapp_native_bootstrap, 0, Properties.Resources.coapp_native_bootstrap.Length);
                 }
@@ -81,11 +82,20 @@ namespace CoApp.Autopackage {
                 peBinary.StrongNameKeyCertificate = Source.Certificate;
                 peBinary.SigningCertificate = Source.Certificate;
                 peBinary.CompanyName = Model.Vendor;
-                peBinary.Comments = "Installer for " + Model.Name;
-                peBinary.ProductName = "Installer for " + Model.Name;
+
+                peBinary.Comments = "Installer for " + Model.DisplayName;
+                peBinary.ProductName = "Installer for " + Model.DisplayName;
+                peBinary.AssemblyTitle = "Installer for " + Model.DisplayName;
+                peBinary.AssemblyDescription = "Installer for " + Model.DisplayName;
+
+                peBinary.LegalCopyright = Model.PackageDetails.CopyrightStatement;
 
                 peBinary.ProductVersion = Model.Version.UInt64VersiontoString();
                 peBinary.FileVersion = Model.Version.UInt64VersiontoString();
+
+                peBinary.FileVersion = Model.Version.UInt64VersiontoString();
+                peBinary.ProductVersion = Model.Version.UInt64VersiontoString();
+
                 peBinary.Save();
 
                 coappBootstrapNativeBin.Attributes.SourceFile = bootstrapTempFile;
@@ -93,25 +103,32 @@ namespace CoApp.Autopackage {
 
             var coappBootstrapBin = wix.Product["Id=bootstrapperui.exe"];
             if (coappBootstrapBin != null) {
-                var bootstrapTempFile = (Path.GetTempFileName() + "bootstrapperui.exe").DisposeWhenDone();
+                var bootstrapuitempfile =   "bootstrapperui.exe".GenerateTemporaryFilename();
 
-                using (var fs = System.IO.File.Create(bootstrapTempFile)) {
+                
+                using (var fs = System.IO.File.Create(bootstrapuitempfile)) {
                     fs.Write(Properties.Resources.coapp_managed_bootstrap, 0, Properties.Resources.coapp_managed_bootstrap.Length);
                 }
 
                 // resign the file
-                var peBinary = PeBinary.Load(bootstrapTempFile);
+                var peBinary = PeBinary.Load(bootstrapuitempfile);
                 peBinary.StrongNameKeyCertificate = Source.Certificate;
                 peBinary.SigningCertificate = Source.Certificate;
                 peBinary.CompanyName = Model.Vendor;
-                peBinary.Comments = "Installer for " + Model.Name;
-                peBinary.ProductName = "Installer for " + Model.Name;
+
+                peBinary.Comments = "Installer for " + Model.DisplayName;
+                peBinary.ProductName = "Installer for " + Model.DisplayName;
+                peBinary.AssemblyTitle = "Installer for " + Model.DisplayName;
+                peBinary.AssemblyDescription = "Installer for " + Model.DisplayName;
+                peBinary.LegalCopyright = Model.PackageDetails.CopyrightStatement;
+                peBinary.FileVersion = Model.Version.UInt64VersiontoString();
+                peBinary.ProductVersion = Model.Version.UInt64VersiontoString();
 
                 peBinary.ProductVersion = Model.Version.UInt64VersiontoString();
                 peBinary.FileVersion = Model.Version.UInt64VersiontoString();
                 peBinary.Save();
 
-                coappBootstrapBin.Attributes.SourceFile = bootstrapTempFile;
+                coappBootstrapBin.Attributes.SourceFile = bootstrapuitempfile;
             }
         }
 
@@ -239,7 +256,7 @@ namespace CoApp.Autopackage {
             AutopackageMessages.Invoke.Verbose("Generated WixFile\r\n\r\n{0}",wixXml.ToString());
 
             // file names
-            var wixfile = (Path.GetTempFileName() + ".wxs").DisposeWhenDone();
+            var wixfile = (Path.GetTempFileName() + ".wxs").MarkFileTemporary();
             var wixobj = wixfile.ChangeFileExtensionTo("wixobj");
 
             msiFilename.TryHardToDeleteFile();

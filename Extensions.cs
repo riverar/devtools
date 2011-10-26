@@ -76,21 +76,7 @@ namespace CoApp.Autopackage {
             return "manifest_" + guid.ToString().MakeSafeDirectoryId();
         }
 
-        public static string DisposeWhenDone( this string filename ) {
-            AutopackageMain.DisposableFilenames.Add(filename);
-            return filename;
-        }
-
-        public static string InTempFolder( this string filename ) {
-            var p = Path.Combine(Path.GetTempPath(), filename); 
-            if (File.Exists(p)) {
-                p.TryHardToDeleteFile();
-            }
-            
-            AutopackageMain.DisposableFilenames.Add(p);
-
-            return p;
-        }
+        
 
         public static string LiteralOrFileText(this string textOrFile) {
             if( !string.IsNullOrEmpty(textOrFile) ) {
@@ -119,7 +105,7 @@ namespace CoApp.Autopackage {
                 if( !string.IsNullOrEmpty(text)) {
                     return text;
                 }
-                var localFile = Path.GetTempFileName()+"-license-txt".DisposeWhenDone();
+                var localFile = Path.GetTempFileName() + "-license-txt".MarkFileTemporary();
                 if(uri.IsFile) {
                     localFile = uri.AbsoluteUri.CanonicalizePath();
                     if( !File.Exists(localFile)) {

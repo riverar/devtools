@@ -266,7 +266,7 @@ namespace CoApp.Autopackage {
                     MessageCode.MissingPackageName, Source.PackageRules.Last().SourceLocation, "Missing property 'name' in 'package' rule.");
             }
 
-            Version = (Source.PackageRules.GetProperty("version") as string).VersionStringToUInt64();
+            Version = (Source.PackageRules.GetPropertyValue("version") as string).VersionStringToUInt64();
             if (Version == 0) {
                 // try to figure out package version from binaries.
                 // check assemblies first
@@ -332,10 +332,10 @@ namespace CoApp.Autopackage {
                 }
             }
 
-            var arch = Source.PackageRules.GetProperty("arch");
+            var arch = Source.PackageRules.GetPropertyValue("arch") as string;
             if ((Architecture == Architecture.Auto || Architecture == Architecture.Unknown )&& arch != null) {
                 try {
-                    Architecture = Enum.Parse(typeof(Architecture), arch, true);
+                    Architecture = (Architecture) Enum.Parse(typeof(Architecture), arch, true);
                 } catch {
                 }
             }
@@ -412,7 +412,7 @@ namespace CoApp.Autopackage {
                 BindingPolicyMinVersion = minimum;
                 BindingPolicyMaxVersion = maximum;
             }
-
+            
 
             var nativeAssemblies = Assemblies.Where(each => !each.IsManaged).ToArray();
             foreach (var nativeAssembly in nativeAssemblies) {
@@ -451,8 +451,8 @@ namespace CoApp.Autopackage {
                                 },
                             });
 
-                        var policyConfigFile = "policy.{0}.{1}.dll.config".format(oldVersion, managedAssembly.Name).InTempFolder();
-                        var policyFile = "policy.{0}.{1}.dll".format(oldVersion, managedAssembly.Name).InTempFolder();
+                        var policyConfigFile = "policy.{0}.{1}.dll.config".format(oldVersion, managedAssembly.Name).MarkFileTemporary();
+                        var policyFile = "policy.{0}.{1}.dll".format(oldVersion, managedAssembly.Name).MarkFileTemporary();
 
                         // write out the policy config file
                         File.WriteAllText(policyConfigFile, policyXml);

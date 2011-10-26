@@ -197,6 +197,10 @@ namespace CoApp.Autopackage {
 
             PackageManager = PackageManager.Instance;
             PackageManager.AddFeed(Environment.CurrentDirectory,true);
+
+            if (AutopackageMain._verbose) {
+                PackageManager.SetLogging(true, true, true);
+            }
         }
     }
 }
