@@ -113,9 +113,9 @@ namespace CoApp.Autopackage {
             } else {
                 var list = FileList.GetFileList(collectionname, FileRules);
                 return list.FileEntries.Select(each => new {
-                    name = Path.GetFileName(each.DestinationPath),
-                    extension = Path.GetExtension(each.DestinationPath),
-                    nameWithoutExtension = Path.GetFileNameWithoutExtension(each.DestinationPath),
+                    Name = Path.GetFileName(each.DestinationPath),
+                    Extension = Path.GetExtension(each.DestinationPath),
+                    NameWithoutExtension = Path.GetFileNameWithoutExtension(each.DestinationPath),
                 });
             }
             
@@ -191,7 +191,7 @@ namespace CoApp.Autopackage {
             // ok, we're looking like we're ready to need the package manager.
             // make sure its running.
             PackageManager.Instance.Connect("autopackage");
-            if (!PackageManager.Instance.IsReady.WaitOne(5000)) {
+            if (!PackageManager.Instance.IsReady.WaitOne(7000)) {
                 throw new ConsoleException("# Unable to connect to CoApp Service.");
             }
 

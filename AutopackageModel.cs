@@ -195,16 +195,24 @@ namespace CoApp.Autopackage {
                 // for now, lets just see if we can do a package match, and grab just that packages
                 // in the future, we should figure out how to make better decisions for this.
                 try {
-                    var package = Source.PackageManager.GetPackages(pkgName, null, null, null, null, null, null, null, false, null, false, AutopackageMain._messages).Result;
+                    var packages = Source.PackageManager.GetPackages(pkgName, null, null, null, null, null, null, null, false, null, false, AutopackageMain._messages).Result.ToArray();
 
-                    if( package.IsNullOrEmpty()) {
+                    if( packages.IsNullOrEmpty()) {
                         AutopackageMessages.Invoke.Error( MessageCode.FailedToFindRequiredPackage, null, "Failed to find package '{0}'.", pkgName);
                     }
 
-                    var pkg = package.FirstOrDefault();
+                    if( packages.Select(each => each.Name).Distinct().Count() > 1 ) {
+                        AutopackageMessages.Invoke.Error(MessageCode.MultiplePackagesMatched, null, "Multiple Packages Matched package reference: '{0}'.", pkgName);
+                    }
+
+                    // makes sure it takes the latest one that matches. Hey, if you wanted an earlier one, you'd say explicitly :p
+                    var pkg = packages.OrderByDescending(each => each.Version).FirstOrDefault();
+
+                    Console.WriteLine("Package Dependency: {0} -> {1}", pkg.CanonicalName, pkg.ProductCode);
+
                     Source.PackageManager.GetPackageDetails(pkg.CanonicalName,AutopackageMain._messages).Wait();
 
-                    dependentPackages.Add(package.FirstOrDefault());
+                    dependentPackages.Add(pkg);
                     
                 } catch (Exception e) {
                     AutopackageMessages.Invoke.Error(
@@ -222,6 +230,8 @@ namespace CoApp.Autopackage {
                 if(! string.IsNullOrEmpty(pkg.PackageItemText) ) {
                     var item = SyndicationItem.Load<AtomItem>(XmlReader.Create(new StringReader(pkg.PackageItemText)));
                     AtomFeed.Add(item);
+                } else {
+                    Console.WriteLine("Missing Dependency Information {0}", pkg.Name);
                 }
             }
 

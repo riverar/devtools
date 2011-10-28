@@ -105,7 +105,7 @@ namespace CoApp.Autopackage {
                 if( !string.IsNullOrEmpty(text)) {
                     return text;
                 }
-                var localFile = Path.GetTempFileName() + "-license-txt".MarkFileTemporary();
+                var localFile = "License-txt".GenerateTemporaryFilename();
                 if(uri.IsFile) {
                     localFile = uri.AbsoluteUri.CanonicalizePath();
                     if( !File.Exists(localFile)) {

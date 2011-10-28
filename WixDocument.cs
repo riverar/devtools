@@ -60,7 +60,7 @@ namespace CoApp.Autopackage {
         public void SetBasicWixProperties() {
             wix.Product.Attributes.Id = Model.ProductCode;
             wix.Product.Attributes.Manufacturer = Model.Vendor;
-            wix.Product.Attributes.Name = Model.CanonicalName;
+            wix.Product.Attributes.Name = Model.Name;
             wix.Product.Attributes.Version = Model.Version.UInt64VersiontoString();
 
             TargetDir = wix.Product["Id=TARGETDIR"];
@@ -239,6 +239,9 @@ namespace CoApp.Autopackage {
 
             property = wix.Product.Add("Property", Model.CompositionRules.ToXml("CompositionRules").FormatWithMacros(Source.PropertySheets.First().GetMacroValue, null));
             property.Attributes.Id = "CoAppCompositionRules";
+
+            property = wix.Product.Add("Property", Model.CanonicalName);
+            property.Attributes.Id = "CanonicalName";
         }
 
         public string CreatePackageFile(string msiFilename) {
@@ -256,7 +259,7 @@ namespace CoApp.Autopackage {
             AutopackageMessages.Invoke.Verbose("Generated WixFile\r\n\r\n{0}",wixXml.ToString());
 
             // file names
-            var wixfile = (Path.GetTempFileName() + ".wxs").MarkFileTemporary();
+            var wixfile = (Path.GetFileNameWithoutExtension(msiFilename) + ".wxs").GenerateTemporaryFilename();
             var wixobj = wixfile.ChangeFileExtensionTo("wixobj");
 
             msiFilename.TryHardToDeleteFile();

@@ -54,7 +54,7 @@ namespace CoApp.Autopackage {
         UnableToDeterminePackageVersion,
         UnableToDeterminePackageArchitecture,
         UnknownCompositionRuleType,
-        
+        MultiplePackagesMatched,
 
         // warnings
         WarningUnknown = 500,
