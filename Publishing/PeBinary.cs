@@ -116,13 +116,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 }
 
                 if (IsManaged) { // we can read in the binary using CCI
-                    
-
                     try {
-                        
                         if (MutableAssembly != null) {
-                           
-
                             // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
                             foreach (var a in MutableAssembly.ContainingAssembly.AssemblyAttributes) {
                                 var attributeArgument = (a.Arguments.FirstOrDefault() as MetadataConstant);
