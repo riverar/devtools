@@ -690,7 +690,7 @@ pTK [options] action [buildconfiguration...]
         /// <param name="text">The script to be written into the .cmd file</param>
         /// <returns>Full path to the temporary script</returns>
         private string WriteTempScript(string text) {
-            var tmpFilename = Path.GetTempFileName();
+            var tmpFilename = "ptk_script".GenerateTemporaryFilename();
             _tmpFiles.Add(tmpFilename);
             // append proper file extension
             tmpFilename += ".cmd";
