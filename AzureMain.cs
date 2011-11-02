@@ -166,7 +166,7 @@ Azure [options] action <parameters>
                     case "copy":
                     case "cp":
                         if( parameters.Count() <1 ||  parameters.Count() > 2 ) {
-                            throw new Exception("Command 'copy' has one or two parameters.");
+                            throw new CoAppException("Command 'copy' has one or two parameters.");
                         }
                         
                         var from = parameters.FirstOrDefault();
@@ -175,7 +175,7 @@ Azure [options] action <parameters>
                         var toContainer = GetContainerName(to);
 
                         if( string.IsNullOrEmpty(fromContainer) && string.IsNullOrEmpty(toContainer) ) {
-                            throw new Exception("For command 'copy', at least one parameter must have a <container>:");
+                            throw new CoAppException("For command 'copy', at least one parameter must have a <container>:");
                         } 
 
                         if(!string.IsNullOrEmpty(fromContainer) && !string.IsNullOrEmpty(toContainer)  ) {
@@ -191,7 +191,7 @@ Azure [options] action <parameters>
                     case "dir":
                     case "ls":
                         if(parameters.Count() > 1 ) {
-                           throw new Exception("Command 'dir' takes zero or one parameters."); 
+                           throw new CoAppException("Command 'dir' takes zero or one parameters."); 
                         }
 
                         var dirPath = parameters.FirstOrDefault();
@@ -200,7 +200,7 @@ Azure [options] action <parameters>
                         }
                         var dirContainer = GetContainerName(dirPath);
                         if( string.IsNullOrEmpty(dirContainer)) {
-                            throw new Exception("Command 'dir' parameter must specify a <container>:"); 
+                            throw new CoAppException("Command 'dir' parameter must specify a <container>:"); 
                         }
                         return ListFiles(dirContainer, GetRemoteFileMask(dirPath));
                         
@@ -208,33 +208,33 @@ Azure [options] action <parameters>
                     case "erase":
                     case "del":
                         if(parameters.Count() != 1 ) {
-                           throw new Exception("Command 'erase' requires one parameter."); 
+                           throw new CoAppException("Command 'erase' requires one parameter."); 
                         }
 
                         var erasePath = parameters.FirstOrDefault();
                         var eraseContainer = GetContainerName(erasePath);
                         if( string.IsNullOrEmpty(eraseContainer)) {
-                            throw new Exception("Command 'erase' parameter must specify <container>:"); 
+                            throw new CoAppException("Command 'erase' parameter must specify <container>:"); 
                         }
                         var eraseMask = GetRemoteFileMask(erasePath);
                         if( string.IsNullOrEmpty(eraseMask)) {
-                            throw new Exception("Command 'erase' parameter must specify a file mask."); 
+                            throw new CoAppException("Command 'erase' parameter must specify a file mask."); 
                         }
                         return Erase(eraseContainer, eraseMask);
                         
                     case "rd":
                     case "rmdir":
                         if(parameters.Count() != 1 ) {
-                           throw new Exception("Command 'rmdir' requires one parameter."); 
+                           throw new CoAppException("Command 'rmdir' requires one parameter."); 
                         }
 
                         var rmdirPath = parameters.FirstOrDefault();
                         var rmdirContainer = GetContainerName(rmdirPath);
                         if( string.IsNullOrEmpty(rmdirContainer)) {
-                            throw new Exception("Command 'rmdir' parameter must specify <container>:"); 
+                            throw new CoAppException("Command 'rmdir' parameter must specify <container>:"); 
                         }
                         if( !string.IsNullOrEmpty( GetRemoteFileMask(rmdirPath))) {
-                            throw new Exception("Command 'rmdir' parameter must not specify a file mask."); 
+                            throw new CoAppException("Command 'rmdir' parameter must not specify a file mask."); 
                         }
                         return RemoveContainer(rmdirContainer);
 
@@ -242,16 +242,16 @@ Azure [options] action <parameters>
                     case "mkdir":
                         
                         if(parameters.Count() != 1 ) {
-                           throw new Exception("Command 'mkdir' requires one parameter."); 
+                           throw new CoAppException("Command 'mkdir' requires one parameter."); 
                         }
 
                         var mkdirPath = parameters.FirstOrDefault();
                         var mkdirContainer = GetContainerName(mkdirPath);
                         if( string.IsNullOrEmpty(mkdirContainer)) {
-                            throw new Exception("Command 'mkdir' parameter must specify <container>:"); 
+                            throw new CoAppException("Command 'mkdir' parameter must specify <container>:"); 
                         }
                         if( !string.IsNullOrEmpty( GetRemoteFileMask(mkdirPath))) {
-                            throw new Exception("Command 'mkdir' parameter must not specify a file mask."); 
+                            throw new CoAppException("Command 'mkdir' parameter must not specify a file mask."); 
                         }
                         return CreateContainer(mkdirContainer);
                 }

@@ -11,6 +11,7 @@ namespace CoApp.Azure {
     using Microsoft.Win32;
     using Microsoft.WindowsAzure;
     using Microsoft.WindowsAzure.StorageClient;
+    using Toolkit.Exceptions;
     using Toolkit.Extensions;
     using RegistryView = Toolkit.Configuration.RegistryView;
 
@@ -61,7 +62,7 @@ namespace CoApp.Azure {
                 container.SetPermissions(permissions);
 
             }catch /* (StorageClientException e) */ {
-                throw new Exception("Failed creating container '{0}'. This may happen if the container was recently deleted (in which case, try again).".format(name));
+                throw new CoAppException("Failed creating container '{0}'. This may happen if the container was recently deleted (in which case, try again).".format(name));
             }
         } 
 
@@ -186,7 +187,7 @@ namespace CoApp.Azure {
                 }
                 return;
             } 
-            throw new Exception("Container '{0}' does not exist".format(containerName));
+            throw new CoAppException("Container '{0}' does not exist".format(containerName));
         }
 
         public void ReadBlob( string containerName, string blobName, string localFilename, Action<long> progress ) {
@@ -208,7 +209,7 @@ namespace CoApp.Azure {
                 }
                 
                 if( blob.Properties.Length == 0 ) {
-                    throw new Exception("Remote blob '{0}' not found".format(blobName));
+                    throw new CoAppException("Remote blob '{0}' not found".format(blobName));
                 }
 
                 if( File.Exists(localFilename) ) {
@@ -224,7 +225,7 @@ namespace CoApp.Azure {
                         return;
                     }
 
-                    localFilename.TryHardToDeleteFile();    
+                    localFilename.TryHardToDelete();    
                 }
                 
                 try {
@@ -242,7 +243,7 @@ namespace CoApp.Azure {
                 }
                 return;
             } 
-            throw new Exception("Container '{0}' does not exist".format(containerName));
+            throw new CoAppException("Container '{0}' does not exist".format(containerName));
         }
 
     }
