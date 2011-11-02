@@ -71,6 +71,7 @@ namespace CoApp.Autopackage {
         WixCompilerError = 600,
         WixLinkerError,
         AssemblyLinkerError,
+        SigningFailed, 
 
     }
 

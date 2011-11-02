@@ -26,6 +26,7 @@ namespace CoApp.Autopackage {
     using Toolkit.Engine.Model;
     using Toolkit.Engine.Model.Atom;
     using Toolkit.Extensions;
+    using Toolkit.Logging;
     using Toolkit.Win32;
 
     [XmlRoot(ElementName = "Package", Namespace = "http://coapp.org/atom-package-feed-1.0")]
@@ -240,12 +241,17 @@ namespace CoApp.Autopackage {
         }
 
         private void DigitallySign(string filename) {
-            var peBinary = PeBinary.Load(filename);
-            if (peBinary.IsManaged) {
-                peBinary.StrongNameKeyCertificate = Source.Certificate;
+            try {
+                var peBinary = PeBinary.Load(filename);
+                if (peBinary.IsManaged) {
+                    peBinary.StrongNameKeyCertificate = Source.Certificate;
+                }
+                peBinary.SigningCertificate = Source.Certificate;
+                peBinary.Save();
+            } catch( Exception e ) {
+                Logger.Error(e);
+                AutopackageMessages.Invoke.Error(MessageCode.SigningFailed, null, "Digital Signing of binary '{0}' failed.", filename);
             }
-            peBinary.SigningCertificate = Source.Certificate;
-            peBinary.Save();
         }
 
         internal void ProcessDigitalSigning() {
@@ -473,8 +479,11 @@ namespace CoApp.Autopackage {
                                 MessageCode.AssemblyLinkerError, null, "Unable to make policy assembly\r\n{0}",
                                 Tools.AssemblyLinker.StandardError + Tools.AssemblyLinker.StandardOut);
                         }
-
+                        Logger.Message("About to sign {0}", policyFile);
                         DigitallySign(policyFile);
+                        Logger.Message("Should have signed {0}: Is Signed: {1}", policyFile, Verifier.HasValidSignature(policyFile));
+
+                        
 
                         // and now we can create assembly entries for these.
                         Assemblies.Add(new PackageAssembly(Path.GetFileName(policyFile), null, new[] {policyFile, policyConfigFile}));

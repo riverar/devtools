@@ -262,7 +262,7 @@ namespace CoApp.Autopackage {
             var wixfile = (Path.GetFileNameWithoutExtension(msiFilename) + ".wxs").GenerateTemporaryFilename();
             var wixobj = wixfile.ChangeFileExtensionTo("wixobj");
 
-            msiFilename.TryHardToDeleteFile();
+            msiFilename.TryHardToDelete();
 
             // Write out the WixFile
             wixXml.Save(wixfile);

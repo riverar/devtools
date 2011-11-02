@@ -190,10 +190,7 @@ namespace CoApp.Autopackage {
         internal void StartPackageManager() {
             // ok, we're looking like we're ready to need the package manager.
             // make sure its running.
-            PackageManager.Instance.Connect("autopackage");
-            if (!PackageManager.Instance.IsReady.WaitOne(7000)) {
-                throw new ConsoleException("# Unable to connect to CoApp Service.");
-            }
+            PackageManager.Instance.ConnectAndWait("autopackage", null, 15000);
 
             PackageManager = PackageManager.Instance;
             PackageManager.AddFeed(Environment.CurrentDirectory,true);
