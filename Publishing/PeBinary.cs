@@ -19,9 +19,12 @@ namespace CoApp.Developer.Toolkit.Publishing {
     using System.Runtime.InteropServices;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
     using CoApp.Toolkit.Exceptions;
     using CoApp.Toolkit.Extensions;
+    using CoApp.Toolkit.Logging;
     using CoApp.Toolkit.Win32;
+    using Exceptions;
     using Microsoft.Cci;
     using Microsoft.Cci.MutableCodeModel;
     using ResourceLib;
@@ -45,15 +48,16 @@ namespace CoApp.Developer.Toolkit.Publishing {
         private bool _pendingChanges;
         private readonly PEInfo _info;
         private MetadataReaderHost _host = new PeReader.DefaultHost();
+        private readonly Task _loading;
 
         private static Dictionary<string, PeBinary> _cache = new Dictionary<string, PeBinary>();
 
-        public static PeBinary Load(string filename) {
-            return !_cache.ContainsKey(filename) ? new PeBinary(filename) : _cache[filename];
-        }
-
         public static PeBinary FindAssembly(string assemblyname, string version) {
             lock (_cache) {
+
+                // wait for everthing to stablilze
+                Task.WaitAll(_cache.Values.Select(each => each._loading).ToArray());
+
                 var asm =
                     _cache.Values.Where(
                         each => each.IsManaged && each.MutableAssembly.Name.Value == assemblyname && each.MutableAssembly.Version.ToString() == version).
@@ -76,24 +80,50 @@ namespace CoApp.Developer.Toolkit.Publishing {
             }
         }
 
-        private PeBinary(string filename) {
-            filename = filename.GetFullPath();
+        public static PeBinary Load(string filename) {
+            filename = filename.GetFullPath().ToLower();
             if(!File.Exists(filename) ) {
                 throw new FileNotFoundException("Unable to find file", filename);
             }
-            _filename = filename;
 
-            _info = PEInfo.Scan(filename);
-            if(!_info.IsPEBinary) {
+            if (!PEInfo.Scan(filename).IsPEBinary) {
                 throw new CoAppException("File {0} does not appear to be a PE Binary".format(filename));
             }
 
-            //lock (typeof (PeBinary)) { // CCI operations are not always threadsafe. :S
+            PeBinary result = null;
+
+            lock( _cache ) {
+                if( _cache.ContainsKey(filename) ) {
+                    result = _cache[filename];
+                } else {
+                    // otherwise, let's load it 
+                    result = new PeBinary(filename);
+                    _cache.Add(filename, result);
+                }
+            }
+            // loads happen via a Task, so that no matter how we asked to get the assembly, only one copy will be ever loaded.
+            try {
+                result._loading.Wait();
+            } catch( AggregateException ae ) {
+                Logger.Error(ae);
+                Logger.Error(ae.InnerException);
+
+                var inner = ae.Flatten().InnerException;
+                Console.WriteLine("FAIL: {0} / {1}\r\n{2}", inner.GetType(), inner.Message, inner.StackTrace);
+
+            }
+
+            return result;
+        }
+
+        private PeBinary(string filename) {
+            _filename = filename;
+            _info = PEInfo.Scan(filename);
+            _loading = Task.Factory.StartNew(() => {
                 using (var ri = new ResourceInfo()) {
                     // lets pull out the relevant resources first.
                     ri.Load(_filename);
                     try {
-                        
                         var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).FirstOrDefault();
                         var versionResource = ri.Resources[versionKey].First() as VersionResource;
                         var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
@@ -109,13 +139,13 @@ namespace CoApp.Developer.Toolkit.Publishing {
                         _legalTrademarks = TryGetVersionString(versionStringTable, "LegalTrademarks");
                         _fileDescription = TryGetVersionString(versionStringTable, "FileDescription");
                         _bugTracker = TryGetVersionString(versionStringTable, "BugTracker");
-                    }
-                    catch {
+                    } catch {
                         // skip it if this fails.
                     }
                 }
 
-                if (IsManaged) { // we can read in the binary using CCI
+                if (IsManaged) {
+                    // we can read in the binary using CCI
                     try {
                         if (MutableAssembly != null) {
                             // we should see if we can get assembly attributes, since sometimes they can be set, but not the native ones.
@@ -179,31 +209,27 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                 }
                             }
                         }
-
-                    }
-                    catch
-                    {
+                        _pendingChanges = false;
+                    } catch {
                     }
                 }
-            
-            lock (_cache) {
-                _cache.Add(_filename, this);
-            }
+                }); 
 
-            // check each of the assembly references, 
-            if (IsManaged) {
-                foreach (var ar in MutableAssembly.AssemblyReferences) {
-                    if (!ar.PublicKeyToken.Any()) {
-                        // dependent assembly isn't signed. 
-                        // look for it.
-                        var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
-                        if( dep == null) {
-                            Console.WriteLine("WARNING: Unsigned Dependent Assembly {0}-{1} not found.",ar.Name.Value, ar.Version.ToString());
+            _loading.ContinueWith((antecedent) => {
+                // check each of the assembly references, 
+                if (IsManaged) {
+                    foreach (var ar in MutableAssembly.AssemblyReferences) {
+                        if (!ar.PublicKeyToken.Any()) {
+                            // dependent assembly isn't signed. 
+                            // look for it.
+                            var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
+                            if (dep == null) {
+                                Console.WriteLine("WARNING: Unsigned Dependent Assembly {0}-{1} not found.", ar.Name.Value, ar.Version.ToString());
+                            }
                         }
                     }
                 }
-            }
-            _pendingChanges = false;
+            });
         }
 
         private static string TryGetVersionString(StringTable stringTable, string name) {
@@ -236,7 +262,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
                 if (_mutableAssembly == null) {
                     // copy this to a temporary file, because it locks the file until we're *really* done.
-                    var temporaryCopy = _filename.CreateBackupWorkingCopy();
+                    var temporaryCopy = _filename.CreateWritableWorkingCopy();
                     try {
 
                         var module = _host.LoadUnitFrom(temporaryCopy) as IModule;
@@ -264,7 +290,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     }
                     finally {
                         // delete it, or at least trash it & queue it up for next reboot.
-                        temporaryCopy.TryHardToDeleteFile();
+                        temporaryCopy.TryHardToDelete();
                     }
                 }
                 return _mutableAssembly;
@@ -439,12 +465,13 @@ namespace CoApp.Developer.Toolkit.Publishing {
         }
 
         public void Save() {
-            if (_pendingChanges) {
-                // saves any changes made to the binary.
-                //lock (typeof (PeBinary)) {
-                    // operations are not always threadsafe. :S
+            lock (this) {
+                Logger.Message("Saving Binary '{0}' : Pending Changes: {1} ", _filename, _pendingChanges);
+                if (_pendingChanges) {
+                    Console.WriteLine("Saving {0}", _filename);
+                    // saves any changes made to the binary.
                     // work on a back up of the file
-                    var tmpFilename = _filename.CreateBackupWorkingCopy();
+                    var tmpFilename = _filename.CreateWritableWorkingCopy();
 
                     try {
                         // remove any digital signatures from the binary before doing anything
@@ -453,7 +480,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
                         }
                         // rewrite any native resources that we want to change.
 
-                        if (IsManaged && ILOnly) { // we can only edit the file if it's IL only, mixed mode assemblies can only be strong named, signed and native-resource-edited.
+                        if (IsManaged && ILOnly) {
+                            // we can only edit the file if it's IL only, mixed mode assemblies can only be strong named, signed and native-resource-edited.
                             // set the strong name key data
                             MutableAssembly.PublicKey = StrongNameKey.ToList();
 
@@ -531,7 +559,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                 PeWriter.WritePeToStream(MutableAssembly, _host, peStream);
                             }
                         }
-                        
+
 
                         // update native metadata 
                         try {
@@ -543,13 +571,15 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             StringTable versionStringTable;
 
                             var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).FirstOrDefault();
-                            if( versionKey != null ) {
-                                versionResource = ri.Resources[versionKey].First() as VersionResource;    
+                            if (versionKey != null) {
+                                versionResource = ri.Resources[versionKey].First() as VersionResource;
                                 versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
                             } else {
                                 versionResource = new VersionResource();
-                                ri.Resources.Add(new ResourceId(ResourceTypes.RT_VERSION), new List<Resource> {versionResource});
-                                
+                                ri.Resources.Add(new ResourceId(ResourceTypes.RT_VERSION), new List<Resource> {
+                                    versionResource
+                                });
+
                                 var sfi = new StringFileInfo();
                                 versionResource["StringFileInfo"] = sfi;
                                 sfi.Strings["040904b0"] = (versionStringTable = new StringTable("040904b0"));
@@ -579,7 +609,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
                             versionResource.SaveTo(tmpFilename);
                         } catch {
-                            
+
                         }
 
                         // strong name the binary
@@ -592,21 +622,21 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             SignFile(tmpFilename, SigningCertificate.Certificate);
                         }
 
-                        _filename.TryHardToDeleteFile();
-                        File.Move(tmpFilename, _filename);  
+                        _filename.TryHardToDelete();
+                        File.Move(tmpFilename, _filename);
 
                     } catch (Exception e) {
+                        Logger.Error(e);
+
                         // get rid of whatever we tried
-                        tmpFilename.TryHardToDeleteFile();
-                        
-                        Console.WriteLine(e.StackTrace);
+                        tmpFilename.TryHardToDelete();
 
                         // as you were...
                         throw;
                     }
-                // }
+                }
+                _pendingChanges = false;
             }
-            _pendingChanges = false;
         }
 
 
@@ -670,71 +700,80 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
         public static void SignFile(string filename, X509Certificate2 certificate) {
             filename = filename.GetFullPath();
-            filename.TryHardToMakeFileWriteable();
-
             if (!File.Exists(filename)) {
                 throw new FileNotFoundException("Can't find file", filename);
             }
 
+            filename.TryHardToMakeFileWriteable();
+
+            var urls = new[] {
+                "http://timestamp.comodoca.com/authenticode","http://timestamp.verisign.com/scripts/timstamp.dll"
+            };
+
+            var signedOk = false;
+            // try up to three times each url if we get a timestamp error
+            for( var i=0;i<urls.Length*3; i++ ) {
+                try {
+                    SignFileImpl(filename, certificate, urls[i%urls.Length]);
+                    signedOk = true;
+                    break; // whee it worked!
+                } catch( FailedTimestampException ) {
+                    continue;
+                }
+            }
+
+            if( !signedOk) {
+                // we went thru each one 3 times, and it never signed?
+                throw new FailedTimestampException(filename, "All of them!");
+            }
+        }
+
+        private static void SignFileImpl(string filename, X509Certificate2 certificate, string timeStampUrl) {
             // Variables
             //
             var digitalSignInfo = default(DigitalSignInfo);
             // var signContext = default(DigitalSignContext);
+
             var pSignContext = IntPtr.Zero;
 
-            // FileStream fileOut = null;
-            // BinaryWriter binWriter = null;
-            // byte[] blob = null;
+            // Prepare signing info: exe and cert
+            //
+            digitalSignInfo = new DigitalSignInfo();
+            digitalSignInfo.dwSize = Marshal.SizeOf(digitalSignInfo);
+            digitalSignInfo.dwSubjectChoice = DigitalSignSubjectChoice.File;
+            digitalSignInfo.pwszFileName = filename;
+            digitalSignInfo.dwSigningCertChoice = DigitalSigningCertificateChoice.Certificate;
+            digitalSignInfo.pSigningCertContext = certificate.Handle;
+            digitalSignInfo.pwszTimestampURL = timeStampUrl; // it's sometimes dying when we give it a timestamp url....
 
-            try {
-                // Prepare signing info: exe and cert
-                //
-                digitalSignInfo = new DigitalSignInfo();
-                digitalSignInfo.dwSize = Marshal.SizeOf(digitalSignInfo);
-                digitalSignInfo.dwSubjectChoice = DigitalSignSubjectChoice.File;
-                digitalSignInfo.pwszFileName = filename;
-                digitalSignInfo.dwSigningCertChoice = DigitalSigningCertificateChoice.Certificate;
-                digitalSignInfo.pSigningCertContext = certificate.Handle;
-                digitalSignInfo.pwszTimestampURL = "http://timestamp.comodoca.com/authenticode"; // it's sometimes dying when we give it a timestamp url....
+            digitalSignInfo.dwAdditionalCertChoice = DigitalSignAdditionalCertificateChoice.AddChainNoRoot;
+            digitalSignInfo.pSignExtInfo = IntPtr.Zero;
 
-                digitalSignInfo.dwAdditionalCertChoice = DigitalSignAdditionalCertificateChoice.AddChainNoRoot;
-                digitalSignInfo.pSignExtInfo = IntPtr.Zero;
-
-                var digitalSignExtendedInfo = new DigitalSignExtendedInfo("description", "http://moerinfo");
-                var ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf(digitalSignExtendedInfo));
-                Marshal.StructureToPtr(digitalSignExtendedInfo, ptr, false);
-                // digitalSignInfo.pSignExtInfo = ptr;
+            var digitalSignExtendedInfo = new DigitalSignExtendedInfo("description", "http://moerinfo");
+            var ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf(digitalSignExtendedInfo));
+            Marshal.StructureToPtr(digitalSignExtendedInfo, ptr, false);
+            // digitalSignInfo.pSignExtInfo = ptr;
 
 
-                // Sign exe
-                //
-                if ((!CryptUi.CryptUIWizDigitalSign(DigitalSignFlags.NoUI, IntPtr.Zero, null, ref digitalSignInfo, ref pSignContext))) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CryptUIWizDigitalSign - "+filename);
+            // Sign exe
+            //
+            if ((!CryptUi.CryptUIWizDigitalSign(DigitalSignFlags.NoUI, IntPtr.Zero, null, ref digitalSignInfo, ref pSignContext))) {
+                var rc = Marshal.GetLastWin32Error();
+                if (rc == 0x8007000d) {
+                    // this is caused when the timestamp server fails; which seems intermittent for any timestamp service.
+                    throw new FailedTimestampException(filename, timeStampUrl);
                 }
-
-
-                // Get the blob with the signature
-                //
-                // signContext = (DigitalSignContext) Marshal.PtrToStructure(pSignContext, typeof (DigitalSignContext));
-
-                // Free blob
-                //
-                if ((!CryptUi.CryptUIWizFreeDigitalSignContext(pSignContext))) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CryptUIWizFreeDigitalSignContext");
-                }
-
-                // Free additional Info
-                Marshal.FreeCoTaskMem(ptr);
+                throw new DigitalSignFailure(filename, rc);
             }
-            catch (Win32Exception ex) {
-			// Any expected errors?
-			//
-			Console.WriteLine(ex.Message + " error# {0:x}" , ex.NativeErrorCode);
-		} catch (Exception ex) {
-			// Any unexpected errors?
-			//
-			Console.WriteLine(ex.Message);
-		}
+
+            // Free blob
+            //
+            if ((!CryptUi.CryptUIWizFreeDigitalSignContext(pSignContext))) {
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "CryptUIWizFreeDigitalSignContext");
+            }
+
+            // Free additional Info
+            Marshal.FreeCoTaskMem(ptr);
         }
 
         public void Dispose() {
