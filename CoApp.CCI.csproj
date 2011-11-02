@@ -207,6 +207,7 @@
     <Folder Include="Ast\ILToCodeModel\Properties\" />
     <Folder Include="Ast\MutableCodeModel\Properties\" />
     <Folder Include="Metadata\Microsoft.Contracts\" />
+    <Folder Include="Native\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="$(SolutionDir)\..\solution\ext\resources\CoApp.ico" />
