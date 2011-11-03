@@ -350,7 +350,7 @@ Azure [options] action <parameters>
                 throw new ConsoleException("Container '{0}' does not exist.", container);
             }
             
-            var localFiles = from.FindFilesSmarter().ToArray();
+            var localFiles = from.FindFilesSmarter().Select(each => each.ToLower()).ToArray();
             var blobNames = localFiles.GetMinimalPaths().ToArray();
             for(var i = 0; i< localFiles.Length;i++) {
                 _cloudFileSystem.WriteBlob(container, blobNames[i],localFiles[i], (progress) => {
