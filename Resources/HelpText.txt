@@ -1,0 +1,17 @@
+Usage:
+-------
+
+mkRepo [options] <command> <parameters>
+
+Options:
+--------
+    --help                  this help
+    --nologo                don't display the logo
+    --load-config=<file>    loads configuration from <file>
+    --verbose               prints verbose messages
+
+    
+
+Commands:
+---------    
+	(dunno yet)
