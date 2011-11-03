@@ -131,9 +131,7 @@ namespace CoApp.Autopackage {
         ///   int value representing the ERRORLEVEL.
         /// </returns>
         public static int Main(string[] args) {
-            var rc = new AutopackageMain().Startup(args);
-            FilesystemExtensions.RemoveTemporaryFiles();
-            return rc;
+            return new AutopackageMain().Startup(args);
         }
 
         private void UnknownPackage(string canonicalName) {
@@ -282,27 +280,13 @@ namespace CoApp.Autopackage {
                 CreatePackageFile();
 
             } catch (AutopackageException) {
-                CancellationTokenSource.Cancel();
-                if (PackageSource.PackageManager != null) {
-                    PackageSource.PackageManager.Disconnect();
-                }
                 return Fail("Autopackage encountered errors.\r\n");
             } catch (ConsoleException failure) {
-                CancellationTokenSource.Cancel();
-                if (PackageSource.PackageManager != null) {
-                    PackageSource.PackageManager.Disconnect();
-                }
                 return Fail("{0}\r\n\r\n    {1}", failure.Message, Resources.ForCommandLineHelp);
             } catch (Exception failure) {
-                CancellationTokenSource.Cancel();
-                if (PackageSource.PackageManager != null) {
-                    PackageSource.PackageManager.Disconnect();
-                }
-
                 if( failure.InnerException != null ) {
                     Fail("Exception Caught: {0}\r\n{1}\r\n\r\n    {2}", failure.InnerException.Message, failure.InnerException.StackTrace, Resources.ForCommandLineHelp);
                 }
-               
                 
                 return Fail("Exception Caught: {0}\r\n{1}\r\n\r\n    {2}", failure.Message, failure.StackTrace, Resources.ForCommandLineHelp);
             }
