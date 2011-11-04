@@ -617,8 +617,10 @@ namespace CoApp.Autopackage {
                             case "registry-keys":
                                 type = CompositionAction.Registry;
                                 break;
+                            case "symlink-directory":
+                            case "symlink-directories":
                             case "symlink-folder":
-                            case "symlink-folderss":
+                            case "symlink-folders":
                                 type = CompositionAction.SymlinkFolder;
                                 break;
                             case "environment-variable":
