@@ -3,6 +3,10 @@ Usage:
 
 mkRepo <command> [options] <packages>
 
+Commands:
+---------    
+	create					creates a feed.atom.xml file 
+
 Options:
 --------
     --help                  this help
@@ -19,9 +23,6 @@ Options:
 	--base-url=<url>		base url for the web location of packages
 	
 	--feed-location=<url>	web location that this feed will be placed
-Commands:
----------    
-	create					creates a feed.atom.xml file 
 
 Examples:
 ---------

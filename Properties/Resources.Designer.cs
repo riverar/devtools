@@ -61,10 +61,23 @@ namespace CoApp.mkRepo.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Use --help for assistance..
+        /// </summary>
+        internal static string ForCommandLineHelp {
+            get {
+                return ResourceManager.GetString("ForCommandLineHelp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Usage:
         ///-------
         ///
-        ///mkRepo [options] &lt;command&gt; &lt;parameters&gt;
+        ///mkRepo &lt;command&gt; [options] &lt;packages&gt;
+        ///
+        ///Commands:
+        ///---------    
+        ///	create					creates a feed.atom.xml file 
         ///
         ///Options:
         ///--------
@@ -73,15 +86,23 @@ namespace CoApp.mkRepo.Properties {
         ///    --load-config=&lt;file&gt;    loads configuration from &lt;file&gt;
         ///    --verbose               prints verbose messages
         ///
-        ///    
+        ///    --output=&lt;filename&gt;		sets the file to output the feed.xml to
+        ///								(defaults to .\feed.atom.xml)
         ///
-        ///Commands:
-        ///---------    
-        ///	(dunno yet).
+        ///	--input=&lt;filename&gt;		pre-populates the feed wit [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string HelpText {
             get {
                 return ResourceManager.GetString("HelpText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Missing command..
+        /// </summary>
+        internal static string MissingCommand {
+            get {
+                return ResourceManager.GetString("MissingCommand", resourceCulture);
             }
         }
         

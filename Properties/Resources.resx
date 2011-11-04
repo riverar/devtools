@@ -127,4 +127,10 @@
   <data name="UnknownCommand" xml:space="preserve">
     <value>Unknown command [{0}]</value>
   </data>
+  <data name="MissingCommand" xml:space="preserve">
+    <value>Missing command.</value>
+  </data>
+  <data name="ForCommandLineHelp" xml:space="preserve">
+    <value>Use --help for assistance.</value>
+  </data>
 </root>
