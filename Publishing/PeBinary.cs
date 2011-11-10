@@ -468,7 +468,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
             lock (this) {
                 Logger.Message("Saving Binary '{0}' : Pending Changes: {1} ", _filename, _pendingChanges);
                 if (_pendingChanges) {
-                    Console.WriteLine("Saving {0}", _filename);
+                   
                     // saves any changes made to the binary.
                     // work on a back up of the file
                     var tmpFilename = _filename.CreateWritableWorkingCopy();
