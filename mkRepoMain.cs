@@ -198,6 +198,7 @@ namespace CoApp.mkRepo {
 
                     if (!string.IsNullOrEmpty(pkg.PackageItemText)) {
                         var item = SyndicationItem.Load<AtomItem>(XmlReader.Create(new StringReader(pkg.PackageItemText)));
+                        
                         var feedItem = Feed.Add(item);
                         
                         // first, make sure that the feeds contains the intended feed location.
