@@ -109,12 +109,12 @@ namespace CoApp.Autopackage {
                 FileList.GetFileList(fileSet, Source.FileRules);
             }
         }
-
+         
         internal void ProcessApplicationRole() {
             // application rule supports the following properties:
             // include -- may include files or filesets; can not set 'destination' here, must set that in previously defined filesets.
             foreach (var AppRule in Source.ApplicationRules) {
-                var files = FileList.ProcessIncludes(null, AppRule, "application", Source.FileRules, Environment.CurrentDirectory);
+                var files = FileList.ProcessIncludes(null, AppRule, "application", "include", Source.FileRules, Environment.CurrentDirectory);
                 var name = AppRule.Parameter;
 
                 if (!string.IsNullOrEmpty(name)) {
@@ -126,16 +126,22 @@ namespace CoApp.Autopackage {
             }
         }
 
+        internal void ProcessDeveloperLibraryRoles() {
+            foreach (var devLibRule in Source.DeveloperLibraryRules) {
+                // get the 
+            }
+        }
+
         internal void ProcessAssemblyRules() {
             foreach (var asmRule in Source.AssembliesRules) {
                 // create an assembly for each one of the files.
-                var asmFiles = FileList.ProcessIncludes(null, asmRule, "assemblies", Source.FileRules, Environment.CurrentDirectory);
+                var asmFiles = FileList.ProcessIncludes(null, asmRule, "assemblies", "include", Source.FileRules, Environment.CurrentDirectory);
                 Assemblies.AddRange(
                     asmFiles.Select(file => new PackageAssembly(Path.GetFileNameWithoutExtension(file.SourcePath), asmRule, file.SourcePath)));
             }
 
             foreach (var asm in Source.AssemblyRules) {
-                var fileList = FileList.ProcessIncludes(null, asm, "assembly", Source.FileRules, Environment.CurrentDirectory);
+                var fileList = FileList.ProcessIncludes(null, asm, "assembly", "include", Source.FileRules, Environment.CurrentDirectory);
                 Assemblies.Add(new PackageAssembly(asm.Parameter, asm, fileList.Select(each => each.SourcePath)));
             }
 
@@ -260,7 +266,7 @@ namespace CoApp.Autopackage {
             foreach (var signRule in Source.SigningRules) {
                 var reSign = signRule.HasProperty("replace-signature") && signRule["replace-signature"].Value.IsTrue();
 
-                var filesToSign = FileList.ProcessIncludes(null, signRule, "signing", Source.FileRules, Environment.CurrentDirectory);
+                var filesToSign = FileList.ProcessIncludes(null, signRule, "signing", "include",Source.FileRules, Environment.CurrentDirectory);
                 foreach (var file in filesToSign) {
                     if (reSign || !Verifier.HasValidSignature(file.SourcePath)) {
                         DigitallySign(file.SourcePath);
@@ -390,9 +396,7 @@ namespace CoApp.Autopackage {
                         Location = identityRules.GetPropertyValue("website").ToUri()
                     };
                 }
-
             }
-
         }
 
         internal void ProcessAssemblyManifests() {
@@ -611,26 +615,56 @@ namespace CoApp.Autopackage {
                             case "symlinks":
                             case "symlink-file":
                             case "symlink-files":
+                            case "file-symlink":
                                 type = CompositionAction.SymlinkFile;
                                 break;
+
                             case "registry":
                             case "registry-keys":
                                 type = CompositionAction.Registry;
                                 break;
+
                             case "symlink-directory":
                             case "symlink-directories":
                             case "symlink-folder":
                             case "symlink-folders":
+                            case "folder-symlink":
+                            case "directory-symlink":
                                 type = CompositionAction.SymlinkFolder;
                                 break;
+
                             case "environment-variable":
                             case "environment-variables":
                                 type = CompositionAction.EnvironmentVariable;
                                 break;
+
                             case "shortcut":
+                            case "shelllink":
+                            case "shell-link":
+                            case "shellink":
+
                             case "shortcuts":
+                            case "shellinks":
+                            case "shelllinks":
+                            case "shell-links":
                                 type = CompositionAction.Shortcut;
                                 break;
+
+                            case "file-copy":
+                            case "copy-file":
+                            case "copy-files":
+                            case "copy":
+                                type = CompositionAction.FileCopy;
+                                break;
+
+                            case "file-rewrite":
+                            case "rewrite-file":
+                            case "rewrite-files":
+                            case "rewrite":
+                                type = CompositionAction.FileRewrite;
+                                break;
+
+
                             default:
                                 AutopackageMessages.Invoke.Error(MessageCode.UnknownCompositionRuleType, rule.SourceLocation, "Unknown composition rule '{0}'",
                                     propertyName);
@@ -644,8 +678,8 @@ namespace CoApp.Autopackage {
                                 CompositionRules.Add( new CompositionRule {
                                     Action = type,
                                     Category = category,
-                                    Link = label,
-                                    Target = propertyValue[label].Value
+                                    Destination = label,                // aka "Key"
+                                    Source = propertyValue[label].Value // aka "Value"
                                 });
                             }
                         }

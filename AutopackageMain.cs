@@ -312,6 +312,11 @@ namespace CoApp.Autopackage {
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
 
+            PackageModel.ProcessDeveloperLibraryRoles();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
+
             // identify all assemblies to create in the package
             PackageModel.ProcessAssemblyRules();
             // at the end of the step, if there are any errors, let's print them out and exit now.
@@ -340,7 +345,7 @@ namespace CoApp.Autopackage {
             PackageModel.ProcessCosmeticMetadata();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
-
+            
             PackageModel.ProcessCompositionRules();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
@@ -359,7 +364,7 @@ namespace CoApp.Autopackage {
             wixDocument.CreatePackageFile(msiFile);
             FailOnErrors();
 
-            PeBinary.SignFile(msiFile, PackageSource.Certificate);
+            // PeBinary.SignFile(msiFile, PackageSource.Certificate);
             Console.WriteLine("\r\n ==========\r\n DONE : Signed MSI File: {0}", msiFile);
         }
 

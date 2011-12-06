@@ -65,7 +65,7 @@ namespace CoApp.Autopackage {
             var root = (_rule.root.Value  as string ?? Environment.CurrentDirectory);
 
             // run thru the list of includes, pick up files.
-            var entries = ProcessIncludes(this, _rule, name, fileRules, root);
+            var entries = ProcessIncludes(this, _rule, name, "include", fileRules, root);
 
             // next run thru the list of excludes to remove files that we've got in our list
             entries = ProcessExcludes(entries, this, _rule, name, fileRules, root);
@@ -142,7 +142,11 @@ namespace CoApp.Autopackage {
             return fileEntries;
         }
 
-        internal static IEnumerable<FileEntry> ProcessIncludes(FileList thisInstance, dynamic rule, string name, IEnumerable<Rule> fileRules, string root) {
+        internal static IEnumerable<FileEntry> ProcessIncludes(FileList thisInstance, dynamic rule, string name,IEnumerable<Rule> fileRules, string root) {
+            return ProcessIncludes(thisInstance, rule, name, "include", fileRules, root);
+        }
+
+        internal static IEnumerable<FileEntry> ProcessIncludes(FileList thisInstance, dynamic rule, string name, string includePropertyName, IEnumerable<Rule> fileRules, string root) {
             var fileEntries = Enumerable.Empty<FileEntry>();
             var includes = rule.include.Values;
 

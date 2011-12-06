@@ -86,6 +86,10 @@ namespace CoApp.Autopackage {
         internal Dictionary<string, string> MacroValues = new Dictionary<string, string>();
 
         internal string GetMacroValue(string valuename) {
+            if( valuename == "DEFAULTLAMBDAVALUE") {
+                return "${each.Path}";
+            }
+
             var parts = valuename.Split('.');
             if( parts.Length == 3) {
                 var result = AllRules.GetRulesByName(parts[0]).GetRulesByParameter(parts[1]).GetPropertyValue(parts[2]);
@@ -113,6 +117,7 @@ namespace CoApp.Autopackage {
             } else {
                 var list = FileList.GetFileList(collectionname, FileRules);
                 return list.FileEntries.Select(each => new {
+                    Path = each.DestinationPath,
                     Name = Path.GetFileName(each.DestinationPath),
                     Extension = Path.GetExtension(each.DestinationPath),
                     NameWithoutExtension = Path.GetFileNameWithoutExtension(each.DestinationPath),
