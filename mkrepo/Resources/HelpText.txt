@@ -1,0 +1,31 @@
+Usage:
+-------
+
+mkRepo <command> [options] <packages>
+
+Commands:
+---------    
+	create					creates a feed.atom.xml file 
+
+Options:
+--------
+    --help                  this help
+    --nologo                don't display the logo
+    --load-config=<file>    loads configuration from <file>
+    --verbose               prints verbose messages
+
+    --output=<filename>		sets the file to output the feed.xml to
+								(defaults to .\feed.atom.xml)
+
+	--input=<filename>		pre-populates the feed with items in <filename>
+	--input=<url>           or <url>
+
+	--base-url=<url>		base url for the web location of packages
+	
+	--feed-location=<url>	web location that this feed will be placed
+
+Examples:
+---------
+
+	mkRepo create --input=http://coapp.org/feed --output=newfeed.xml --base-url=http://coapp.org/downloads/ --feed-location=http://coapp.org/feed *.msi 
+	
