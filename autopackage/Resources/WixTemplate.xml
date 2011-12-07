@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Wix >
+  <!-- language must be figured out!-->
+  <Product Language="1033">
+      <Package InstallerVersion="301" Compressed="yes" InstallPrivileges="limited" />
+      <Media Id="1" Cabinet="cab.cab" EmbedCab="yes" CompressionLevel="high"/>
+      <!-- CoApp Packages must be not be allusers, not per-user (GS)-->
+      <Property Id="ALLUSERS" Secure="yes" />
+    
+      <!-- add in the custom action native bootstrapper-->
+
+      <Binary Id="bootstrap.exe"/>
+      <CustomAction Id="CoappBootstrapNativeCA" BinaryKey="bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
+    
+      <!-- add in the custom action bootstrapper here -->
+      <Binary Id="bootstrapperui.exe"/>
+      <CustomAction Id="CoappBootstrapCA" BinaryKey="bootstrapperui.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
+
+      <Property Id="NETFRAMEWORK40"><RegistrySearch Id="NetFramework40" Root="HKLM" Key="Software\Microsoft\NET Framework Setup\NDP\v4\Full" Name="Install" Type="raw"/></Property>
+    
+      <!-- add to ARP or not?-->
+      <SetProperty Id="ARPSYSTEMCOMPONENT" Value="1" Before="ValidateProductID"><![CDATA[NOT ADD_TO_ARP]]></SetProperty>
+
+      <Directory Id="TARGETDIR" Name="SourceDir">
+      </Directory>
+    
+      <Feature Id="ProductFeature" Level="1"/>
+    
+      <InstallExecuteSequence>
+
+        <ValidateProductID Sequence="700"></ValidateProductID>
+        <CostInitialize Sequence="800"></CostInitialize>
+        <FileCost Sequence="900"></FileCost>
+        <CostFinalize Sequence="1000"></CostFinalize>
+        <InstallValidate Sequence="1400"></InstallValidate>
+        <InstallInitialize Sequence="1500"></InstallInitialize>
+        <ProcessComponents Sequence="1600">COAPP_INSTALLED OR REMOVE</ProcessComponents>
+        <MsiUnpublishAssemblies Sequence="1750">COAPP_INSTALLED OR REMOVE</MsiUnpublishAssemblies>
+        <UnpublishFeatures Sequence="1800">COAPP_INSTALLED OR REMOVE</UnpublishFeatures>
+        <RemoveRegistryValues Sequence="2600">COAPP_INSTALLED OR REMOVE</RemoveRegistryValues>
+        <RemoveFiles Sequence="3500">COAPP_INSTALLED OR REMOVE</RemoveFiles>
+        <InstallFiles Sequence="4000">COAPP_INSTALLED</InstallFiles>
+        <WriteRegistryValues Sequence="5000">COAPP_INSTALLED OR REMOVE</WriteRegistryValues>
+        <RegisterUser Sequence="6000">COAPP_INSTALLED</RegisterUser>
+        <RegisterProduct Sequence="6100">COAPP_INSTALLED</RegisterProduct>
+        <MsiPublishAssemblies Sequence="6250">COAPP_INSTALLED</MsiPublishAssemblies>
+        <PublishFeatures Sequence="6300">COAPP_INSTALLED</PublishFeatures>
+        <PublishProduct Sequence="6400">COAPP_INSTALLED</PublishProduct>
+        <Custom Action="CoappBootstrapNativeCA" Before="CoappBootstrapCA">NOT COAPP_INSTALLED AND NOT REMOVE AND NOT NETFRAMEWORK40</Custom>
+        <Custom Action="CoappBootstrapCA" Before="InstallFinalize">NOT COAPP_INSTALLED AND NOT REMOVE AND NETFRAMEWORK40</Custom>
+        <InstallFinalize Sequence="6600"></InstallFinalize>
+      </InstallExecuteSequence>
+    </Product>
+</Wix>

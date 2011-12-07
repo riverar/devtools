@@ -1,0 +1,388 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="HelpText" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\HelpText.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
+  </data>
+  <data name="UnknownParameter" xml:space="preserve">
+    <value>Unknown parameter [--{0}]</value>
+  </data>
+  <data name="MissingCommand" xml:space="preserve">
+    <value>Missing command.</value>
+  </data>
+  <data name="ForCommandLineHelp" xml:space="preserve">
+    <value>Use --help for command line assistance.</value>
+  </data>
+  <data name="UnknownCommand" xml:space="preserve">
+    <value>Unknown command [{0}]</value>
+  </data>
+  <data name="coapp_native_bootstrap" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\solution\ext\binaries\bootstrap.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="coapp_managed_bootstrap" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\solution\ext\binaries\bootstrapperui.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WixTemplate" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\wixtemplate.xml;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="AP148" xml:space="preserve">
+    <value>al.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="AP144" xml:space="preserve">
+    <value>candle.exe from WiX could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="AP145" xml:space="preserve">
+    <value>light.exe from WiX could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="AP147" xml:space="preserve">
+    <value>makecat.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="AP146" xml:space="preserve">
+    <value>mt.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="MissingPackageArch" xml:space="preserve">
+    <value>No architecture for the package was specified or it was invalid.</value>
+  </data>
+  <data name="MissingPackageVersion" xml:space="preserve">
+    <value>No version for the package was specified or it was invalid.</value>
+  </data>
+  <data name="AP149" xml:space="preserve">
+    <value>signtool.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="AP150" xml:space="preserve">
+    <value>sn.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="Fatal" xml:space="preserve">
+    <value>Fatal</value>
+  </data>
+  <data name="AP104" xml:space="preserve">
+    <value>The architecture could not be discovered from file: {0}</value>
+  </data>
+  <data name="NoBinaryFileProvided" xml:space="preserve">
+    <value>No binary file was provided.</value>
+  </data>
+  <data name="AP105" xml:space="preserve">
+    <value>The version could not be discovered from file: {0}</value>
+  </data>
+  <data name="AP126" xml:space="preserve">
+    <value>A public key token could not be extracted from the Pfx file {0}</value>
+  </data>
+  <data name="AP124" xml:space="preserve">
+    <value>The Pfx file {0} is not valid.</value>
+  </data>
+  <data name="AP151" xml:space="preserve">
+    <value>pktExtract.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
+  </data>
+  <data name="AP125" xml:space="preserve">
+    <value>There were no code signing certificates, with private keys, in the Pfx file {0}.</value>
+  </data>
+  <data name="AP137" xml:space="preserve">
+    <value>The manifest {0} couldn't be embedded in {1}</value>
+  </data>
+  <data name="blankicon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\blankicon.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AP107" xml:space="preserve">
+    <value>The icon file at {0} could not be opened.</value>
+  </data>
+  <data name="AP106" xml:space="preserve">
+    <value>The icon file at {0} is not a PNG with dimensions {1}x{2}.</value>
+  </data>
+  <data name="AP108" xml:space="preserve">
+    <value>The short description file at {0} was too long. A short description must be no longer than {1} characters.</value>
+  </data>
+  <data name="AP110" xml:space="preserve">
+    <value>The short description file at {0} could not be opened.</value>
+  </data>
+  <data name="AP109" xml:space="preserve">
+    <value>The short description file at {0} isn't a text file.</value>
+  </data>
+  <data name="AP112" xml:space="preserve">
+    <value>The description file at {0} could not be opened.</value>
+  </data>
+  <data name="AP111" xml:space="preserve">
+    <value>The description file at {0} isn't a text file.</value>
+  </data>
+  <data name="AP130" xml:space="preserve">
+    <value>The publish date entered, {0}, could not be parsed.</value>
+  </data>
+  <data name="AP142" xml:space="preserve">
+    <value>Candle.exe (from Wix) failed. Light.exe output: {0}</value>
+  </data>
+  <data name="AP143" xml:space="preserve">
+    <value>Light.exe (from Wix) failed. Light.exe output: {0}</value>
+  </data>
+  <data name="AP136" xml:space="preserve">
+    <value>{0} could not be signed.</value>
+  </data>
+  <data name="AP134" xml:space="preserve">
+    <value>The policy  {0} is invalid.</value>
+  </data>
+  <data name="AP132" xml:space="preserve">
+    <value>The major.minor version {0} is invalid.</value>
+  </data>
+  <data name="AP141" xml:space="preserve">
+    <value>Policy assembly {0} could not be built.</value>
+  </data>
+  <data name="AP135" xml:space="preserve">
+    <value>The binding version {0} is too high. It must be less than that package version.</value>
+  </data>
+  <data name="AP133" xml:space="preserve">
+    <value>The dependency {0} is not satisfiable. It must be installed.</value>
+  </data>
+  <data name="AP138" xml:space="preserve">
+    <value>Failed to create a CAT file for {0}</value>
+  </data>
+  <data name="FailedCDFCreation" xml:space="preserve">
+    <value>Failed to create a CDF for manifest {0}</value>
+  </data>
+  <data name="AP140" xml:space="preserve">
+    <value>Failed to extract public key from [{0}]</value>
+  </data>
+  <data name="AP139" xml:space="preserve">
+    <value>[{0}] failed strong naming</value>
+  </data>
+  <data name="Finished" xml:space="preserve">
+    <value> finished.</value>
+  </data>
+  <data name="Scanning" xml:space="preserve">
+    <value>Scanning: </value>
+  </data>
+  <data name="ScanningInstalledPackages" xml:space="preserve">
+    <value>Scanning installed packages...</value>
+  </data>
+  <data name="SharedLibCreation" xml:space="preserve">
+    <value>Creating and signing assemblies for shared library...</value>
+  </data>
+  <data name="ToolLookup" xml:space="preserve">
+    <value>Looking up tool locations...</value>
+  </data>
+  <data name="AppCreation" xml:space="preserve">
+    <value>Signing application files for app role...</value>
+  </data>
+  <data name="CreatingMSI" xml:space="preserve">
+    <value>Building your package file. This could take a few minutes...</value>
+  </data>
+  <data name="AP115" xml:space="preserve">
+    <value>The license file at {0} for the {1} role could not be opened.</value>
+  </data>
+  <data name="AP114" xml:space="preserve">
+    <value>The license file at {0} isn't a text file.</value>
+  </data>
+  <data name="AP113" xml:space="preserve">
+    <value>The license url  {0} is not a valid URI or does not have a valid protocol. URLs must use the HTTP or HTTPS protocol</value>
+  </data>
+  <data name="AP127" xml:space="preserve">
+    <value>Your publisher name could not be extracted from {0}. The publisher name is after the 'CN=' in your certificate subject name.</value>
+  </data>
+  <data name="AP116" xml:space="preserve">
+    <value>License Url was provided without any license text, which is required. The license URL will not be included in the output file.</value>
+  </data>
+  <data name="AP118" xml:space="preserve">
+    <value>The feed url  {0} is not a valid URI. URLs must use the HTTP or HTTPS protocol.</value>
+  </data>
+  <data name="AP121" xml:space="preserve">
+    <value>The original location url  {0} is not a valid URI.</value>
+  </data>
+  <data name="AP120" xml:space="preserve">
+    <value>The original location url  {0} does not have a valid protocol. URLs must use the HTTP or HTTPS protocol.</value>
+  </data>
+  <data name="AP128" xml:space="preserve">
+    <value>A publisher email could not be extracted from {0}.</value>
+  </data>
+  <data name="AP131" xml:space="preserve">
+    <value>You haven't specified any roles to create. You can't have a CoApp package without roles; that's lunacy!</value>
+  </data>
+  <data name="AP129" xml:space="preserve">
+    <value>The publisher email {0} is not a valid email address.</value>
+  </data>
+  <data name="AP100" xml:space="preserve">
+    <value>No valid package name was found in the property sheet.</value>
+  </data>
+  <data name="AP101" xml:space="preserve">
+    <value>The package name {0} is invalid. It must only contain ASCII letters, numbers, underscores, dashes and periods.</value>
+  </data>
+  <data name="AP102" xml:space="preserve">
+    <value>The package version {0} is invalid. The possible versions are auto or x.x.y.y where x is an integer between 0 and 255 and y is an integer between 0 and 65535.</value>
+  </data>
+  <data name="AP103" xml:space="preserve">
+    <value>The package architecture {0} is invalid. The possible values for arch are auto or x86, x64, or any.</value>
+  </data>
+  <data name="AP122" xml:space="preserve">
+    <value>No certificate file was specified.</value>
+  </data>
+  <data name="AP123" xml:space="preserve">
+    <value>No certificate password was specified.</value>
+  </data>
+  <data name="AP152" xml:space="preserve">
+    <value>global-bin must be set to true or false</value>
+  </data>
+  <data name="AP153" xml:space="preserve">
+    <value>The Exe file with the output path of {0} could not be found in any of the include directives in the the App rule.</value>
+  </data>
+  <data name="NoConfigFileLoaded" xml:space="preserve">
+    <value>No config file was loaded.</value>
+  </data>
+  <data name="AP155" xml:space="preserve">
+    <value>The publisher website url  {0} is not a valid URI. URLs must use the HTTP or HTTPS protocol.</value>
+  </data>
+  <data name="AP156" xml:space="preserve">
+    <value>The certificate file {0} has expired. Signing can only be done by a valid certificate.</value>
+  </data>
+  <data name="AP157" xml:space="preserve">
+    <value>The file {0} is not signed with the certificate in {1}.</value>
+  </data>
+  <data name="AP158" xml:space="preserve">
+    <value>The file {0} is not signed. All binary files must be signed. If you'd like unsigned binaries to be automatically signed, use the "autosign" argument when running autopackage.</value>
+  </data>
+  <data name="AP159" xml:space="preserve">
+    <value>The certificate on the file {0} could not be opened to be evaluated.</value>
+  </data>
+  <data name="AP160" xml:space="preserve">
+    <value>The path description {0} is not a valid simple subpath. A simple subpath may not contain a drive letter, colon, wildcards, any path part section with just "."or ".." and may not start with a slash.</value>
+  </data>
+  <data name="AP161" xml:space="preserve">
+    <value>No name was entered for a contributor.</value>
+  </data>
+  <data name="AP162" xml:space="preserve">
+    <value>The contributor website url  {0} does not have a valid protocol. URLs must use the HTTP or HTTPS protocol.</value>
+  </data>
+  <data name="AP163" xml:space="preserve">
+    <value>The contributor website url  {0} is not a valid URI.</value>
+  </data>
+  <data name="AP164" xml:space="preserve">
+    <value>The contributor email {0} is not a valid email address.</value>
+  </data>
+  <data name="AP165" xml:space="preserve">
+    <value>The latest bootstrap manifest could not be downloaded from {0}. Check your network connection and try again.</value>
+  </data>
+  <data name="AP167" xml:space="preserve">
+    <value>The bug tracker url  {0} is not a valid URI. URLs must use the HTTP or HTTPS protocol.</value>
+  </data>
+  <data name="AP168" xml:space="preserve">
+    <value>The path description {0} is not a valid simple subpath. A simple subpath may not contain a drive letter, colon, wildcards, any path part section with just "."or ".." and may not start with a slash.</value>
+  </data>
+  <data name="AP169" xml:space="preserve">
+    <value>Must be set to true or false</value>
+  </data>
+  <data name="AP170" xml:space="preserve">
+    <value>global must be set to true or false.</value>
+  </data>
+</root>
