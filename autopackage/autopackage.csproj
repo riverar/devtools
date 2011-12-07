@@ -52,9 +52,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>..\solution\ext\resources\CoApp.ico</ApplicationIcon>
+    <ApplicationIcon>$(SolutionDir)resources\CoApp.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CoApp.Toolkit">
+      <HintPath>..\binaries\CoApp.Toolkit.dll</HintPath>
+    </Reference>
+    <Reference Include="CoApp.Toolkit.Engine.Client">
+      <HintPath>..\binaries\CoApp.Toolkit.Engine.Client.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -73,7 +79,7 @@
     <Compile Include="AutopackageModel.cs" />
     <Compile Include="PackageSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="$(SolutionDir)\..\solution\Source\CoApp.Devtools.AssemblyStrongName.cs" />
+    <Compile Include="$(SolutionDir)Source\CoApp.Devtools.AssemblyStrongName.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -109,18 +115,6 @@
       <Project>{E1BC4727-C201-44D4-9B73-78D20BD55D5C}</Project>
       <Name>developer.toolkit</Name>
     </ProjectReference>
-    <ProjectReference Include="..\toolkit\CoApp.Toolkit.csproj">
-      <Project>{8B7E0D2F-6CA0-4E5E-BF52-1E4BDB132BBC}</Project>
-      <Name>CoApp.Toolkit %28coapp.toolkit\CoApp.Toolkit%29</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\toolkit\CoApp.Toolkit.Debug.csproj">
-      <Project>{A126ABBC-9199-4096-9714-4A1BEF84EE89}</Project>
-      <Name>CoApp.Toolkit.Debug</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\toolkit\CoApp.Toolkit.Engine.Client.csproj">
-      <Project>{CC917E10-0068-4E91-8D3D-3276846F7E43}</Project>
-      <Name>CoApp.Toolkit.Engine.Client</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -137,12 +131,12 @@
     <Content Include="Resources\WixTemplate.xml">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="$(SolutionDir)\..\solution\ext\resources\CoApp.ico" />
+    <Content Include="$(SolutionDir)resources\CoApp.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>REM Sign the devtools binaries if possible
-if exist "$(SolutionDir)..\solution\scripts\$(ConfigurationName)-sign-devtools.js" cscript //e:jscript "$(SolutionDir)..\solution\scripts\$(ConfigurationName)-sign-devtools.js"
+if exist "$(SolutionDir)scripts\$(ConfigurationName)-post-build.js" cscript //e:jscript "$(SolutionDir)scripts\$(ConfigurationName)-post-build.js"
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

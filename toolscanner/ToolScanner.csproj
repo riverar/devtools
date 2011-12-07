@@ -16,7 +16,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\output\any\debug\bin\</OutputPath>
+    <OutputPath>$(SolutionDir)\output\any\debug\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -29,7 +29,7 @@
     <CodeAnalysisRuleDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <OutputPath>..\output\any\release\bin\</OutputPath>
+    <OutputPath>$(SolutionDir)\output\any\release\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -43,9 +43,12 @@
     <CodeAnalysisRuleDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>..\solution\ext\resources\CoApp.ico</ApplicationIcon>
+    <ApplicationIcon>$(SolutionDir)resources\CoApp.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="coapp.toolkit">
+      <HintPath>..\binaries\coapp.toolkit.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -57,14 +60,10 @@
   <ItemGroup>
     <Compile Include="ToolScannerMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="$(SolutionDir)\..\solution\Source\CoApp.Devtools.AssemblyStrongName.cs" />
+    <Compile Include="$(SolutionDir)Source\CoApp.Devtools.AssemblyStrongName.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\toolkit\CoApp.Toolkit.csproj">
-      <Project>{8B7E0D2F-6CA0-4E5E-BF52-1E4BDB132BBC}</Project>
-      <Name>CoApp.Toolkit %28coapp.toolkit\CoApp.Toolkit%29</Name>
-    </ProjectReference>
-    <Content Include="$(SolutionDir)\..\solution\ext\resources\CoApp.ico" />
+    <Content Include="$(SolutionDir)resources\CoApp.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

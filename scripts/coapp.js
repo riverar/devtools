@@ -30,6 +30,11 @@ var CoApp = {
         return this.$SOLUTIONDIR("\\output\\any\\debug\\bin\\" + (path || ""));
     },
 
+    $SIBLINGDEBUGDIR: function (siblingrepo,path) {
+        return this.$SOLUTIONDIR("..\\"+siblingrepo+"\\output\\any\\debug\\bin\\" + (path || ""));
+    },
+
+    
     $COAPPDIR: function (path) {
         return this.$SOLUTIONDIR("\\..\\" + (path || ""));
     },
