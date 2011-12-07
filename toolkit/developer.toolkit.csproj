@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{E1BC4727-C201-44D4-9B73-78D20BD55D5C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CoApp.Developer.Toolkit</RootNamespace>
+    <AssemblyName>CoApp.Developer.Toolkit</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\output\any\debug\bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\output\any\release\bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>..\solution\ext\resources\CoApp.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Exceptions\FailedTimestampException.cs" />
+    <Compile Include="PortableExecutable\PEAnalyzer.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="$(SolutionDir)\..\solution\Source\CoApp.Devtools.AssemblyStrongName.cs" />
+    <Compile Include="Publishing\CertificateReference.cs" />
+    <Compile Include="Publishing\PeBinary.cs" />
+    <Compile Include="ResourceLib\Accelerator.cs" />
+    <Compile Include="ResourceLib\AcceleratorResource.cs" />
+    <Compile Include="ResourceLib\BitmapFile.cs" />
+    <Compile Include="ResourceLib\BitmapResource.cs" />
+    <Compile Include="ResourceLib\CursorDirectoryResource.cs" />
+    <Compile Include="ResourceLib\CursorResource.cs" />
+    <Compile Include="ResourceLib\DeviceIndependentBitmap.cs" />
+    <Compile Include="ResourceLib\DialogExTemplate.cs" />
+    <Compile Include="ResourceLib\DialogExTemplateControl.cs" />
+    <Compile Include="ResourceLib\DialogResource.cs" />
+    <Compile Include="ResourceLib\DialogTemplate.cs" />
+    <Compile Include="ResourceLib\DialogTemplateBase.cs" />
+    <Compile Include="ResourceLib\DialogTemplateControl.cs" />
+    <Compile Include="ResourceLib\DialogTemplateControlBase.cs" />
+    <Compile Include="ResourceLib\DialogTemplateUtil.cs" />
+    <Compile Include="ResourceLib\DirectoryResource.cs" />
+    <Compile Include="ResourceLib\FixedFileInfo.cs" />
+    <Compile Include="ResourceLib\FontDirectoryEntry.cs" />
+    <Compile Include="ResourceLib\FontDirectoryResource.cs" />
+    <Compile Include="ResourceLib\FontResource.cs" />
+    <Compile Include="ResourceLib\GenericResource.cs" />
+    <Compile Include="ResourceLib\IconDirectoryResource.cs" />
+    <Compile Include="ResourceLib\IconFile.cs" />
+    <Compile Include="ResourceLib\IconFileIcon.cs" />
+    <Compile Include="ResourceLib\IconImageResource.cs" />
+    <Compile Include="ResourceLib\IconResource.cs" />
+    <Compile Include="ResourceLib\LoadException.cs" />
+    <Compile Include="ResourceLib\ManifestResource.cs" />
+    <Compile Include="ResourceLib\MenuExTemplate.cs" />
+    <Compile Include="ResourceLib\MenuExTemplateItem.cs" />
+    <Compile Include="ResourceLib\MenuExTemplateItemCollection.cs" />
+    <Compile Include="ResourceLib\MenuExTemplateItemCommand.cs" />
+    <Compile Include="ResourceLib\MenuExTemplateItemPopup.cs" />
+    <Compile Include="ResourceLib\MenuResource.cs" />
+    <Compile Include="ResourceLib\MenuTemplate.cs" />
+    <Compile Include="ResourceLib\MenuTemplateBase.cs" />
+    <Compile Include="ResourceLib\MenuTemplateItem.cs" />
+    <Compile Include="ResourceLib\MenuTemplateItemCollection.cs" />
+    <Compile Include="ResourceLib\MenuTemplateItemCommand.cs" />
+    <Compile Include="ResourceLib\MenuTemplateItemPopup.cs" />
+    <Compile Include="ResourceLib\Resource.cs" />
+    <Compile Include="ResourceLib\ResourceId.cs" />
+    <Compile Include="ResourceLib\ResourceInfo.cs" />
+    <Compile Include="ResourceLib\ResourceTableHeader.cs" />
+    <Compile Include="ResourceLib\ResourceUtil.cs" />
+    <Compile Include="ResourceLib\StringFileInfo.cs" />
+    <Compile Include="ResourceLib\StringResource.cs" />
+    <Compile Include="ResourceLib\StringTable.cs" />
+    <Compile Include="ResourceLib\StringTableEntry.cs" />
+    <Compile Include="ResourceLib\VarFileInfo.cs" />
+    <Compile Include="ResourceLib\VarTable.cs" />
+    <Compile Include="ResourceLib\VersionResource.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(SolutionDir)\..\solution\ext\resources\CoApp.ico" />
+    <None Include="ResourceLib\License.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\cci\CoApp.CCI.csproj">
+      <Project>{7B8CB73A-D762-44F4-B0AA-95840A29A019}</Project>
+      <Name>CoApp.CCI</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\toolkit\CoApp.Toolkit.csproj">
+      <Project>{8B7E0D2F-6CA0-4E5E-BF52-1E4BDB132BBC}</Project>
+      <Name>CoApp.Toolkit %28coapp.toolkit\CoApp.Toolkit%29</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
