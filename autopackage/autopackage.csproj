@@ -136,6 +136,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>REM Sign the devtools binaries if possible
+echo "(Post-build-running)"
 if exist "$(SolutionDir)scripts\$(ConfigurationName)-post-build.js" cscript //e:jscript "$(SolutionDir)scripts\$(ConfigurationName)-post-build.js"
 </PostBuildEvent>
   </PropertyGroup>

@@ -5,18 +5,23 @@ Use("CoApp");
 if (folderExists(CoApp.$SOLUTIONDIR("..\\signing"))) {
 
     CoApp.StrongNameBinary([
-        CoApp.$RELEASEDIR("CoApp.Toolkit.dll"),
-        CoApp.$RELEASEDIR("CoApp.Toolkit.Engine.dll"),
-        CoApp.$RELEASEDIR("CoApp.Toolkit.Engine.Client.dll"),
-        CoApp.$RELEASEDIR("CoApp.Service.exe"),
-        CoApp.$RELEASEDIR("CoApp.exe")
+        CoApp.$RELEASEDIR("autopackage.exe"),
+        CoApp.$RELEASEDIR("azure.exe"),
+        CoApp.$RELEASEDIR("coapp.cci.dll"),
+        CoApp.$RELEASEDIR("coapp.developer.toolkit.dll"),
+        CoApp.$RELEASEDIR("ptk.exe"),
+        CoApp.$RELEASEDIR("quicktool.exe"),
+        CoApp.$RELEASEDIR("scan.exe"),
+        CoApp.$RELEASEDIR("simplesigner.exe"),
+        CoApp.$RELEASEDIR("toolscanner.exe"),
+        CoApp.$RELEASEDIR("mkRepo.exe")
      ]);
 }
 /// Every time we do a release-sign, we increment the build number.
 var rx, major, minor, build, revision, filename;
 
 /// ---- Developer Tools Pacakge --------------------------------------------------------------------------------------------
-filename = CoApp.$SOLUTIONSOURCE("CoApp.Toolkit.AssemblyStrongName.cs");
+filename = CoApp.$SOLUTIONSOURCE("CoApp.Devtools.AssemblyStrongName.cs");
 
 if (newTxt = CoApp.LoadTextFile(filename)) {
     rx = /\[assembly: AssemblyVersion\("(.*)\.(.*)\.(.*)\.(.*)"\)\]/ig.exec(newTxt); // Get Assembly Version
