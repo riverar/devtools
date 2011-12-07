@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<report>
+    <files>
+        <!-- list all .c .cpp .cxx .h .hpp .hxx .rc .asm etc... -->
+        <file id="1" path=".\directory" name="foo.c" type="source" >
+            <!-- path is relative to source-root-path on the command line -->
+            <includes>
+                <file index="4" />
+            </includes>
+        </file>
+   
+        <file id="2" path=".\directory" name="bar.c" type="source" />
+        <file id="3" path=".\directory" name="bin.c" type="source" />
+   
+        <file id="4" path=".\directory" name="baz.h" type="source" >
+            <includedby>
+                <file index="1" />
+            </includedby>
+        </file>
+ 
+        <!-- list all .mak makefiles etc... -->
+        <file id="5" path=".\directory" name="makefile" type="buildfile"  />
+        <file id="6" path=".\directory" name="foo.mak" type="buildfile" />
+        <file id="7" path=".\directory" name="build.xml" type="buildfile" />
+ 
+        <!-- list all .js .vbs .sh .ps1 .wsh .py .pl .php etc... -->
+        <file id="8" path=".\directory" name="test.bat" type="script" />
+       
+        <!-- list all .png .gif .avi .mkv .ico .wav .mp3 etc... -->
+        <file id="9" path=".\directory" name="bell.wav" type="media" />
+       
+        <!-- list all PE binaries .exe .dll .sys etc... -->
+        <file id="10" path=".\directory" name="something.dll" type="pebinary" />
+       
+        <!-- list all library files -->
+        <file id="11" path=".\directory" name="zlib1.lib" type="library" />
+       
+        <!-- list all other files -->
+        <file id="12" path=".\directory" name="otherfile.txt" type="unknown" />
+       
+    </files>
+   
+    <defines>
+        <define name="PLATFORM" >
+            <values>
+                <value>windows</value>
+                <value>linux</value>
+                <value>bsd</value>
+            </values>
+            <usedin>
+                <file index="1" />
+                <file index="3" />
+            </usedin>
+        </define>
+    </defines>
+   
+</report>
