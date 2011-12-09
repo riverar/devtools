@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Threading.Tasks;
     using CoApp.Developer.Toolkit.Publishing;
     using CoApp.Toolkit.Extensions;
@@ -197,10 +198,19 @@ Metadata Options:
                 List<PeBinary> binaries = new List<PeBinary>();
 
                 foreach (var f in allFiles) {
-                    Console.WriteLine("Loading File: {0}", f);
+                    Verbose("Loading File: {0}", f);
                     var filename = f;
 
                     tasks.Add(Task.Factory.StartNew(() => {
+
+                        var originalMD5 = string.Empty;
+                        var newMD5 = string.Empty;
+
+                        using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                            originalMD5 = MD5.Create().ComputeHash(stream).ToHexString();
+                        }
+
+
 
                         // var result = "";
                         if (CoApp.Toolkit.Crypto.Verifier.HasValidSignature(filename) && !_resign) {
@@ -255,10 +265,23 @@ Metadata Options:
 
                                 using (new ConsoleColors(ConsoleColor.Green, ConsoleColor.Black)) {
                                     Console.WriteLine("Success {0}", filename);
+
+                                    using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                        newMD5 = MD5.Create().ComputeHash(stream).ToHexString();
+                                    }
+
                                 }
                             } else {
                                 PeBinary.SignFile(filename, _certificate);
+
+                                using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                    newMD5 = MD5.Create().ComputeHash(stream).ToHexString();
+                                }
+
                             }
+
+                            Console.WriteLine(" File [{0}]\r\n    ORIGINAL MD5: {1}\r\n    NEW      MD5: {2}", filename, originalMD5, newMD5);
+
                         } catch (Exception e) {
                             using (new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black)) {
                                 Console.WriteLine("Failed {0} : {1}", filename, e.Message);
@@ -268,13 +291,13 @@ Metadata Options:
                     }));
                 }
 
-                Console.WriteLine("Tasks: {0}", tasks.ToArray().Count());
-
+                // Console.WriteLine("Tasks: {0}", tasks.ToArray().Count());
+                /*
                 Task.Factory.ContinueWhenAll(
                     tasks.ToArray(), (antecedent) => {
                         Console.WriteLine("Loading Done.");
                     }).Wait();
-
+                */
                 /*
                 tasks.Clear();
 

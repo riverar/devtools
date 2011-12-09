@@ -7,14 +7,14 @@
       <!-- CoApp Packages must be not be allusers, not per-user (GS)-->
       <Property Id="ALLUSERS" Secure="yes" />
     
-      <!-- add in the custom action native bootstrapper-->
+      <!-- add in the custom action native bootstrap-->
 
-      <Binary Id="bootstrap.exe"/>
-      <CustomAction Id="CoappBootstrapNativeCA" BinaryKey="bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
+      <Binary Id="native-bootstrap.exe"/>
+      <CustomAction Id="native-bootstrap-CA" BinaryKey="native-bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
     
-      <!-- add in the custom action bootstrapper here -->
-      <Binary Id="bootstrapperui.exe"/>
-      <CustomAction Id="CoappBootstrapCA" BinaryKey="bootstrapperui.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
+      <!-- add in the custom action managed bootstrap here -->
+      <Binary Id="managed-bootstrap.exe"/>
+      <CustomAction Id="managed-bootstrap-CA" BinaryKey="managed-bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
 
       <Property Id="NETFRAMEWORK40"><RegistrySearch Id="NetFramework40" Root="HKLM" Key="Software\Microsoft\NET Framework Setup\NDP\v4\Full" Name="Install" Type="raw"/></Property>
     
@@ -46,8 +46,8 @@
         <MsiPublishAssemblies Sequence="6250">COAPP_INSTALLED</MsiPublishAssemblies>
         <PublishFeatures Sequence="6300">COAPP_INSTALLED</PublishFeatures>
         <PublishProduct Sequence="6400">COAPP_INSTALLED</PublishProduct>
-        <Custom Action="CoappBootstrapNativeCA" Before="CoappBootstrapCA">NOT COAPP_INSTALLED AND NOT REMOVE AND NOT NETFRAMEWORK40</Custom>
-        <Custom Action="CoappBootstrapCA" Before="InstallFinalize">NOT COAPP_INSTALLED AND NOT REMOVE AND NETFRAMEWORK40</Custom>
+        <Custom Action="native-bootstrap-CA" Before="managed-bootstrap-CA">NOT COAPP_INSTALLED AND NOT REMOVE AND NOT NETFRAMEWORK40</Custom>
+        <Custom Action="managed-bootstrap-CA" Before="InstallFinalize">NOT COAPP_INSTALLED AND NOT REMOVE AND NETFRAMEWORK40</Custom>
         <InstallFinalize Sequence="6600"></InstallFinalize>
       </InstallExecuteSequence>
     </Product>

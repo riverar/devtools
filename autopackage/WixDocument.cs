@@ -69,9 +69,9 @@ namespace CoApp.Autopackage {
         private void AddBootstrappersToWix() {
             // "CoappBootstrapNativeBin"
 
-            var coappBootstrapNativeBin = wix.Product["Id=bootstrap.exe"];
+            var coappBootstrapNativeBin = wix.Product["Id=native-bootstrap.exe"];
             if (coappBootstrapNativeBin != null) {
-                var bootstrapTempFile = "bootstrap.exe".GenerateTemporaryFilename();
+                var bootstrapTempFile = "native-bootstrap.exe".GenerateTemporaryFilename();
 
                 using (var fs = System.IO.File.Create(bootstrapTempFile)) {
                     fs.Write(Properties.Resources.coapp_native_bootstrap, 0, Properties.Resources.coapp_native_bootstrap.Length);
@@ -101,9 +101,9 @@ namespace CoApp.Autopackage {
                 coappBootstrapNativeBin.Attributes.SourceFile = bootstrapTempFile;
             }
 
-            var coappBootstrapBin = wix.Product["Id=bootstrapperui.exe"];
+            var coappBootstrapBin = wix.Product["Id=managed-bootstrap.exe"];
             if (coappBootstrapBin != null) {
-                var bootstrapuitempfile =   "bootstrapperui.exe".GenerateTemporaryFilename();
+                var bootstrapuitempfile =   "managed-bootstrap.exe".GenerateTemporaryFilename();
 
                 
                 using (var fs = System.IO.File.Create(bootstrapuitempfile)) {
