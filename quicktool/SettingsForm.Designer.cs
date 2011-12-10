@@ -31,8 +31,6 @@
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.label10 = new System.Windows.Forms.Label();
-            this.syntaxhighlighterPrefixPath = new System.Windows.Forms.TextBox();
             this.label8 = new System.Windows.Forms.Label();
             this.imageFilename = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
@@ -128,8 +126,6 @@
             // 
             // groupBox2
             // 
-            this.groupBox2.Controls.Add(this.label10);
-            this.groupBox2.Controls.Add(this.syntaxhighlighterPrefixPath);
             this.groupBox2.Controls.Add(this.label8);
             this.groupBox2.Controls.Add(this.imageFilename);
             this.groupBox2.Controls.Add(this.label7);
@@ -148,22 +144,6 @@
             this.groupBox2.TabIndex = 3;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "FTP Uploading";
-            // 
-            // label10
-            // 
-            this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(7, 254);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(143, 13);
-            this.label10.TabIndex = 13;
-            this.label10.Text = "SyntaxHighlighter Prefix Path";
-            // 
-            // syntaxhighlighterPrefixPath
-            // 
-            this.syntaxhighlighterPrefixPath.Location = new System.Drawing.Point(7, 270);
-            this.syntaxhighlighterPrefixPath.Name = "syntaxhighlighterPrefixPath";
-            this.syntaxhighlighterPrefixPath.Size = new System.Drawing.Size(277, 20);
-            this.syntaxhighlighterPrefixPath.TabIndex = 12;
             // 
             // label8
             // 
@@ -448,8 +428,6 @@
         private System.Windows.Forms.Button btnSetSourceUploaderHotkey;
         private System.Windows.Forms.Label quickSourceHotkeyLabel;
         private System.Windows.Forms.Label label11;
-        private System.Windows.Forms.Label label10;
-        private System.Windows.Forms.TextBox syntaxhighlighterPrefixPath;
         private System.Windows.Forms.Button btnSetManualBitlyHotkey;
         private System.Windows.Forms.Label manualBitlylabel;
         private System.Windows.Forms.Label label13;

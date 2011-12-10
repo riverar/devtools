@@ -425,8 +425,6 @@ namespace QuickTool {
             RegistryView.ApplicationUser["#enable-audio-cues"].BoolValue = cbAudioCues.Checked;
             RegistryView.ApplicationUser["#enable-auto-bitly"].BoolValue = cbAutoBitly.Checked;
 
-            RegistryView.ApplicationUser["#syntaxhighlighter-prefix-path"].StringValue = syntaxhighlighterPrefixPath.Text;
-
             if (quickUploaderHotkeyLabel.Text != Resources.txt_PRESS_KEY_COMBINATION) {
                 RegistryView.ApplicationUser["#quick-uploader-hotkey"].StringValue = quickUploaderHotkeyLabel.Text;
             }
@@ -455,7 +453,6 @@ namespace QuickTool {
             quickUploaderHotkeyLabel.Text = RegistryView.ApplicationUser["#quick-uploader-hotkey"].StringValue ?? "Alt+Control+NumPad9";
             quickSourceHotkeyLabel.Text = RegistryView.ApplicationUser["#quick-source-hotkey"].StringValue ?? "Alt+Control+NumPad6";
             manualBitlylabel.Text = RegistryView.ApplicationUser["#manual-bitly-hotkey"].StringValue ?? "Alt+Control+NumPad3";
-            syntaxhighlighterPrefixPath.Text = RegistryView.ApplicationUser["#syntaxhighlighter-prefix-path"].StringValue ?? "";
         }
 
         private void SettingsFormKeyDown(object sender, KeyEventArgs e) {
