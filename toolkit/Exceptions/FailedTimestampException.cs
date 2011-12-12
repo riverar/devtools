@@ -19,8 +19,10 @@ namespace CoApp.Developer.Toolkit.Exceptions {
     }
 
     public class DigitalSignFailure : CoAppException {
-        public DigitalSignFailure(string filename, int win32Code)
+        public uint Win32Code;
+        public DigitalSignFailure(string filename, uint win32Code)
             : base("Failed to digitally sign '{0}' Win32 RC: '{1:x}'".format(filename, win32Code)) {
+            Win32Code = win32Code;
         }
     }
 

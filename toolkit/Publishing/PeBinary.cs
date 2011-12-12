@@ -49,8 +49,11 @@ namespace CoApp.Developer.Toolkit.Publishing {
         private readonly PEInfo _info;
         private MetadataReaderHost _host = new PeReader.DefaultHost();
         private readonly Task _loading;
+        public readonly List<PeBinary> UnsignedDependentBinaries = new List<PeBinary>();
 
         private static Dictionary<string, PeBinary> _cache = new Dictionary<string, PeBinary>();
+        public string Filename { get { return _filename; } }
+        public PEInfo Info { get {return _info;} }
 
         public static PeBinary FindAssembly(string assemblyname, string version) {
             lock (_cache) {
@@ -225,6 +228,10 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
                             if (dep == null) {
                                 Console.WriteLine("WARNING: Unsigned Dependent Assembly {0}-{1} not found.", ar.Name.Value, ar.Version.ToString());
+                            }
+                            else {
+                                // we've found an unsigned dependency -- we're gonna remember this file for later.
+                                UnsignedDependentBinaries.Add(dep);
                             }
                         }
                     }
@@ -464,7 +471,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
             }
         }
 
-        public void Save() {
+
+        public void Save(bool autoHandleDependencies = false) {
             lock (this) {
                 Logger.Message("Saving Binary '{0}' : Pending Changes: {1} ", _filename, _pendingChanges);
                 if (_pendingChanges) {
@@ -493,18 +501,30 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                             var dep = FindAssembly(ar.Name.Value, ar.Version.ToString());
                                             if (dep == null) {
                                                 // can't strong name a file that doesn't have its deps all strong named.
-                                                throw new CoAppException(
-                                                    "Unable to strong name '{0}' -- dependent assembly '{1}-{2}' not available for strong naming".format(
-                                                        _filename, ar.Name.Value, ar.Version.ToString()));
+                                                throw new CoAppException("dependent assembly '{0}-{1}' not available for strong naming".format(ar.Name.Value, ar.Version.ToString()));
+                                            }
+
+                                            lock (dep) {
+                                                // this should wait until the dependency is finished saving, right?
+
                                             }
 
                                             if (dep.MutableAssembly.PublicKey.IsNullOrEmpty()) {
-                                                Console.WriteLine(
-                                                    "Warning: Non-strong-named dependent reference found: '{0}-{1}' updating with same strong-name-key.",
-                                                    ar.Name, ar.Version);
-                                                dep.StrongNameKeyCertificate = StrongNameKeyCertificate;
-                                                dep.SigningCertificate = SigningCertificate;
-                                                dep.Save();
+                                                if (autoHandleDependencies) {
+                                                    Console.WriteLine(
+                                                        "Warning: Non-strong-named dependent reference found: '{0}-{1}' updating with same strong-name-key.",
+                                                        ar.Name, ar.Version);
+                                                    dep.StrongNameKeyCertificate = StrongNameKeyCertificate;
+                                                    dep.SigningCertificate = SigningCertificate;
+
+                                                    dep.AssemblyCopyright = AssemblyCopyright;
+                                                    dep.AssemblyCompany = AssemblyCompany;
+                                                    dep.AssemblyProduct = AssemblyProduct;
+                                                    
+                                                    dep.Save();
+                                                } else {
+                                                    throw new CoAppException("dependent assembly '{0}-{1}' not strong named".format(ar.Name.Value, ar.Version.ToString()));
+                                                }
                                             }
                                             (ar as AssemblyReference).PublicKeyToken = dep.MutableAssembly.PublicKeyToken.ToList();
                                             (ar as AssemblyReference).PublicKey = dep.MutableAssembly.PublicKey;
@@ -758,7 +778,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
             // Sign exe
             //
             if ((!CryptUi.CryptUIWizDigitalSign(DigitalSignFlags.NoUI, IntPtr.Zero, null, ref digitalSignInfo, ref pSignContext))) {
-                var rc = Marshal.GetLastWin32Error();
+                var rc = (uint) Marshal.GetLastWin32Error();
                 if (rc == 0x8007000d) {
                     // this is caused when the timestamp server fails; which seems intermittent for any timestamp service.
                     throw new FailedTimestampException(filename, timeStampUrl);

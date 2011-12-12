@@ -1,11 +1,24 @@
-﻿namespace coapp_simplesigner {
+﻿//-----------------------------------------------------------------------
+// <copyright company="CoApp Project">
+//     Copyright (c) 2011  Garrett Serack. All rights reserved.
+// </copyright>
+// <license>
+//     The software is licensed under the Apache 2.0 License (the "License")
+//     You may not use the software except in compliance with the License. 
+// </license>
+//-----------------------------------------------------------------------
+
+
+namespace coapp_simplesigner {
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
+    using CoApp.Developer.Toolkit.Exceptions;
     using CoApp.Developer.Toolkit.Publishing;
+    using CoApp.Toolkit.Exceptions;
     using CoApp.Toolkit.Extensions;
     using CoApp.Toolkit.Win32;
 
@@ -29,15 +42,25 @@ Options:
 
     --certificate-path=<c.pfx>  path to load signing certificate (w/pvt key)
     --password=<pwd>            password for certificate file
-    --remember                  store certificate details in registry (encrypted)
+    --remember                  store certificate details in registry 
+                                (encrypted)
 
     --sign-only                 just sign the binary, no strong-naming
     --no-metadata               don't try to adjust any metadata
+    --force                     re-sign the binaries, even if they have 
+                                a signature
+
+    --verify                    show certificate & verification info for 
+                                binaries (don't sign)
+
+    --auto                      automatically handle unsigned dependent 
+                                assemblies
+
 
 Metadata Options:
 -----------------
 
-    --company=<Name>            set the Company Name to <Name>
+    --company=<Name>            set the Company Name to <Name>*
     --description=<value>       set the File Description to <value>
     --internal-name=<value>     set the Internal Name of the binary to <value>
     --copyright=<value>         set the Copyright to <value>
@@ -46,6 +69,8 @@ Metadata Options:
 
     --product-version=<value>   set the Product Version to <value>
     --file-version=<value>      set the File Version to <value>
+
+    * use value AUTO to have it pull company name from the certificate
 ";
 
         private bool _resign;
@@ -53,6 +78,9 @@ Metadata Options:
         private bool _sign = true;
         private bool _strongname = true;
         private bool _verbose;
+        private bool _verify;
+        private bool _auto;
+
         private string _signingCertPath = string.Empty;
         private string _signingCertPassword;
         private CertificateReference _certificate;
@@ -101,6 +129,10 @@ Metadata Options:
                         _remember = true;
                         break;
 
+                    case "auto":
+                        _auto = true;
+                        break;
+
                     case "sign-only":
                         _strongname = false;
                         break;
@@ -137,7 +169,12 @@ Metadata Options:
                         _productName = argumentParameters.Last();
                         break;
 
+                    case "verify" :
+                        _verify = true;
+                        break;
+
                     case "resign" :
+                    case "force":
                         _resign = true;
                         break;
 
@@ -163,6 +200,15 @@ Metadata Options:
             }
 
             Logo();
+
+            if (parameters.Count() < 1) {
+                return Fail("Missing files to sign/name. \r\n\r\n    Use --help for command line help.");
+            }
+
+            if( _verify ) {
+                return Verify(parameters);
+            }
+
             if( string.IsNullOrEmpty(_signingCertPath) ) {
                 _certificate = CertificateReference.Default;
                 if( _certificate == null ) {
@@ -171,13 +217,12 @@ Metadata Options:
             } else if( string.IsNullOrEmpty(_signingCertPassword) ) {
                 _certificate = new CertificateReference(_signingCertPath);
             } else {
-              _certificate = new CertificateReference(_signingCertPath,_signingCertPassword);  
+                _certificate = new CertificateReference(_signingCertPath,_signingCertPassword);  
             }
 
             using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
-                Console.WriteLine("Loaded certificate with private key {0}", _certificate.Location);
+                Verbose("Loaded certificate with private key {0}", _certificate.Location);
             }
-
 
             if (_remember) {
                 Verbose("Storing certificate details in the registry.");
@@ -185,38 +230,32 @@ Metadata Options:
                 CertificateReference.Default = _certificate;
             }
 
-            if (parameters.Count() < 1) {
-                return Fail("Missing files to sign/name. \r\n\r\n    Use --help for command line help.");
+            var tasks = new List<Task>();
+
+            if( _company != null && _company.Equals("auto", StringComparison.CurrentCultureIgnoreCase) ) {
+                _company = _certificate.CommonName;
             }
 
-            var tasks = new List<Task>();
 
             try {
                 var allFiles = parameters.FindFilesSmarter().ToArray();
-
                 
-                List<PeBinary> binaries = new List<PeBinary>();
+                var binaries = new List<PeBinary>();
+                var nonBinaries = new List<PEInfo>();
+
+                var results = new List<FileResult>();
+
 
                 foreach (var f in allFiles) {
-                    Verbose("Loading File: {0}", f);
+                    Verbose("Inspecting File: {0}", f);
                     var filename = f;
 
+                    // first, load all the binaries
+                    // 
+
                     tasks.Add(Task.Factory.StartNew(() => {
-
-                        var originalMD5 = string.Empty;
-                        var newMD5 = string.Empty;
-
-                        using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                            originalMD5 = MD5.Create().ComputeHash(stream).ToHexString();
-                        }
-
-
-
-                        // var result = "";
                         if (CoApp.Toolkit.Crypto.Verifier.HasValidSignature(filename) && !_resign) {
-                            using (new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black)) {
-                                Console.WriteLine("[{0}] already has a valid signature; skipping.", filename);
-                            }
+                            results.Add( new FileResult {FullPath= filename, AlreadySigned = true, OriginalMD5 = filename.GetFileMD5(), Message = "Already Signed (skipped)", Color = ConsoleColor.Yellow});
                             return;
                         }
 
@@ -225,102 +264,163 @@ Metadata Options:
 
                             if (info.IsPEBinary) {
                                 var peBinary = PeBinary.Load(filename);
-                                lock( binaries) {
-                                    binaries.Add(peBinary);
-                                }
-
-                                if (_company != null) {
-                                    peBinary.CompanyName = _company;
-                                }
-                                if (_description != null) {
-                                    peBinary.FileDescription = _description;
-                                }
-                                if (_internalName != null) {
-                                    peBinary.InternalName = _internalName;
-                                }
-                                if (_copyright != null) {
-                                    peBinary.LegalCopyright = _copyright;
-                                }
-                                if (_originalFilename != null) {
-                                    peBinary.OriginalFilename = _originalFilename;
-                                }
-                                if (_productName != null) {
-                                    peBinary.ProductName = _productName;
-                                }
-                                if (_productVersion != null) {
-                                    peBinary.ProductVersion = _productVersion;
-                                }
-                                if (_fileVersion != null) {
-                                    peBinary.FileVersion = _fileVersion;
-                                }
-                                if (_strongname) {
-                                    peBinary.StrongNameKeyCertificate = _certificate;
-                                }
-                                if (_sign) {
-                                    peBinary.SigningCertificate = _certificate;
-                                }
-
-
-                                peBinary.Save();
-
-                                using (new ConsoleColors(ConsoleColor.Green, ConsoleColor.Black)) {
-                                    Console.WriteLine("Success {0}", filename);
-
-                                    using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                                        newMD5 = MD5.Create().ComputeHash(stream).ToHexString();
+                                lock (binaries) {
+                                    if (!binaries.Contains(peBinary)) {
+                                        binaries.Add(peBinary);
                                     }
 
+                                    foreach (var depBinary in peBinary.UnsignedDependentBinaries.Where(depBinary => !binaries.Contains(depBinary))) {
+                                        binaries.Add(depBinary);
+                                    }
                                 }
                             } else {
-                                PeBinary.SignFile(filename, _certificate);
-
-                                using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                                    newMD5 = MD5.Create().ComputeHash(stream).ToHexString();
+                                if (!nonBinaries.Contains(info)) {
+                                    nonBinaries.Add(info);
                                 }
-
                             }
-
-                            Console.WriteLine(" File [{0}]\r\n    ORIGINAL MD5: {1}\r\n    NEW      MD5: {2}", filename, originalMD5, newMD5);
 
                         } catch (Exception e) {
-                            using (new ConsoleColors(ConsoleColor.Red, ConsoleColor.Black)) {
-                                Console.WriteLine("Failed {0} : {1}", filename, e.Message);
-                                Console.WriteLine(e.StackTrace);
+                            results.Add(new FileResult { FullPath = filename, Message = "Failed to load--{0}".format(e.GetType()), Color = ConsoleColor.Red });
+                        }
+                    }));
+                }
+                Task.Factory.ContinueWhenAll(tasks.ToArray(), (antecedent) => Verbose("Completed loading files.")).Wait();
+                tasks.Clear();
+
+                // Now, go ahead and modify all the binaries 
+                // and sign all the files.
+
+                foreach( var nBin in nonBinaries ) {
+                    var nonBinary = nBin;
+                    tasks.Add(Task.Factory.StartNew(() => {
+                        var filename = nonBinary.Filename;
+                        try {
+                            PeBinary.SignFile(filename, _certificate);
+                            results.Add( new FileResult { FullPath = filename, OriginalMD5 = nonBinary.MD5, NewMD5 = filename.GetFileMD5(), Message = "Success." });
+
+                        } catch (DigitalSignFailure  exc) {
+                            if (exc.Win32Code == 0x800b0003) {
+                                results.Add(new FileResult { FullPath = filename, OriginalMD5 = nonBinary.MD5, Message = "Unable to sign unrecognized file", Color = ConsoleColor.Red });
+                            } else {
+                                results.Add(new FileResult {FullPath = filename, OriginalMD5 = nonBinary.MD5, Message = exc.Message, Color = ConsoleColor.Red});
                             }
+                        } catch (CoAppException exc) {
+                            results.Add(new FileResult { FullPath = filename, OriginalMD5 = nonBinary.MD5, Message = exc.Message, Color = ConsoleColor.Red });
+                        }
+                        catch (Exception exc) {
+                            results.Add(new FileResult { FullPath = filename, OriginalMD5 = nonBinary.MD5, Message = "Unable to sign unrecognized, non-binary file--{0}".format(exc.GetType()), Color = ConsoleColor.Red});
+                        }
+                    }));
+                }
+                binaries.Reverse();
+                foreach (var bin in binaries) {
+                    var peBinary = bin;
+
+                    tasks.Add(Task.Factory.StartNew(() => {
+                        var filename = peBinary.Filename;
+
+                        try {
+                            if (_strongname) {
+                                peBinary.StrongNameKeyCertificate = _certificate;
+                            }
+
+                            if (_sign) {
+                                peBinary.SigningCertificate = _certificate;
+                            }
+
+                            if (_company != null) {
+                                peBinary.CompanyName = _company;
+                            }
+                            if (_description != null) {
+                                peBinary.FileDescription = _description;
+                            }
+                            if (_internalName != null) {
+                                peBinary.InternalName = _internalName;
+                            }
+                            if (_copyright != null) {
+                                peBinary.LegalCopyright = _copyright;
+                            }
+                            if (_originalFilename != null) {
+                                peBinary.OriginalFilename = _originalFilename;
+                            }
+                            if (_productName != null) {
+                                peBinary.ProductName = _productName;
+                            }
+                            if (_productVersion != null) {
+                                peBinary.ProductVersion = _productVersion;
+                            }
+                            if (_fileVersion != null) {
+                                peBinary.FileVersion = _fileVersion;
+                            }
+
+                            peBinary.Save(_auto);
+
+                            results.Add(new FileResult { FullPath = filename, OriginalMD5 = peBinary.Info.MD5, NewMD5 = filename.GetFileMD5(), Message = "Success"  });
+
+                        } catch (CoAppException exc) {
+                            results.Add(new FileResult { FullPath = filename, OriginalMD5 = peBinary.Info.MD5, Message = exc.Message, Color = ConsoleColor.Red });
+                        } catch (Exception exc) {
+                            results.Add(new FileResult { FullPath = filename, OriginalMD5 = peBinary.Info.MD5, Message = "Unable to sign PE Binary file--{0}".format(exc.GetType()), Color = ConsoleColor.Red });
                         }
                     }));
                 }
 
-                // Console.WriteLine("Tasks: {0}", tasks.ToArray().Count());
-                /*
-                Task.Factory.ContinueWhenAll(
-                    tasks.ToArray(), (antecedent) => {
-                        Console.WriteLine("Loading Done.");
-                    }).Wait();
-                */
-                /*
-                tasks.Clear();
-
-                foreach (var binary in binaries) {
-                    var peBinary = binary;
-
-                    tasks.Add(Task.Factory.StartNew(() => {
-                        peBinary.Save(); 
-
-                    }));
-
-                    Task.Factory.ContinueWhenAll(
-                    tasks.ToArray(), (antecedent) => {
-                        Console.WriteLine("Loading Done.");
-                    }).Wait();
-
+                if (tasks.Any()) {
+                    // wait for all the work to be done.
+                    Task.Factory.ContinueWhenAll(tasks.ToArray(), (antecedent) => { Verbose("Completed Signing Files."); }).Wait();
                 }
-                 * */
+                var output = results.OrderByDescending(each => each.Color).ToArray();
+
+                var outputLines = (from each in output
+                    select new {
+                        Filename = Path.GetFileName(each.FullPath),
+                        Original_MD5 = each.OriginalMD5,
+                        New_MD5 = each.NewMD5,
+                        Status = each.Message,
+                    }).ToTable().ToArray();
+
+
+                Console.WriteLine(outputLines[0]);
+                var footer = outputLines[1];
+                Console.WriteLine(footer);
+                
+                // trim the header/footer
+                outputLines = outputLines.Skip(2).Reverse().Skip(1).Reverse().ToArray();
+
+                for (int i = 0; i < outputLines.Length; i++  ) {
+                    using (new ConsoleColors(output[i].Color, ConsoleColor.Black)) {
+                        Console.WriteLine(outputLines[i]);
+                    }
+                }
+
+                Console.WriteLine(footer);
             }
             catch (Exception e) {
                 return Fail(e.Message);
             }
 
+            return 0;
+        }
+
+        public int Verify(IEnumerable<string> parameters) {
+            var allFiles = parameters.FindFilesSmarter().ToArray().AsParallel();
+
+            using (new ConsoleColors(ConsoleColor.Green, ConsoleColor.Black)) {
+                (from each in allFiles
+                    let info = PEInfo.Scan(each)
+                    let bin = info.IsPEBinary ?  PeBinary.Load(each) : null
+                    orderby info.IsPEBinary 
+                    select new {
+                        Filename = Path.GetFileName(each),
+                        Version = info.IsPEBinary ? info.FileVersion : "",
+                        Signed = CoApp.Toolkit.Crypto.Verifier.HasValidSignature(each),
+                        MD5 = info.MD5,
+                        Company_Name = bin == null ? "" : bin.CompanyName,
+
+                        //Binary =  info.IsPEBinary , 
+                        // Managed = is  bin.IsManaged,
+                    }).ToArray().OrderBy(each => each.Signed).ToTable().ConsoleOut();
+            }
             return 0;
         }
 
@@ -383,4 +483,6 @@ Metadata Options:
 
         #endregion
     }
+
+    
 }
