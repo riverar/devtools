@@ -1,0 +1,60 @@
+﻿Usage:
+-------
+
+CoApp.RepositoryService [options] 
+
+
+Options:
+--------
+    --help                  this help
+    --nologo                don't display the logo
+    --load-config=<file>    loads configuration from <file>
+    --verbose               prints verbose messages
+
+	--feed-path=<file>			sets the path to write/update the feed
+	
+	--package-path=<folder>		location to write packages to 
+									*use azure container name if using azure storage
+	
+	--package-prefix=<url>		the URL prefix where packages will be found
+
+	--host=<host>				the IP or hostname to listen via HTTP (can be multiple)
+									defaults to * (all interfaces)
+
+	--port=<port>				the port number to listen via HTTP (defaults to 80)
+	
+	--package-upload=<urlpath>	the urlpath to listen for package uploads
+									defaults to /upload
+
+	--commit-message=<urlpath>	the urlpath to listen for github commit messages
+									defaults to /trigger
+
+
+One Time Setup Options
+----------------------
+
+
+	--tweet-commits=<handle>	tweets commit messages a twitter handle 
+									*requires authenticate steps at startup
+
+	--tweet-packages=<handle>	tweets new packages to a twitter handle 
+									*requires authenticate steps at startup
+
+	--twitter-key=<key>         sets the twitter consumer-key 
+    --twitter-secret=<secret>   sets the twitter consumer-secret
+
+    --bitly-username=<name>     sets the bit.ly user account
+    --bitly-secret=<secret>     sets the bit.ly secret 
+
+	--azure-name=<acct>			the azure storage account to push verified packages 
+	--azure-key=<key>			the secret key for the azure storage
+		
+
+Examples:
+---------
+
+	CoApp.RepositoryService --feed-path=c:\inetpub\wwwroot\packages.atom.xml --package-path=c:\inetpub\wwwroot\packages\ --package-prefix=http://foo.com/packages
+
+or 
+
+	CoApp.RepositoryService --feed-path=c:\inetpub\wwwroot\packages.atom.xml --package-path=AZURE --package-prefix=http://foo.com/packages

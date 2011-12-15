@@ -198,6 +198,19 @@ namespace CoApp.Autopackage {
             // explictly defined
             var dependentPackages = new List<Package>();
 
+            if( !Name.Equals("coapp.toolkit", StringComparison.CurrentCultureIgnoreCase) ) {
+                // don't auto-add the coapp.toolkit dependency for the toolkit itself.
+                var toolkitPackage = Source.PackageManager.GetPackages("coapp.toolkit-*-any-820d50196d4e8857", null, null, null, null, null, null, null, null, null, false, AutopackageMain._messages).Result.OrderByDescending(each => each.Version).FirstOrDefault();
+                
+                
+                if( toolkitPackage != null ) {
+                    Source.PackageManager.GetPackageDetails(toolkitPackage.CanonicalName, AutopackageMain._messages).Wait();
+                    Console.WriteLine("Implict Package Dependency: {0} -> {1}", toolkitPackage.CanonicalName, toolkitPackage.ProductCode);
+                    dependentPackages.Add(toolkitPackage);    
+                }
+                
+            }
+
             foreach (var pkgName in Source.RequiresRules.SelectMany(each => each["package"].Values)) {
                 // for now, lets just see if we can do a package match, and grab just that packages
                 // in the future, we should figure out how to make better decisions for this.

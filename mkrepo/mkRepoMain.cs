@@ -148,8 +148,6 @@ namespace CoApp.mkRepo {
                     default:
                         throw new ConsoleException(Resources.UnknownCommand, parameters.FirstOrDefault());
                 }
-
-
             } catch (ConsoleException failure) {
                 Fail("{0}\r\n\r\n    {1}", failure.Message, Resources.ForCommandLineHelp);
                 CancellationTokenSource.Cancel();

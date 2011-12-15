@@ -69,7 +69,7 @@ namespace CoApp.Autopackage {
         private void AddBootstrappersToWix() {
             // "CoappBootstrapNativeBin"
 
-            var coappBootstrapNativeBin = wix.Product["Id=native-bootstrap.exe"];
+            var coappBootstrapNativeBin = wix.Product["Id=native_bootstrap.exe"];
             if (coappBootstrapNativeBin != null) {
                 var bootstrapTempFile = "native-bootstrap.exe".GenerateTemporaryFilename();
 
@@ -101,17 +101,17 @@ namespace CoApp.Autopackage {
                 coappBootstrapNativeBin.Attributes.SourceFile = bootstrapTempFile;
             }
 
-            var coappBootstrapBin = wix.Product["Id=managed-bootstrap.exe"];
+            var coappBootstrapBin = wix.Product["Id=managed_bootstrap.exe"];
             if (coappBootstrapBin != null) {
-                var bootstrapuitempfile =   "managed-bootstrap.exe".GenerateTemporaryFilename();
+                var managedBootstrapTemporaryFile =   "managed_bootstrap.exe".GenerateTemporaryFilename();
 
                 
-                using (var fs = System.IO.File.Create(bootstrapuitempfile)) {
+                using (var fs = System.IO.File.Create(managedBootstrapTemporaryFile)) {
                     fs.Write(Properties.Resources.coapp_managed_bootstrap, 0, Properties.Resources.coapp_managed_bootstrap.Length);
                 }
 
                 // resign the file
-                var peBinary = PeBinary.Load(bootstrapuitempfile);
+                var peBinary = PeBinary.Load(managedBootstrapTemporaryFile);
                 peBinary.StrongNameKeyCertificate = Source.Certificate;
                 peBinary.SigningCertificate = Source.Certificate;
                 peBinary.CompanyName = Model.Vendor;
@@ -128,7 +128,7 @@ namespace CoApp.Autopackage {
                 peBinary.FileVersion = Model.Version.UInt64VersiontoString();
                 peBinary.Save();
 
-                coappBootstrapBin.Attributes.SourceFile = bootstrapuitempfile;
+                coappBootstrapBin.Attributes.SourceFile = managedBootstrapTemporaryFile;
             }
         }
 

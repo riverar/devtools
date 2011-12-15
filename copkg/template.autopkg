@@ -1,0 +1,33 @@
+templates {
+   native-publisher-configuration : @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<assembly xmlns=""urn:schemas-microsoft-com:asm.v1"" manifestVersion=""1.0"">
+    <assemblyIdentity type=""win32-policy"" publicKeyToken=""${this.Assembly.PublicKeyToken}"" name=""policy.${this.OldAssembly.MajorMinorVersion}.${this.Assembly.Name}"" version=""${this.Assembly.Version}"" processorArchitecture=""${this.Assembly.Architecture}""/>
+    <dependency>
+        <dependentAssembly>
+            <assemblyIdentity type=""win32"" publicKeyToken=""${this.Assembly.PublicKeyToken}"" name=""${this.Assembly.Name}"" processorArchitecture=""${this.Assembly.Architecture}""/>
+            <bindingRedirect oldVersion=""${this.OldAssembly.VersionRange}"" newVersion=""${this.Assembly.Version}""/>
+        </dependentAssembly>
+    </dependency>
+</assembly>
+";
+
+    managed-publisher-configuration : @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<configuration>
+    <runtime>
+        <assemblyBinding xmlns=""urn:schemas-microsoft-com:asm.v1"">
+            <dependentAssembly>
+                <assemblyIdentity name=""${this.Assembly.Name}"" publicKeyToken=""${this.Assembly.PublicKeyToken}""/>
+                <bindingRedirect oldVersion=""${this.OldAssembly.VersionRange}"" newVersion=""${this.Assembly.Version}""/>
+            </dependentAssembly>
+        </assemblyBinding>
+    </runtime>
+</configuration>
+";
+
+    native-assembly-manifest : @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<assembly xmlns=""urn:schemas-microsoft-com:asm.v1"" manifestVersion=""1.0"">
+    <assemblyIdentity type=""win32"" name=""${this.Assembly.Version}"" version=""${this.Assembly.Version}"" processorArchitecture=""${this.Assembly.Architecture}"" publicKeyToken=""${this.Assembly.PublicKeyToken}""/>
+${Assembly.Files}
+${Assembly.Dependency}
+</assembly>";
+}

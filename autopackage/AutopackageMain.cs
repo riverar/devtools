@@ -247,6 +247,9 @@ namespace CoApp.Autopackage {
                         case "help":
                             return Help();
 
+                        case "no-toolkit-dependency":
+                            break;
+
                         default:
                             throw new ConsoleException(Resources.UnknownParameter, arg);
                     }
@@ -321,16 +324,17 @@ namespace CoApp.Autopackage {
             PackageModel.ProcessAssemblyRules();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
+           
+            // Validate the basic information of this package
+            PackageModel.ProcessBasicPackageInformation();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
 
             // Gather the dependency information for the package
             PackageModel.ProcessDependencyInformation();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
             
-            // Validate the basic information of this package
-            PackageModel.ProcessBasicPackageInformation();
-            // at the end of the step, if there are any errors, let's print them out and exit now.
-            FailOnErrors();
 
             // Build Assembly Manifests, catalog files and policy files
             PackageModel.ProcessAssemblyManifests();
@@ -364,7 +368,7 @@ namespace CoApp.Autopackage {
             wixDocument.CreatePackageFile(msiFile);
             FailOnErrors();
 
-            // PeBinary.SignFile(msiFile, PackageSource.Certificate);
+            PeBinary.SignFile(msiFile, PackageSource.Certificate);
             Console.WriteLine("\r\n ==========\r\n DONE : Signed MSI File: {0}", msiFile);
         }
 

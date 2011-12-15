@@ -9,12 +9,12 @@
     
       <!-- add in the custom action native bootstrap-->
 
-      <Binary Id="native-bootstrap.exe"/>
-      <CustomAction Id="native-bootstrap-CA" BinaryKey="native-bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
+      <Binary Id="native_bootstrap.exe"/>
+      <CustomAction Id="native_bootstrap_CA" BinaryKey="native_bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
     
       <!-- add in the custom action managed bootstrap here -->
-      <Binary Id="managed-bootstrap.exe"/>
-      <CustomAction Id="managed-bootstrap-CA" BinaryKey="managed-bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
+      <Binary Id="managed_bootstrap.exe"/>
+      <CustomAction Id="managed_bootstrap_CA" BinaryKey="managed_bootstrap.exe" ExeCommand="[OriginalDatabase]" Impersonate="yes" Return="asyncNoWait" Execute="commit"/>
 
       <Property Id="NETFRAMEWORK40"><RegistrySearch Id="NetFramework40" Root="HKLM" Key="Software\Microsoft\NET Framework Setup\NDP\v4\Full" Name="Install" Type="raw"/></Property>
     
@@ -46,8 +46,8 @@
         <MsiPublishAssemblies Sequence="6250">COAPP_INSTALLED</MsiPublishAssemblies>
         <PublishFeatures Sequence="6300">COAPP_INSTALLED</PublishFeatures>
         <PublishProduct Sequence="6400">COAPP_INSTALLED</PublishProduct>
-        <Custom Action="native-bootstrap-CA" Before="managed-bootstrap-CA">NOT COAPP_INSTALLED AND NOT REMOVE AND NOT NETFRAMEWORK40</Custom>
-        <Custom Action="managed-bootstrap-CA" Before="InstallFinalize">NOT COAPP_INSTALLED AND NOT REMOVE AND NETFRAMEWORK40</Custom>
+        <Custom Action="native_bootstrap_CA" Before="managed_bootstrap_CA">NOT COAPP_INSTALLED AND NOT REMOVE AND NOT NETFRAMEWORK40</Custom>
+        <Custom Action="managed_bootstrap_CA" Before="InstallFinalize">NOT COAPP_INSTALLED AND NOT REMOVE AND NETFRAMEWORK40</Custom>
         <InstallFinalize Sequence="6600"></InstallFinalize>
       </InstallExecuteSequence>
     </Product>

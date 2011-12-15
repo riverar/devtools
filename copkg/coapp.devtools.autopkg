@@ -1,0 +1,87 @@
+// autopackage file for coapp.devtools
+
+package {
+    name: "CoApp.Devtools";
+    display-name: "CoApp Developer Tools";
+    
+    location: "http://coapp.org/repository/${OutputFilename}";
+}
+
+// requires {
+    //  should be implict now: package: "coapp.toolkit-1.1.*";
+// }
+
+provides {
+    feature: "coapp.devtools" = "1.0";
+}
+
+
+metadata {
+    summary: "The CoApp Developer Tools";
+    description: @"This package contains the developer and publisher tools for the CoApp package manager. This includes:
+
+- Autopackage : Packaging Tool to create CoApp packages
+- QuickTool.exe : Makes it quick and easy to share code snippets, images and links
+- pTk.exe : Porting Toolkit - a build automation tool for shallow forking
+- Scan.exe : Source code static scan tool
+- simplesigner.exe : Makes Digital Signing and Strong naming binaries trivial"; 
+    icon: @"images\logo3.png";
+    
+    author-version : "1.0 Beta3";
+    bug-tracker: "https://github.com/organizations/coapp/dashboard/issues";
+    stability : "-100";
+}
+
+compatability-policy {
+    minimum: "1.0.0.0";
+    maximum: "${OneLessThanCurrent}"; // this is the default
+    versions : {
+        "1.0",
+        "1.1",
+    }; // if not specified, find the versions by looking at the feeds and finding all the major/minor versions in range.
+}
+
+files[exes] {
+    root: "..\output\any\release\bin";
+    
+    include: {
+        "autopackage.exe",
+        "mkrepo.exe",
+        "ptk.exe",
+        "quicktool.exe",
+        "scan.exe",
+        "simplesigner.exe",
+        "toolscanner.exe",
+    };
+    
+    trim-path: minimal;
+};
+
+files[dlls] {
+    root: "..\output\any\release\bin";
+    
+    include: {
+        "coapp.developer.toolkit.dll",
+        "coapp.cci.dll"
+    };
+    
+    trim-path: minimal;
+};
+
+application {
+    include : {
+    exes
+    };
+}
+
+assemblies {
+    include : {
+      dlls
+    };
+}
+
+package-composition {
+    symlinks : { 
+        exes => @"${bin}\${each.Name}" = @"${packagedir}\${each.Name}";
+    };
+}
