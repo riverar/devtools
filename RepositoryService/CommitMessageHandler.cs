@@ -20,6 +20,7 @@ namespace CoApp.RepositoryService {
     public class CommitMessageHandler : RequestHandler {
         private Tweeter _tweeter;
         private ProcessUtility _cmdexe = new ProcessUtility("cmd.exe");
+        private ProcessUtility _robocopy = new ProcessUtility("robocopy.exe");
 
         public CommitMessageHandler(string twitterHandle) {
             if( !string.IsNullOrEmpty(twitterHandle) ) {
@@ -77,6 +78,12 @@ namespace CoApp.RepositoryService {
                                 var node = new ProcessUtility(@"tools\node.exe");
                                 if( node.Exec(@"node_modules\coffee-script\bin\coffee node_modules\docpad\bin\docpad generate") != 0 ) {
                                     Console.WriteLine("DocPad Failure:\r\n{0}", node.StandardOut);
+                                    return;
+                                }
+
+                                Console.WriteLine("(3) Robocopying the site into the live directory");
+                                if (_robocopy.Exec(@"/MIR c:\tools\new_coapp.org\out e:\sitesroot\0") != 0) {
+                                    Console.WriteLine("Robocopy Failure:\r\n{0}", _robocopy.StandardOut);
                                     return;
                                 }
 
