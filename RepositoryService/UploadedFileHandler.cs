@@ -52,6 +52,19 @@ namespace CoApp.RepositoryService {
             }
         }
 
+        /*
+        public override Task Post(HttpListenerResponse response, string relativePath, Toolkit.Pipes.UrlEncodedMessage message) {
+            var fileData = message["file"].ToString();
+            if( string.IsNullOrEmpty(fileData) ) {
+                response.StatusCode = 500;
+                response.Close();
+                return "".AsResultTask();
+            }
+            
+            var data = fileData.UrlDecode();
+        }
+        */
+
         public override Task Put(HttpListenerResponse response, string relativePath, byte[] data) {
             if( data.Length < 1 ) {
                 response.StatusCode = 500;
