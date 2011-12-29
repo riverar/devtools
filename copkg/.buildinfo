@@ -35,7 +35,6 @@ sign {
     
     set : cfg = "Release";
     set : release_dir = @"output\any\Release\bin\";
-    set : binaries_dir = @"ext\binaries\";
     
     default: false;
     
@@ -48,16 +47,8 @@ sign {
     
      build-command: @"
         REM sign files in release directory
-        ext\tools\simplesigner --nologo ""${release_dir}CoApp.Toolkit.dll"" ""${release_dir}CoApp.Toolkit.Engine.dll"" ""${release_dir}CoApp.Toolkit.Engine.Client.dll"" ""${release_dir}CoApp.Service.exe"" ""${release_dir}CoApp.Cleaner.exe"" ""${release_dir}CoApp.exe""
+        ext\tools\simplesigner --nologo  ""${release_dir}autopackage.exe"" ""${release_dir}Azure.exe"" ""${release_dir}CoApp.RepositoryService.exe"" ""${release_dir}mkRepo.exe"" ""${release_dir}pTk.exe"" ""${release_dir}QuickTool.exe"" ""${release_dir}Scan.exe"" ""${release_dir}simplesigner.exe"" ""${release_dir}ToolScanner.exe"" ""${release_dir}CoApp.CCI.dll"" ""${release_dir}CoApp.Developer.Toolkit.dll""
         
-        REM copy signed files into binaries submodule
-        copy ""${release_dir}CoApp.Toolkit.dll"" ""${binaries_dir}"" || goto failed
-        copy ""${release_dir}CoApp.Toolkit.Engine.dll""  ""${binaries_dir}"" || goto failed
-        copy ""${release_dir}CoApp.Toolkit.Engine.Client.dll""  ""${binaries_dir}"" || goto failed
-        copy ""${release_dir}CoApp.Service.exe""  ""${binaries_dir}"" || goto failed 
-        copy ""${release_dir}CoApp.Cleaner.exe"" ""${binaries_dir}"" || goto failed 
-        copy ""${release_dir}CoApp.exe"" ""${binaries_dir}"" || goto failed
-
         REM Everything went ok!
         exit /b 0
         
@@ -73,7 +64,6 @@ publish {
     set : release_dir = @"output\any\Release\bin\";
     set : binaries_dir = @"..\binaries\";
     set : tools_dir = @"..\tools\";
-    set : submodule_binaries = @"ext\binaries\";
     
     default: false;
     uses: {
@@ -82,17 +72,21 @@ publish {
     
     build-command: @"
         REM copy binaries into ..\binaries folder (this should be the one that is committed back when published)
-        copy ""${submodule_binaries}managed-bootstrap.exe"" ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}native-bootstrap.exe"" ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}CoApp.Rehash.x86.dll""  ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}CoApp.Rehash.x64.dll""  ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}CoApp.Resources.dll""  ""${binaries_dir}""  || goto failed
-        copy ""${submodule_binaries}CoApp.Toolkit.dll"" ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}CoApp.Toolkit.Engine.dll""  ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}CoApp.Toolkit.Engine.Client.dll""  ""${binaries_dir}"" || goto failed
-        copy ""${submodule_binaries}CoApp.Service.exe""  ""${binaries_dir}"" || goto failed 
-        copy ""${submodule_binaries}CoApp.Cleaner.exe"" ""${binaries_dir}"" || goto failed 
-        copy ""${submodule_binaries}CoApp.exe"" ""${binaries_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}autopackage.exe""  ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}Azure.exe""  ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}CoApp.RepositoryService.exe""  ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}mkRepo.exe"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}pTk.exe"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}QuickTool.exe"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}Scan.exe"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}simplesigner.exe"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}ToolScanner.exe"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}CoApp.CCI.dll"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}CoApp.Developer.Toolkit.dll""  ""${tools_dir}"" || goto failed
+
+        xcopy /Q /D /Y  ""${release_dir}CoApp.CCI.dll""  ""${binaries_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}CoApp.Developer.Toolkit.dll""  ""${binaries_dir}"" || goto failed
+
 
         REM probably should commit these...
         REM pushd ${binaries_dir}
@@ -129,13 +123,17 @@ anycpu {
     uses: clean;
     
     targets: { 
-        @"output\any\${cfg}\bin\CoApp.Cleaner.exe",
-        @"output\any\${cfg}\bin\CoApp.exe",
-        @"output\any\${cfg}\bin\CoApp.Service.exe",
-        @"output\any\${cfg}\bin\CoApp.Toolkit.dll",
-        @"output\any\${cfg}\bin\CoApp.Toolkit.Engine.Client.dll",
-        @"output\any\${cfg}\bin\CoApp.Toolkit.Engine.dll",
-
+        @"output\any\${cfg}\bin\autopackage.exe",
+        @"output\any\${cfg}\bin\Azure.exe",
+        @"output\any\${cfg}\bin\CoApp.RepositoryService.exe",
+        @"output\any\${cfg}\bin\mkRepo.exe",
+        @"output\any\${cfg}\bin\pTk.exe",
+        @"output\any\${cfg}\bin\QuickTool.exe",
+        @"output\any\${cfg}\bin\Scan.exe",
+        @"output\any\${cfg}\bin\simplesigner.exe",
+        @"output\any\${cfg}\bin\ToolScanner.exe",
+        @"output\any\${cfg}\bin\CoApp.CCI.dll",
+        @"output\any\${cfg}\bin\CoApp.Developer.Toolkit.dll",
     };
 
     build-command: @"
