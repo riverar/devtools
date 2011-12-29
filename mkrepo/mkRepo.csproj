@@ -39,10 +39,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="coapp.toolkit">
-      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.dll</HintPath>
     </Reference>
     <Reference Include="coapp.toolkit.engine.client">
-      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.engine.client.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -74,6 +72,8 @@
     <None Include="Resources\HelpText.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup><AssemblySearchPaths>$(SolutionDir)\ext\libraries\;$(SolutionDir)\ext\binaries\;$(AssemblySearchPaths)</AssemblySearchPaths></PropertyGroup>  
+  
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

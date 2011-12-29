@@ -55,7 +55,6 @@
   <ItemGroup>
     <Reference Include="coapp.toolkit, Version=1.1.2.1276, Culture=neutral, PublicKeyToken=820d50196d4e8857, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Build" />
     <Reference Include="System" />
@@ -97,6 +96,7 @@
     <Content Include="$(SolutionDir)resources\CoApp.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup><AssemblySearchPaths>$(SolutionDir)\ext\libraries\;$(SolutionDir)\ext\binaries\;$(AssemblySearchPaths)</AssemblySearchPaths></PropertyGroup>  
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
