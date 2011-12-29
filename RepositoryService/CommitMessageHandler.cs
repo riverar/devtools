@@ -71,7 +71,7 @@ namespace CoApp.RepositoryService {
                                 Environment.CurrentDirectory = @"c:\tools\new_coapp.org";
                                 if (_cmdexe.Exec(@"/c git.cmd pull") != 0 ) {
                                     Console.WriteLine("Git Pull Failure:\r\n{0}", _cmdexe.StandardOut);
-                                    return;
+                                    return; 
                                 }
 
                                 Console.WriteLine("(2) Running DocPad Generate");

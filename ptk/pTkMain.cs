@@ -118,7 +118,7 @@ pTK [options] action [buildconfiguration...]
         /// Does the user want us to print more?
         /// </summary>
         private bool _verbose;
-        private readonly Dictionary<string, string> _originalEnvironment = GetEnvironment();
+        private Dictionary<string, string> _originalEnvironment = GetEnvironment();
         /// <summary>
         /// Tell the user which tools we are using?
         /// </summary>
@@ -128,6 +128,7 @@ pTK [options] action [buildconfiguration...]
         /// </summary>
         private readonly List<string> _tmpFiles= new List<string>();
         private string _searchPaths = "";
+        private PropertySheet _propertySheet;
 
         /// <summary>
         /// Entry Point
@@ -219,15 +220,6 @@ pTK [options] action [buildconfiguration...]
                         Environment.SetEnvironmentVariable(v[0], v[1]);
                         // Console.WriteLine("Setting ENV: [{0}]=[{1}]", v[0], v[1]);
                     }
-
-                /*
-                targetCpu = Environment.GetEnvironmentVariable("TARGET_CPU");
-                if (string.IsNullOrEmpty(targetCpu) || (targetCpu == "x64" && arch == "x86") || (targetCpu == "x86" && arch != "x86")) {
-                    Console.WriteLine("Arch: {0}", arch);
-                    Console.WriteLine("TargetCPU: {0}", targetCpu);
-                    throw new CoAppException("Cannot set the SDK environment. Please install the Windows SDK ({0}) and use the setenv.cmd command to set your environment".format(sdkName));
-                }
-                 */
             }
         }
 
@@ -486,7 +478,7 @@ pTK [options] action [buildconfiguration...]
             var f = new ProgramFinder("").ScanForFile("trace.exe");
 
             if(!string.IsNullOrEmpty(f)) {
-                _traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
+                //_traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
             }
 
             _ptk = new ProcessUtility(Assembly.GetEntryAssembly().Location);
@@ -564,18 +556,18 @@ pTK [options] action [buildconfiguration...]
                 Console.WriteLine("VC vcvars32 (6): {0}", _vcvars32bat ?? "Not-Found");
 
                 Console.WriteLine("ptk: {0}", _ptk.Executable);
-                Console.WriteLine("trace: {0}", _traceexe.Executable);
+                //Console.WriteLine("trace: {0}", _traceexe.Executable);
             }
 
             // load property sheet (that is the .buildinfo file by default)
-            PropertySheet propertySheet = null;
+            _propertySheet = null;
             try {
                 // load and parse. propertySheet will contain everything else we need for later
-                propertySheet = PropertySheet.Load(buildinfo);
-                propertySheet.GetMacroValue += (valueName) => {
-                    return null;
+                _propertySheet = PropertySheet.Load(buildinfo);
+                _propertySheet.GetMacroValue += (valueName) => {
+                    return Environment.GetEnvironmentVariable(valueName);
                 };
-                propertySheet.GetCollection += (collectionName) => {
+                _propertySheet.GetCollection += (collectionName) => {
                     return Enumerable.Empty<object>();
                 };
             }
@@ -587,9 +579,10 @@ pTK [options] action [buildconfiguration...]
 
                 return Fail("Error parsing .buildinfo file");
             }
-            var builds = from rule in propertySheet.Rules where rule.Name != "*" select rule;
+            var builds = from rule in _propertySheet.Rules where rule.Name != "*" && (!rule.HasProperty("default") || rule["default"].Value.IsTrue() ) select rule;
+
             if (parameters.Count() > 1) {
-                var allbuilds = builds;
+                var allbuilds = from rule in _propertySheet.Rules where rule.Name != "*" select rule;;
                 builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
             }
             
@@ -612,7 +605,7 @@ pTK [options] action [buildconfiguration...]
                         }
                         break;
                     case "verify":
-                        Clean(builds); // clean up other builds in the list first.
+                        // Clean(builds); // clean up other builds in the list first.
                         Verify(builds);
                         using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
                             Console.WriteLine("Project Verified.");
@@ -624,11 +617,11 @@ pTK [options] action [buildconfiguration...]
                             Console.WriteLine("Project is in clean state.");
                         }
                         break;
-                    case "trace":
-                        Trace(builds);
-                        break;
+                    //case "trace":
+                      //  Trace(builds);
+                        //break;
                     case "list":
-                        Console.WriteLine("Buildinfo from [{0}]", buildinfo);
+                        Console.WriteLine("Buildinfo from [{0}]\r\n", buildinfo);
                         (from build in builds
                             let compiler = build["compiler"] 
                             let sdk = build["sdk"]
@@ -759,22 +752,144 @@ pTK [options] action [buildconfiguration...]
 
         private void Clean(IEnumerable<Rule> builds) {
             foreach( var build in builds ) {
-                SetCompilerSdkAndPlatform(build);
-
-
-                var cmd = build["clean-command"];
-                if( cmd == null ) 
-                    throw new ConsoleException("missing clean command in build {0}",build.Name);
-
                 try {
-                    Exec(cmd.Value);
-                } catch
-                {
+                    // set environment variables:
+                    var savedVariables = _originalEnvironment;
+                    _originalEnvironment = new Dictionary<string, string>(savedVariables);
+
+                    var sets = build["set"];
+                    if (sets != null) {
+                        foreach (var label in sets.Labels) {
+                            if (_originalEnvironment.ContainsKey(label)) {
+                                _originalEnvironment[label] = sets[label].Value;
+                            }
+                            else {
+                                _originalEnvironment.Add(label, sets[label].Value);
+                            }
+                        }
+                    }
+
+                    // build dependencies first
+                    CleanDependencies(build);
+
+                    SetCompilerSdkAndPlatform(build);
+
+                    var cmd = build["clean-command"];
+                    try {
+                        if (cmd != null && !string.IsNullOrEmpty(cmd.Value)) {
+                            Exec(cmd.Value);
+                        }
+                    }
+                    catch (Exception e) {
+                        //ignoring any failures from clean command.
+                    }
+                    File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
+
+                    _originalEnvironment = savedVariables;
+                }
+                catch (Exception e) {
+                    Console.WriteLine("Uh, throw? {0} : {1}", e.Message, e.StackTrace);
                     //ignoring any failures from clean command.
                 }
-                File.Delete(Path.Combine(Environment.CurrentDirectory, "trace[{0}].xml".format(build.Name)));
+
             }
         }
+
+        /// <summary>
+        /// Builds all dependencies listed in a given build rule
+        /// </summary>
+        /// <param name="build">A build rule to which the dependencies should be built</param>
+        private void CleanDependencies(Rule build) {
+            // save current directory
+            var pwd = Environment.CurrentDirectory;
+
+            var uses = build["uses"];
+            if (uses != null) {
+                foreach (var useLabel in uses.Labels) {
+                    var use = build["uses"][useLabel];
+
+                    var config = string.Empty;
+                    var folder = string.Empty;
+
+                    // set folder and configuration as needed
+                    config = useLabel;
+                    folder = use.Value;
+
+
+                    if (string.IsNullOrEmpty(config)) {
+                        // this could be a use in the local file.
+                        
+                        var builds = from rule in _propertySheet.Rules where use.Contains(rule.Name) select rule;
+                        
+                        if (builds.Any()) {
+                            Clean(builds);
+                            continue;
+                        }
+                    }
+
+                    // if it wasn't an internal build, then switch to the folder and run the build specified.
+
+                    folder = folder.GetFullPath();
+                    if (!Directory.Exists(folder)) {
+                        throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                    }
+
+                    var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
+                    if (!File.Exists(depBuildinfo)) {
+                        throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
+                    }
+
+                    // switch project directory
+                    Environment.CurrentDirectory = folder;
+                    // build dependency project
+                    _ptk.ExecNoRedirections("--nologo clean {0}", config);
+                    if (_ptk.ExitCode != 0)
+                        throw new ConsoleException(
+                            "Dependency project failed to clean [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
+                    // reset directory to where we came from
+                    Environment.CurrentDirectory = pwd;
+                }
+            }
+        }
+
+        private IEnumerable<Rule> LocalChildBuilds( Rule build ) {
+            var uses = build["uses"];
+            return uses != null ? (from useLabel in uses.Labels let use = uses[useLabel] where string.IsNullOrEmpty(useLabel) select (from rule in _propertySheet.Rules where use.Contains(rule.Name) select rule)).Aggregate(Enumerable.Empty<Rule>(), (current, builds) => current.Union(builds)) : Enumerable.Empty<Rule>();
+        }
+
+       private Dictionary<string,string> ExternalChildBuilds( Rule build ) {
+           var result = new Dictionary<string, string>();
+           
+           var uses = build["uses"];
+           if (uses != null) {
+               foreach (var useLabel in uses.Labels) {
+                   var use = build["uses"][useLabel];
+
+                   var config = useLabel;
+                   var folder = use.Value;
+
+                   if (string.IsNullOrEmpty(config)) {
+                       if ((from rule in _propertySheet.Rules where use.Contains(rule.Name) select rule).Any()) {
+                           continue;
+                       }
+                   }
+
+                   // if it wasn't an internal build, then switch to the folder and run the build specified.
+
+                   folder = folder.GetFullPath();
+                   if (!Directory.Exists(folder)) {
+                       throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                   }
+
+                   var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
+                   if (!File.Exists(depBuildinfo)) {
+                       throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
+                   }
+                   result.Add(folder, config);
+               }
+           }
+           return result;
+       }
 
         /// <summary>
         /// Builds all dependencies listed in a given build rule
@@ -796,10 +911,24 @@ pTK [options] action [buildconfiguration...]
                     config = useLabel;
                     folder = use.Value;
 
+
+                    if (string.IsNullOrEmpty(config)) {
+                        // this could be a use in the local file.
+                        var builds = from rule in _propertySheet.Rules where use.Contains(rule.Name) select rule;
+
+                        if( builds.Any() ) {
+                            Build(builds);
+                            continue;
+                        }
+                    }
+
+                    // if it wasn't an internal build, then switch to the folder and run the build specified.
+
                     folder = folder.GetFullPath();
                     if (!Directory.Exists(folder)) {
                         throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
                     }
+
                     var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
                     if (!File.Exists(depBuildinfo)) {
                         throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
@@ -824,23 +953,61 @@ pTK [options] action [buildconfiguration...]
         /// <param name="builds">A list of build rules to build</param>
         private void Build(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
+                // set environment variables:
+                var savedVariables = _originalEnvironment;
+                _originalEnvironment = new Dictionary<string, string>(savedVariables);
+
+                var sets = build["set"];
+                if (sets != null) {
+                    foreach( var label in sets.Labels ) {
+                        if (_originalEnvironment.ContainsKey(label)) {
+                            _originalEnvironment[label] = sets[label].Value;
+                        }
+                        else {
+                            _originalEnvironment.Add(label, sets[label].Value);
+                        }
+                    }
+                }
+
                 // build dependencies first
                 BuildDependencies(build);
-
+                     
                 SetCompilerSdkAndPlatform(build);
 
                 // read the build command from PropertySheet
                 var cmd = build["build-command"];
-                if (cmd == null)
-                    throw new ConsoleException("missing build command in build {0}", build.Name);
 
                 // tell the user which build rule we are processing right now
                 using (new ConsoleColors(ConsoleColor.White, ConsoleColor.Black)) {
-                    Console.WriteLine("Built Configuration [{0}]", build.Name);
+                    Console.WriteLine("Building Configuration [{0}]", build.Name);
                 }
 
                 // run this build command
-                Exec(cmd.Value);
+                if (cmd != null && !string.IsNullOrEmpty(cmd.Value)) {
+                    Exec(cmd.Value);
+                }
+
+                // check to see that the right things got built
+                CheckTargets(build);
+
+                _originalEnvironment = savedVariables;
+            }
+        }
+
+        private void CheckTargets(Rule build) {
+            var kids = LocalChildBuilds(build);
+            foreach (var childBuild in LocalChildBuilds(build)) {
+                CheckTargets(childBuild);
+            }
+
+            if (build["targets"] != null) {
+                foreach (var targ in build["targets"].Values.Where(targ => !File.Exists(targ))) {
+                    throw new ConsoleException("Target [{0}] was not found.", targ);
+                }
+            }
+
+            using (new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black)) {
+                Console.WriteLine("Targets Verified.");
             }
         }
 
@@ -853,19 +1020,34 @@ pTK [options] action [buildconfiguration...]
         /// <param name="builds">A list of build rules to verify</param>
         private void Verify(IEnumerable<Rule> builds) {
             foreach (var build in builds) {
-                Clean( build.SingleItemAsEnumerable());
+                Clean(build.SingleItemAsEnumerable());
                 Build(build.SingleItemAsEnumerable());
-                
-                foreach (var targ in build["targets"].Values.Where(targ => !File.Exists(targ))) {
-                    throw new ConsoleException("Target [{0}] was not found.", targ);
+
+                CheckTargets(build);
+/*
+                // check (local) children's targets first
+                var kids = LocalChildBuilds(build);
+                foreach (var childBuild in kids) {
+                    if (childBuild["targets"] != null) {
+                        foreach (var targ in childBuild["targets"].Values.Where(targ => !File.Exists(targ))) {
+                            throw new ConsoleException("Target [{0}] was not found.", targ);
+                        }
+                    }
+                }
+
+                if (build["targets"] != null) {
+                    foreach (var targ in build["targets"].Values.Where(targ => !File.Exists(targ))) {
+                        throw new ConsoleException("Target [{0}] was not found.", targ);
+                    }
                 }
 
                 using (new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black)) {
                     Console.WriteLine("Targets Verified.");
                 }
-
+*/
                 Clean(build.SingleItemAsEnumerable());
                 Status(build.SingleItemAsEnumerable());
+
             }
         }
 

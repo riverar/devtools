@@ -201,10 +201,7 @@ Metadata Options:
 
             Logo();
 
-            if (parameters.Count() < 1) {
-                return Fail("Missing files to sign/name. \r\n\r\n    Use --help for command line help.");
-            }
-
+           
             if( _verify ) {
                 return Verify(parameters);
             }
@@ -229,6 +226,11 @@ Metadata Options:
                 _certificate.RememberPassword();
                 CertificateReference.Default = _certificate;
             }
+
+            if (parameters.Count() < 1) {
+                return Fail("Missing files to sign/name. \r\n\r\n    Use --help for command line help.");
+            }
+
 
             var tasks = new List<Task>();
 
