@@ -86,17 +86,6 @@ publish {
 
         xcopy /Q /D /Y  ""${release_dir}CoApp.CCI.dll""  ""${binaries_dir}"" || goto failed
         xcopy /Q /D /Y  ""${release_dir}CoApp.Developer.Toolkit.dll""  ""${binaries_dir}"" || goto failed
-
-
-        REM probably should commit these...
-        REM pushd ${binaries_dir}
-        REM git commit -a -m ""updated binaries""
-        REM git push 
-        REM 
-        REM popd
-        REM cd ${submodule_binaries}
-        rem git reset --hard HEAD
-        rem git pull 
      
         rem TODO: package stuff too?
         rem 

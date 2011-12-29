@@ -995,6 +995,11 @@ pTK [options] action [buildconfiguration...]
         }
 
         private void CheckTargets(Rule build) {
+            // we need the environment set correctly here.
+            var savedVariables = _originalEnvironment;
+            _originalEnvironment = new Dictionary<string, string>(savedVariables);
+            ResetEnvironment();
+
             var kids = LocalChildBuilds(build);
             foreach (var childBuild in LocalChildBuilds(build)) {
                 CheckTargets(childBuild);
@@ -1009,6 +1014,7 @@ pTK [options] action [buildconfiguration...]
             using (new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black)) {
                 Console.WriteLine("Targets Verified.");
             }
+            _originalEnvironment = savedVariables;
         }
 
         /// <summary>
