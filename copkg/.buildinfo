@@ -84,6 +84,11 @@ publish {
         xcopy /Q /D /Y  ""${release_dir}CoApp.CCI.dll"" ""${tools_dir}"" || goto failed
         xcopy /Q /D /Y  ""${release_dir}CoApp.Developer.Toolkit.dll""  ""${tools_dir}"" || goto failed
 
+        REM bring along the tool dependencies
+        xcopy /Q /D /Y  ""${release_dir}CoApp.Toolkit.dll"" ""${tools_dir}"" || goto failed
+        xcopy /Q /D /Y  ""${release_dir}CoApp.Toolkit.Engine.Client.dll""  ""${tools_dir}"" || goto failed
+
+
         xcopy /Q /D /Y  ""${release_dir}CoApp.CCI.dll""  ""${binaries_dir}"" || goto failed
         xcopy /Q /D /Y  ""${release_dir}CoApp.Developer.Toolkit.dll""  ""${binaries_dir}"" || goto failed
      

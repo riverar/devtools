@@ -998,6 +998,18 @@ pTK [options] action [buildconfiguration...]
             // we need the environment set correctly here.
             var savedVariables = _originalEnvironment;
             _originalEnvironment = new Dictionary<string, string>(savedVariables);
+            
+            var sets = build["set"];
+            if (sets != null) {
+                foreach (var label in sets.Labels) {
+                    if (_originalEnvironment.ContainsKey(label)) {
+                        _originalEnvironment[label] = sets[label].Value;
+                    } else {
+                        _originalEnvironment.Add(label, sets[label].Value);
+                    }
+                }
+            }
+
             ResetEnvironment();
 
             var kids = LocalChildBuilds(build);
