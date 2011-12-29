@@ -1,8 +1,9 @@
 @echo off
 setlocal
 
-cd "%~dp0\..\ext\binaries" || goto failed
-echo Y | erase *.* || goto failed
+\cd "%~dp0\..\ext\binaries" || goto failed
+echo Y | erase *.exe || goto failed
+echo Y | erase *.dll || goto failed
 
 git reset --hard HEAD || goto failed
 
