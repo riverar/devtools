@@ -1,1 +1,163 @@
+#product-info {
+    product-name: "coapp devtools";
+    version: "1.1";
+    original-source-location: "git@github.com:coapp/devtools.git";
+    original-source-website: "https://github.com/coapp/devtools";
+    license: "Apache2.0";
+    packager: "garrett serack <garretts@microsoft.com>";
+}
 
+release { 
+    // builds the binaries in "Release" mode but does not sign them.
+    set : cfg = "Release";
+    uses : {
+        anycpu 
+    };
+    
+    build-command: @"echo build done.";
+}
+
+debug {
+    // builds binaries in debug mode
+    default: false;
+    set : cfg = "Debug";
+    uses : {
+        anycpu 
+    };
+    
+    build-command: @"echo build done.";
+}
+
+
+sign { 
+    // builds all the binaries in "Release" mode and digitally signs and 
+    // strong-names the binaries.
+    
+    set : cfg = "Release";
+    set : release_dir = @"output\any\Release\bin\";
+    set : binaries_dir = @"ext\binaries\";
+    
+    default: false;
+    
+    uses: {
+        anycpu
+    };
+        
+    targets: {
+    };
+    
+     build-command: @"
+        REM sign files in release directory
+        ext\tools\simplesigner --nologo ""${release_dir}CoApp.Toolkit.dll"" ""${release_dir}CoApp.Toolkit.Engine.dll"" ""${release_dir}CoApp.Toolkit.Engine.Client.dll"" ""${release_dir}CoApp.Service.exe"" ""${release_dir}CoApp.Cleaner.exe"" ""${release_dir}CoApp.exe""
+        
+        REM copy signed files into binaries submodule
+        copy ""${release_dir}CoApp.Toolkit.dll"" ""${binaries_dir}"" || goto failed
+        copy ""${release_dir}CoApp.Toolkit.Engine.dll""  ""${binaries_dir}"" || goto failed
+        copy ""${release_dir}CoApp.Toolkit.Engine.Client.dll""  ""${binaries_dir}"" || goto failed
+        copy ""${release_dir}CoApp.Service.exe""  ""${binaries_dir}"" || goto failed 
+        copy ""${release_dir}CoApp.Cleaner.exe"" ""${binaries_dir}"" || goto failed 
+        copy ""${release_dir}CoApp.exe"" ""${binaries_dir}"" || goto failed
+
+        REM Everything went ok!
+        exit /b 0
+        
+        REM Something not ok :(
+        :failed
+        echo ERROR: Failure in script. aborting.
+        exit /b 1
+    ";
+}
+
+
+publish {
+    set : release_dir = @"output\any\Release\bin\";
+    set : binaries_dir = @"..\binaries\";
+    set : tools_dir = @"..\tools\";
+    set : submodule_binaries = @"ext\binaries\";
+    
+    default: false;
+    uses: {
+        sign
+    };
+    
+    build-command: @"
+        REM copy binaries into ..\binaries folder (this should be the one that is committed back when published)
+        copy ""${submodule_binaries}managed-bootstrap.exe"" ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}native-bootstrap.exe"" ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}CoApp.Rehash.x86.dll""  ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}CoApp.Rehash.x64.dll""  ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}CoApp.Resources.dll""  ""${binaries_dir}""  || goto failed
+        copy ""${submodule_binaries}CoApp.Toolkit.dll"" ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}CoApp.Toolkit.Engine.dll""  ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}CoApp.Toolkit.Engine.Client.dll""  ""${binaries_dir}"" || goto failed
+        copy ""${submodule_binaries}CoApp.Service.exe""  ""${binaries_dir}"" || goto failed 
+        copy ""${submodule_binaries}CoApp.Cleaner.exe"" ""${binaries_dir}"" || goto failed 
+        copy ""${submodule_binaries}CoApp.exe"" ""${binaries_dir}"" || goto failed
+
+        REM probably should commit these...
+        REM pushd ${binaries_dir}
+        REM git commit -a -m ""updated binaries""
+        REM git push 
+        REM 
+        REM popd
+        REM cd ${submodule_binaries}
+        rem git reset --hard HEAD
+        rem git pull 
+     
+        rem TODO: package stuff too?
+        rem 
+        
+        REM update version
+        cscript //e:jscript scripts\increment-build-version.js
+        
+        REM Everything went ok!
+        exit /b 0
+        
+        REM Something not ok :(
+        :failed
+        echo ERROR: Failure in script. aborting.
+        exit /b 1
+    ";
+}
+
+
+anycpu {
+    default: no;
+    platform : x86;
+    compiler: vc10;
+    
+    uses: clean;
+    
+    targets: { 
+        @"output\any\${cfg}\bin\CoApp.Cleaner.exe",
+        @"output\any\${cfg}\bin\CoApp.exe",
+        @"output\any\${cfg}\bin\CoApp.Service.exe",
+        @"output\any\${cfg}\bin\CoApp.Toolkit.dll",
+        @"output\any\${cfg}\bin\CoApp.Toolkit.Engine.Client.dll",
+        @"output\any\${cfg}\bin\CoApp.Toolkit.Engine.dll",
+
+    };
+
+    build-command: @"
+        msbuild  /p:Configuration=${cfg} ""/p:Platform=Any CPU"" devtools.sln || goto failed
+    
+        REM Everything went ok!
+        exit /b 0
+        
+        REM Something not ok :(
+        :failed
+        echo ERROR: Failure in script. aborting.
+        exit /b 1
+    ";
+  
+}
+
+clean {
+    default: no;
+    
+    clean-command: @"
+        rmdir /s /q output intermediate  > nul 2>&1
+        for /d %%v in (*) do if exist %%v\obj rmdir /s /q %%v\obj        
+        for /d %%v in (*) do if exist %%v\bin rmdir /s /q %%v\bin
+    ";
+}

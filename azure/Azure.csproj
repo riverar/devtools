@@ -51,7 +51,7 @@
   <ItemGroup>
     <Reference Include="coapp.toolkit, Version=1.1.2.1276, Culture=neutral, PublicKeyToken=820d50196d4e8857, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\binaries\coapp.toolkit.dll</HintPath>
+      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.WindowsAzure.StorageClient, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

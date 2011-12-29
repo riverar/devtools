@@ -35,7 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="coapp.toolkit">
-      <HintPath>$(SolutionDir)\binaries\coapp.toolkit.dll</HintPath>
+      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

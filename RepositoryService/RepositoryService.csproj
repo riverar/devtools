@@ -39,10 +39,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="coapp.toolkit">
-      <HintPath>$(SolutionDir)\binaries\coapp.toolkit.dll</HintPath>
+      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.dll</HintPath>
     </Reference>
     <Reference Include="coapp.toolkit.engine.client">
-      <HintPath>$(SolutionDir)\binaries\coapp.toolkit.engine.client.dll</HintPath>
+      <HintPath>$(SolutionDir)ext\binaries\coapp.toolkit.engine.client.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.WindowsAzure.StorageClient, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
