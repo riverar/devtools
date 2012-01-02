@@ -466,11 +466,7 @@ pTK [options] action [buildconfiguration...]
             // tell the user what we are
             Logo();
 
-            // tell the user we can't work without instructions
-            if (parameters.Count() < 1) {
-                return Fail("Missing action . \r\n\r\n    Use --help for command line help.");
-            }
-
+            
             #endregion
 
             // set up several tools we need
@@ -536,15 +532,12 @@ pTK [options] action [buildconfiguration...]
 
             if (_showTools) {
                 if (_useGit) {
-                    Console.Write("Git: {0}", _gitcmd ?? "");
-                    if (_gitexe != null) {
-                        Console.WriteLine(_gitexe.Executable ?? "");
-                    }
+                    Console.WriteLine("Git: {0}", _gitcmd ??  (_gitexe != null ? _gitexe.Executable : "Not-Found"));
                 }
                 if (_useHg) {
                     Console.WriteLine("hg: {0}", _hgexe.Executable);
                 }
-                Console.WriteLine("SDK Setenv (7.1): {0}", _vcvarsallbat10 ?? "Not-Found");
+                Console.WriteLine("SDK Setenv (7.1): {0}", _setenvcmd71 ?? "Not-Found");
                 Console.WriteLine("SDK Setenv (7.0): {0}", _setenvcmd7 ?? "Not-Found");
                 Console.WriteLine("SDK Setenv (6): {0}", _setenvcmd6 ?? "Not-Found");
 
@@ -557,6 +550,11 @@ pTK [options] action [buildconfiguration...]
 
                 Console.WriteLine("ptk: {0}", _ptk.Executable);
                 //Console.WriteLine("trace: {0}", _traceexe.Executable);
+            }
+
+            // tell the user we can't work without instructions
+            if (parameters.Count() < 1) {
+                return Fail("Missing action . \r\n\r\n    Use --help for command line help.");
             }
 
             // load property sheet (that is the .buildinfo file by default)
