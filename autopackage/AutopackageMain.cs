@@ -273,6 +273,8 @@ namespace CoApp.Autopackage {
 
                 Logo();
 
+                
+
                 // ------ Load Information to create Package 
                 PackageSource.LoadPackageSourceData(parameters);
 

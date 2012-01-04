@@ -393,13 +393,9 @@ pTK [options] action [buildconfiguration...]
         /// <returns>Error codes (0 for success, non-zero on Error)</returns>
         private int main(IEnumerable<string> args) {
             var options = args.Switches();
-            var parameters = args.Parameters();
-            var tempBuildinfo = (from a in @".\COPKG\".DirectoryEnumerateFilesSmarter("*.buildinfo", SearchOption.TopDirectoryOnly)
-                                 orderby a.Length ascending
-                                 select a.GetFullPath()).FirstOrDefault();
-            // find PropertySheet location
-            //we'll just use the default even though it won't work so I don't need to change the code much :)
-            var buildinfo = tempBuildinfo ?? @".\COPKG\.buildinfo".GetFullPath();
+            var parameters = args.Parameters().ToArray();
+
+            var buildinfo = string.Empty;
 
             Console.CancelKeyPress += (x, y) => {
                 Console.WriteLine("Stopping ptk.");
@@ -436,6 +432,10 @@ pTK [options] action [buildconfiguration...]
                     case "load":
                         // user specified a custom PropertySheet
                         buildinfo = argumentParameters.LastOrDefault().GetFullPath();
+                        if (!File.Exists(buildinfo)) {
+                            return Fail("Unable to find buildinfo file [{0}]. \r\n\r\n    Use --help for command line help.", buildinfo);
+                        }
+
                         break;
 
                     case "mingw-install":
@@ -456,8 +456,18 @@ pTK [options] action [buildconfiguration...]
                 }
             }
 
-            if (!File.Exists(buildinfo)) {
-                return Fail("Unable to find buildinfo file [{0}]. \r\n\r\n    Use --help for command line help.", buildinfo);
+            while (string.IsNullOrEmpty(buildinfo) || !File.Exists(buildinfo)) {
+                // if the user didn't pass in the file, walk up the tree to find the first directory that has a COPKG\.buildinfo file 
+                buildinfo = (from a in @".\COPKG\".DirectoryEnumerateFilesSmarter("*.buildinfo", SearchOption.TopDirectoryOnly)
+                                     orderby a.Length ascending
+                                     select a.GetFullPath()).FirstOrDefault() ?? @".\COPKG\.buildinfo".GetFullPath();
+
+                // try the parent directory.
+                var p = Path.GetDirectoryName(Environment.CurrentDirectory);
+                if (string.IsNullOrEmpty(p)) {
+                    return Fail("Unable to find buildinfo file [COPKG\\.buildinfo]--Even walking up the current tree.\r\n\r\n    Use --help for command line help.");
+                }
+                Environment.CurrentDirectory = p;
             }
 
             // make sure that we're in the parent directory of the .buildinfo file.
@@ -553,7 +563,7 @@ pTK [options] action [buildconfiguration...]
             }
 
             // tell the user we can't work without instructions
-            if (parameters.Count() < 1) {
+            if (!parameters.Any()) {
                 return Fail("Missing action . \r\n\r\n    Use --help for command line help.");
             }
 
@@ -577,21 +587,39 @@ pTK [options] action [buildconfiguration...]
 
                 return Fail("Error parsing .buildinfo file");
             }
-            var builds = from rule in _propertySheet.Rules where rule.Name != "*" && (!rule.HasProperty("default") || rule["default"].Value.IsTrue() ) select rule;
-
-            if (parameters.Count() > 1) {
-                var allbuilds = from rule in _propertySheet.Rules where rule.Name != "*" select rule;;
-                builds = parameters.Skip(1).Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
-            }
             
+            var builds = from rule in _propertySheet.Rules where rule.Name != "*" && (!rule.HasProperty("default") || rule["default"].Value.IsTrue()) select rule;
+            var command = string.Empty;
+
+           
+            switch(parameters.FirstOrDefault().ToLower()) {
+                case "build ":
+                case "clean":
+                case "verify":
+                case "status":
+                case "trace":
+                case "list":
+                    command = parameters.FirstOrDefault().ToLower();
+                    parameters = parameters.Skip(1).ToArray();
+                    break;
+
+                default:
+                    command = "build";
+                    break;
+            }
+            if (parameters.Any()) {
+                var allbuilds = from rule in _propertySheet.Rules where rule.Name != "*" select rule;
+                builds = parameters.Aggregate(Enumerable.Empty<Rule>(), (current, p) => current.Union(from build in allbuilds where build.Name.IsWildcardMatch(p) select build));
+            }
+
             // are there even builds present?
-            if(builds.Count() == 0 ) {
+            if(!builds.Any() ) {
                 return Fail("No valid build configurations selected.");
             }
 
             // do the user's bidding
             try {
-                switch (parameters.FirstOrDefault().ToLower()) {
+                switch (command) {
                     case "build":
                         Build(builds);
 
@@ -634,7 +662,7 @@ pTK [options] action [buildconfiguration...]
                             }).ToTable().ConsoleOut();
                         break;
                     default:
-                        return Fail("'{0}' is not a valid command. \r\n\r\n    Use --help for assistance.");
+                        return Fail("'{0}' is not a valid command. \r\n\r\n    Use --help for assistance.", command);
                 }
             }
             catch (ConsoleException e) {

@@ -4,6 +4,7 @@
     using System.Linq;
     using System.IO;
     using System.Security.Cryptography;
+    using Ionic.Zlib;
     using Microsoft.Win32;
     using CoApp.Toolkit.Exceptions;
     using CoApp.Toolkit.Extensions;
@@ -129,7 +130,7 @@
             return "";
         }
 
-        public void WriteBlob(string containerName, string blobName, string localFilename, Action<long> progress) {
+        public void WriteBlob(string containerName, string blobName, string localFilename,bool gzip, Action<long> progress) {
             if (!File.Exists(localFilename)) {
                 throw new FileNotFoundException("local filename does not exist", localFilename);
             }
@@ -160,7 +161,28 @@
                 if (!string.Equals(md5, localMD5, StringComparison.CurrentCultureIgnoreCase)) {
                     // different file
                     blob.Properties.ContentType = LookupMimeType(Path.GetExtension(localFilename));
+                    if (gzip) {
+                        blob.Properties.ContentEncoding = "gzip";
+                    }
+
                     try {
+                        // copy to tmp file to compress to gz.
+                        try {
+                            if (gzip) {
+                                var localGZFilename = localFilename.GenerateTemporaryFilename();
+                                using (var gzStream = new GZipStream(
+                                    new FileStream(localGZFilename, FileMode.CreateNew), CompressionMode.Compress, CompressionLevel.BestCompression)) {
+                                        using (var fs = new FileStream(localFilename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                        fs.CopyTo(gzStream);
+                                        localFilename = localGZFilename;
+                                    }
+                                }
+                            }
+                        } catch( Exception e ) {
+                            Console.WriteLine("\r\n\r\n{0} - {1}\r\n\r\n", e.Message, e.StackTrace);
+                            return;
+                        }
+
                         using (var stream = new ProgressStream(new FileStream(localFilename, FileMode.Open, FileAccess.Read, FileShare.Read), progress)) {
                             blob.UploadFromStream(stream);
                             if (blob.Metadata.AllKeys.Contains("MD5")) {

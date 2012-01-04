@@ -16,31 +16,36 @@ namespace CoApp.Autopackage {
         internal static ProcessUtility WixLinker;
 
         internal static void LocateCommandlineTools() {
-            WixCompiler = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("candle.exe"));
-            WixLinker = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("light.exe"));
-            ManifestTool = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("mt.exe"));
-            MakeCatalog = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("makecat.exe"));
-            AssemblyLinker = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("al.exe"));
-
-            if (WixCompiler.Executable == null) {
-                throw new ConsoleException("Unable to find 'candle.exe' from WiX 3.5 installation.");
+            try {
+                WixCompiler = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("candle.exe", minimumVersion:"3.6",executableType:ExecutableInfo.managed));
+            } catch {
+                throw new ConsoleException("Unable to find 'candle.exe' from WiX 3.5 installation. \r\n\r\n ****************\r\n Autopackage Requires Wix 3.6 to be installed\r\n Get it from (http://wix.codeplex.com/releases/view/75656)\r\n ****************\r\n");
             }
 
-            if (WixLinker.Executable == null) {
-                throw new ConsoleException("Unable to find 'light.exe' from WiX 3.5 installation.");
+            try {
+                WixLinker = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("light.exe", minimumVersion: "3.6", executableType: ExecutableInfo.managed));
+            } catch {
+                throw new ConsoleException("Unable to find 'light.exe' from WiX 3.5 installation. \r\n\r\n ****************\r\n Autopackage Requires Wix 3.6 to be installed\r\n Get it from (http://wix.codeplex.com/releases/view/75656)\r\n ****************\r\n");
             }
 
-            if (ManifestTool.Executable == null) {
+            try {
+                ManifestTool = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("mt.exe"));
+            } catch {
                 throw new ConsoleException("Unable to find 'mt.exe' from Windows SDK.");
             }
 
-            if (MakeCatalog.Executable == null) {
+            try {
+                MakeCatalog = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("makecat.exe"));
+            } catch {
                 throw new ConsoleException("Unable to find 'makecat.exe' from Windows SDK.");
             }
 
-            if (AssemblyLinker.Executable == null) {
+            try {
+                AssemblyLinker = new ProcessUtility(ProgramFinder.ProgramFilesAndDotNet.ScanForFile("al.exe"));
+            } catch {
                 throw new ConsoleException("Unable to find 'al.exe' from Windows SDK.");
             }
+
 
             if (ShowTools) {
                 Console.WriteLine("Tools:");

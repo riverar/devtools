@@ -16,6 +16,7 @@ namespace CoApp.RepositoryService {
     using System.Net;
     using System.Threading.Tasks;
     using System.Xml;
+    using Ionic.Zlib;
     using Toolkit.Engine.Client;
     using Toolkit.Engine.Model.Atom;
     using Toolkit.Exceptions;
@@ -115,9 +116,25 @@ namespace CoApp.RepositoryService {
                             //copy the package to the destination
                             if (_cloudFileSystem != null) {
                                 // copy file to azure storage
-                                _cloudFileSystem.WriteBlob(_packageStorageFolder, targetFilename, filename, (progress) => {
+                                _cloudFileSystem.WriteBlob(_packageStorageFolder, targetFilename, filename, false, (progress) => {
                                     ConsoleExtensions.PrintProgressBar("{0} => {1}".format(pkg.CanonicalName, _packageStorageFolder), progress);
                                 });
+
+                                if (pkg.Name.Equals("coapp.toolkit", StringComparison.CurrentCultureIgnoreCase) && pkg.PublicKeyToken.Equals("820d50196d4e8857", StringComparison.CurrentCultureIgnoreCase)) {
+                                    // update the default toolkit too
+                                    _cloudFileSystem.WriteBlob(_packageStorageFolder, "coapp.toolkit.msi", filename, false, (progress) => {
+                                        ConsoleExtensions.PrintProgressBar("{0} => {1}".format(_localfeedLocation, _packageStorageFolder), progress);
+                                    });
+                                    Console.WriteLine();
+                                }
+
+                                if (pkg.Name.Equals("coapp.devtools", StringComparison.CurrentCultureIgnoreCase) && pkg.PublicKeyToken.Equals("820d50196d4e8857", StringComparison.CurrentCultureIgnoreCase)) {
+                                    // update the default toolkit too
+                                    _cloudFileSystem.WriteBlob(_packageStorageFolder, "coapp.devtools.msi", filename, false, (progress) => {
+                                        ConsoleExtensions.PrintProgressBar("{0} => {1}".format(_localfeedLocation, _packageStorageFolder), progress);
+                                    });
+                                    Console.WriteLine();
+                                }
 
                                 // remove the local file, since we don't need it anymore.
                                 filename.TryHardToDelete();
@@ -166,10 +183,18 @@ namespace CoApp.RepositoryService {
 
                                 Feed.Save(_localfeedLocation);
                                 if (_cloudFileSystem != null) {
-                                    _cloudFileSystem.WriteBlob(_packageStorageFolder, Path.GetFileName(_localfeedLocation).ToLower() , _localfeedLocation, (progress) => {
+                                    _cloudFileSystem.WriteBlob(_packageStorageFolder, Path.GetFileName(_localfeedLocation).ToLower() , _localfeedLocation, false, (progress) => {
                                         ConsoleExtensions.PrintProgressBar("{0} => {1}".format(_localfeedLocation, _packageStorageFolder), progress);
                                     });
                                     Console.WriteLine();
+
+                                    _cloudFileSystem.WriteBlob(_packageStorageFolder, Path.GetFileName(_localfeedLocation).ToLower()+".gz", _localfeedLocation, true, (progress) => {
+                                        ConsoleExtensions.PrintProgressBar("{0} => {1}".format(_localfeedLocation+".gz", _packageStorageFolder), progress);
+                                    });
+                                    Console.WriteLine();
+                                    
+                                   
+                                    
                                 }
                             }
 

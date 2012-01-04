@@ -142,6 +142,9 @@
   <data name="WixTemplate" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\wixtemplate.xml;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
   </data>
+  <data name="template_autopkg" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\template.autopkg;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
   <data name="AP148" xml:space="preserve">
     <value>al.exe from the Windows SDK could not be found. Are you sure it's installed?</value>
   </data>

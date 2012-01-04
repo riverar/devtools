@@ -128,6 +128,9 @@ namespace CoApp.Autopackage {
         }
 
         internal void LoadPropertySheets(IEnumerable<string> parameters) {
+            //
+            var template = PropertySheet.Parse(Properties.Resources.template_autopkg, "autopkg-template");
+
             PropertySheets = parameters.Select(
                 each => {
                     if (!File.Exists(each.GetFullPath())) {
@@ -139,7 +142,7 @@ namespace CoApp.Autopackage {
                     result.GetMacroValue += GetMacroValue;
 
                     return result;
-                }).ToArray();
+                }).Union(template.SingleItemAsEnumerable()).ToArray();
 
             // this is the master list of all the rules from all included sheets
             AllRules = PropertySheets.SelectMany(each => each.Rules).Reverse().ToArray();

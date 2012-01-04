@@ -53,7 +53,7 @@ namespace CoApp.RepositoryService {
                 PackageBlocked = BlockedPackage,
                 UnknownPackage = UnknownPackage,
             };
-
+            
             var hosts = new string[] { "*" };
             var ports = new int[] { 80 };
             var commitMessage = "trigger";
@@ -71,7 +71,7 @@ namespace CoApp.RepositoryService {
 
             var options = args.Where(each => each.StartsWith("--")).Switches();
             var parameters = args.Where(each => !each.StartsWith("--")).Parameters();
-
+            var aliases = new Dictionary<string, string>();
 
             foreach (var arg in options.Keys) {
                 var argumentParameters = options[arg];
@@ -147,7 +147,12 @@ namespace CoApp.RepositoryService {
                         azureKey = last;
                         break;
                 }
+                if( arg.StartsWith("alias-")) {
+                    aliases.Add(arg.Substring(6), last);
+                }
             }
+
+
 
             Tweeter.Init(Settings, options);
             Bitly.Init(Settings, options);
@@ -171,7 +176,7 @@ namespace CoApp.RepositoryService {
                 }
 
                 
-                listener.AddHandler(commitMessage, new CommitMessageHandler(tweetCommits));
+                listener.AddHandler(commitMessage, new CommitMessageHandler(tweetCommits, aliases));
 
                 if( string.IsNullOrEmpty(packageStoragePath) || string.IsNullOrEmpty(localfeedLocation) || string.IsNullOrEmpty(packagePrefixUrl)  ) {
                     Console.WriteLine("[Package Uploader Disabled] specify must specify --package-path, --feed-path and  --package-prefix");

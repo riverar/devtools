@@ -10,6 +10,7 @@
 
 namespace CoApp.RepositoryService {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Threading.Tasks;
     using Newtonsoft.Json.Linq;
@@ -21,11 +22,12 @@ namespace CoApp.RepositoryService {
         private Tweeter _tweeter;
         private ProcessUtility _cmdexe = new ProcessUtility("cmd.exe");
         private ProcessUtility _robocopy = new ProcessUtility("robocopy.exe");
-
-        public CommitMessageHandler(string twitterHandle) {
+        private Dictionary<string, string> _aliases;
+        public CommitMessageHandler(string twitterHandle, Dictionary<string,string> aliases) {
             if( !string.IsNullOrEmpty(twitterHandle) ) {
                 _tweeter = new Tweeter(twitterHandle);
             }
+            _aliases = aliases;
 
             Environment.SetEnvironmentVariable("PATH", @"c:\git\cmd;c:\git\bin;c:\tools\bin;c:\tools" + Environment.GetEnvironmentVariable("PATH"));
         }
@@ -57,26 +59,48 @@ namespace CoApp.RepositoryService {
                     Console.WriteLine("MSG Process begin {0}", json.commits.Count);
                     
                     var count = json.commits.Count;
+                    var doSiteRebuild = false;
                     for (int i = 0; i < count; i++) {
                         var username = json.commits[i].author.username.Value;
                         var commitMessage = json.commits[i].message.Value;
                         var repository = json.repository.name.Value;
-                        var handle = username;
+                        
                         var url = (string)json.commits[i].url.Value;
-                        if (repository == "coapp.org" || repository == "new_coapp.org") {
-                            Task.Factory.StartNew(() => {
+                        if (repository == "coapp.org") {
+                            doSiteRebuild = true;
+                        }
+
+                        Bitly.Shorten(url).ContinueWith( (bitlyAntecedent) => {
+                            var commitUrl = bitlyAntecedent.Result;
+
+                            var handle = _aliases.ContainsKey(username) ? _aliases[username] : username;
+                            var sz = repository.Length + handle.Length + commitUrl.Length + commitMessage.Length + 10;
+                            var n = 140 - sz;
+
+                            if (n < 0) {
+                                commitMessage = commitMessage.Substring(0, (commitMessage.Length + n) - 3) + "...";
+                            }
+                            _tweeter.Tweet("[{0}]=>{1} via {2} {3}", repository, commitMessage, handle, commitUrl);
+                            Console.WriteLine("[{0}]=>{1} via {2} {3}", repository, commitMessage, handle, commitUrl);
+                        });
+
+                    }
+                    // just rebuild the site once for a given batch of rebuild commit messages.
+                    if( doSiteRebuild) {
+                        Task.Factory.StartNew(() => {
+                            try {
                                 Console.WriteLine("Rebuilding website.");
 
                                 Console.WriteLine("(1) Pulling from github");
                                 Environment.CurrentDirectory = @"c:\tools\new_coapp.org";
-                                if (_cmdexe.Exec(@"/c git.cmd pull") != 0 ) {
+                                if (_cmdexe.Exec(@"/c git.cmd pull") != 0) {
                                     Console.WriteLine("Git Pull Failure:\r\n{0}", _cmdexe.StandardOut);
-                                    return; 
+                                    return;
                                 }
 
                                 Console.WriteLine("(2) Running DocPad Generate");
                                 var node = new ProcessUtility(@"tools\node.exe");
-                                if( node.Exec(@"node_modules\coffee-script\bin\coffee node_modules\docpad\bin\docpad generate") != 0 ) {
+                                if (node.Exec(@"node_modules\coffee-script\bin\coffee node_modules\docpad\bin\docpad generate") != 0) {
                                     Console.WriteLine("DocPad Failure:\r\n{0}", node.StandardOut);
                                     return;
                                 }
@@ -88,32 +112,16 @@ namespace CoApp.RepositoryService {
                                 }
 
                                 Console.WriteLine("Rebuilt Website.");
-                            });
-                        }
-
-                        Bitly.Shorten(url).ContinueWith((bitlyAntecedent) => {
-                            var commitUrl = bitlyAntecedent.Result;
-
-                            // var handle = aliases.ContainsKey(username) ? aliases[username] : username;
-                            var sz = repository.Length + handle.Length + commitUrl.Length + commitMessage.Length + 10;
-                            var n = 140 - sz;
-
-                            if (n < 0) {
-                                commitMessage = commitMessage.Substring(0, (commitMessage.Length + n) - 3) + "...";
+                            } catch( Exception e ) {
+                                Console.WriteLine("Error: {0} -- {1}\r\n{2}", e.GetType(), e.Message, e.StackTrace);
                             }
-                            _tweeter.Tweet("[{0}]=>{1} via {2} {3}", repository, commitMessage, handle, commitUrl);
-                            Console.WriteLine("[{0}]=>{1} via {2} {3}", repository, commitMessage, handle, commitUrl);
                         });
-
-                        
-
-                    } 
+                    }    
                 } catch(Exception e) {
                     Console.WriteLine("Error handling uploaded package: {0} -- {1}\r\n{2}", e.GetType(), e.Message, e.StackTrace);
                     response.StatusCode = 500;
                     response.Close();
                 }
-
             }, TaskCreationOptions.AttachedToParent);
 
             result.ContinueWith( antecedent => {

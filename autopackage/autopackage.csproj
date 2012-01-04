@@ -117,6 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\HelpText.txt" />
+    <Content Include="Resources\template.autopkg" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\blankicon.png" />
@@ -132,7 +133,9 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup><AssemblySearchPaths>$(SolutionDir)\ext\libraries\;$(SolutionDir)\ext\binaries\;$(AssemblySearchPaths)</AssemblySearchPaths></PropertyGroup>
+  <PropertyGroup>
+    <AssemblySearchPaths>$(SolutionDir)\ext\libraries\;$(SolutionDir)\ext\binaries\;$(AssemblySearchPaths)</AssemblySearchPaths>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
