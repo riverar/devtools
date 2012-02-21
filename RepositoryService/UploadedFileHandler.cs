@@ -120,7 +120,7 @@ namespace CoApp.RepositoryService {
                                     ConsoleExtensions.PrintProgressBar("{0} => {1}".format(pkg.CanonicalName, _packageStorageFolder), progress);
                                 });
 
-                                if (pkg.Name.Equals("coapp.toolkit", StringComparison.CurrentCultureIgnoreCase) && pkg.PublicKeyToken.Equals("820d50196d4e8857", StringComparison.CurrentCultureIgnoreCase)) {
+                                if (pkg.Name.Equals("coapp.toolkit", StringComparison.CurrentCultureIgnoreCase) && pkg.PublicKeyToken.Equals("1e373a58e25250cb", StringComparison.CurrentCultureIgnoreCase)) {
                                     // update the default toolkit too
                                     _cloudFileSystem.WriteBlob(_packageStorageFolder, "coapp.toolkit.msi", filename, false, (progress) => {
                                         ConsoleExtensions.PrintProgressBar("{0} => {1}".format(_localfeedLocation, _packageStorageFolder), progress);
@@ -128,7 +128,7 @@ namespace CoApp.RepositoryService {
                                     Console.WriteLine();
                                 }
 
-                                if (pkg.Name.Equals("coapp.devtools", StringComparison.CurrentCultureIgnoreCase) && pkg.PublicKeyToken.Equals("820d50196d4e8857", StringComparison.CurrentCultureIgnoreCase)) {
+                                if (pkg.Name.Equals("coapp.devtools", StringComparison.CurrentCultureIgnoreCase) && pkg.PublicKeyToken.Equals("1e373a58e25250cb", StringComparison.CurrentCultureIgnoreCase)) {
                                     // update the default toolkit too
                                     _cloudFileSystem.WriteBlob(_packageStorageFolder, "coapp.devtools.msi", filename, false, (progress) => {
                                         ConsoleExtensions.PrintProgressBar("{0} => {1}".format(_localfeedLocation, _packageStorageFolder), progress);

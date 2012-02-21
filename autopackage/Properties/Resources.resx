@@ -134,10 +134,10 @@
     <value>Unknown command [{0}]</value>
   </data>
   <data name="coapp_native_bootstrap" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\..\ext\binaries\native-bootstrap.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>..\..\output\any\release\bin\native-bootstrap.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="coapp_managed_bootstrap" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\..\ext\binaries\managed-bootstrap.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>..\..\output\any\release\bin\managed-bootstrap.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="WixTemplate" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\wixtemplate.xml;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>

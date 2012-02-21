@@ -16,6 +16,7 @@ namespace CoApp.Autopackage {
     using System.IO;
     using System.Linq;
     using System.ServiceModel.Syndication;
+    using System.Threading.Tasks;
     using System.Xml;
     using System.Xml.Serialization;
     using Developer.Toolkit.Publishing;
@@ -25,26 +26,27 @@ namespace CoApp.Autopackage {
     using Toolkit.Engine.Client;
     using Toolkit.Engine.Model;
     using Toolkit.Engine.Model.Atom;
+    using Toolkit.Engine.Model.Roles;
     using Toolkit.Extensions;
     using Toolkit.Logging;
+    using Toolkit.Tasks;
     using Toolkit.Win32;
 
     [XmlRoot(ElementName = "Package", Namespace = "http://coapp.org/atom-package-feed-1.0")]
     public class AutopackageModel : PackageModel {
         [XmlIgnore]
         private PackageSource Source;
-
-        [XmlIgnore]
-        internal string Vendor;
-
+       
         [XmlIgnore]
         internal IEnumerable<FileEntry> DestinationDirectoryFiles;
 
         // Assemblies Roles
-
         [XmlIgnore]
         internal List<PackageAssembly> Assemblies;
 
+        [XmlIgnore]
+        internal List<Package> DependentPackages = new List<Package>();
+        
         // package templates 
         [XmlIgnore]
         private string _managedPublisherConfiguration;
@@ -61,15 +63,39 @@ namespace CoApp.Autopackage {
         [XmlIgnore]
         private AtomFeed AtomFeed;
 
+        [XmlIgnore]
+        private TaskList _tasks = new TaskList();
+
+        private BindingRedirect _bindingRedirect;
+        internal BindingRedirect BindingRedirect {
+            get {
+                if( _bindingRedirect == null ) {
+                    if( BindingPolicyMaxVersion >0 ) {
+                        _bindingRedirect = new BindingRedirect {
+                            Low = BindingPolicyMinVersion,
+                            High = BindingPolicyMaxVersion,
+                            Target = Version,
+                        };
+                    }
+                }
+                return _bindingRedirect;
+            }
+        }
+
+        private IEnumerable<TwoPartVersion> _versionRedirects = Enumerable.Empty<TwoPartVersion>();
+
+        internal Image IconImage;
+        internal Dictionary<string, string> ChildIcons; 
+
         internal AutopackageModel() {
+            CompositionData = new Composition();
             DestinationDirectoryFiles = Enumerable.Empty<FileEntry>();
+            Roles = new List<Role>();
             Assemblies = new List<PackageAssembly>();
         }
 
-        internal AutopackageModel(PackageSource source, AtomFeed feed) {
+        internal AutopackageModel(PackageSource source, AtomFeed feed) : this() {
             Source = source;
-            DestinationDirectoryFiles = Enumerable.Empty<FileEntry>();
-            Assemblies = new List<PackageAssembly>();
             foreach( var sheet in Source.PropertySheets ) {
                 sheet.GetMacroValue += GetMacroValue;
             }
@@ -78,7 +104,7 @@ namespace CoApp.Autopackage {
 
         internal string GetMacroValue( string macroKey ) {
             if( macroKey.StartsWith("Package.") ) {
-                var result = this.SimpleEval(macroKey.Substring(6));
+                var result = this.SimpleEval(macroKey.Substring(8));
                 if (result == null || string.Empty == result.ToString()) {
                     return null;
                 }
@@ -90,7 +116,6 @@ namespace CoApp.Autopackage {
 
         internal void ProcessCertificateInformation() {
             Vendor = Source.Certificate.CommonName;
-            PublisherDirectory = Vendor.MakeAttractiveFilename();
         }
 
         internal void ProcessPackageTemplates() {
@@ -113,22 +138,101 @@ namespace CoApp.Autopackage {
         internal void ProcessApplicationRole() {
             // application rule supports the following properties:
             // include -- may include files or filesets; can not set 'destination' here, must set that in previously defined filesets.
-            foreach (var AppRule in Source.ApplicationRules) {
-                var files = FileList.ProcessIncludes(null, AppRule, "application", "include", Source.FileRules, Environment.CurrentDirectory);
-                var name = AppRule.Parameter;
+            foreach (var appRule in Source.ApplicationRules) {
+
+                Roles.Add(new Role() { Name = appRule.Parameter ?? string.Empty, PackageRole = PackageRole.Application });
+                var files = FileList.ProcessIncludes(null, appRule, "application", "include", Source.FileRules, Environment.CurrentDirectory);
+                var name = appRule.Parameter;
 
                 if (!string.IsNullOrEmpty(name)) {
                     files = files.Select(
                         each => new FileEntry ( each.SourcePath, Path.Combine(name.MakeSafeFileName(), each.DestinationPath))).ToArray();
                 }
                 DestinationDirectoryFiles = DestinationDirectoryFiles.Union(files);
-
             }
         }
 
+        public const string IncludeDir = "include";
+        public const string DocDir = "docs";
+        public const string LibDir = "lib";
+        public const string RefAsmDir = "ReferenceAssemblies";
+
         internal void ProcessDeveloperLibraryRoles() {
             foreach (var devLibRule in Source.DeveloperLibraryRules) {
-                // get the 
+                var roleName = devLibRule.Parameter ?? string.Empty;
+                Roles.Add(new Role() { Name = roleName, PackageRole = PackageRole.DeveloperLibrary });
+                Console.WriteLine("Processing Developer Library Role: {0}",devLibRule.Parameter );
+
+                // create the developer library object in the composition data
+                var devLibraries = CompositionData.DeveloperLibraries ?? (CompositionData.DeveloperLibraries = new List<DeveloperLibrary>());
+
+                var headerFiles = FileList.ProcessIncludes(null, devLibRule, "developer-library", "headers", Source.FileRules, Environment.CurrentDirectory).Select( each => new FileEntry(each.SourcePath, IncludeDir+"\\"+each.DestinationPath) ).ToArray();
+                var docFiles = FileList.ProcessIncludes(null, devLibRule, "developer-library", "docs", Source.FileRules, Environment.CurrentDirectory).Select(each => new FileEntry(each.SourcePath, DocDir+"\\" + each.DestinationPath)).ToArray();
+                var libFiles = FileList.ProcessIncludes(null, devLibRule, "developer-library", "libraries", Source.FileRules, Environment.CurrentDirectory).Select(each => new FileEntry(each.SourcePath, LibDir+"\\" + each.DestinationPath)).ToArray();
+                var assemblyFiles = FileList.ProcessIncludes(null, devLibRule, "developer-library", "reference-assemblies", Source.FileRules, Environment.CurrentDirectory).Select(each => new FileEntry(each.SourcePath, RefAsmDir + "\\" + each.DestinationPath)).ToArray();
+
+                devLibraries.Add(new DeveloperLibrary { 
+                    Name = roleName,
+                    ReferenceAssemblyFiles = assemblyFiles.Any() ? assemblyFiles.Select(each => each.DestinationPath).ToList() : null,
+                    LibraryFiles = libFiles.Any() ?  libFiles.Select(each => each.DestinationPath).ToList() : null,
+
+                    HeaderFolders = headerFiles.Any() ? IncludeDir.SingleItemAsEnumerable().ToList() : null,
+                    DocumentFolders = docFiles.Any() ? DocDir.SingleItemAsEnumerable().ToList() : null,
+                });
+
+                DestinationDirectoryFiles = DestinationDirectoryFiles.Union(headerFiles).Union(docFiles).Union(libFiles).Union(assemblyFiles);
+            }
+        }
+
+        internal void ProcessServiceRoles() {
+            foreach (var serviceRule in Source.ServiceRules) {
+                var roleName = serviceRule.Parameter ?? string.Empty;
+                Roles.Add(new Role() { Name = roleName, PackageRole = PackageRole.Service });
+                // create the developer library object in the composition data
+                var services = CompositionData.Services ?? (CompositionData.Services = new List<Service>());
+                services.Add(new Service {
+                    Name = roleName
+                    // DocumentFolders = 
+                });
+            }
+        }
+
+        internal void ProcessDriverRoles() {
+            foreach (var driverRule in Source.DriverRules) {
+                var roleName = driverRule.Parameter ?? string.Empty;
+                Roles.Add(new Role() { Name = roleName, PackageRole = PackageRole.Driver });
+                // create the developer library object in the composition data
+                var services = CompositionData.Drivers ?? (CompositionData.Drivers = new List<Driver>());
+                services.Add(new Driver() {
+                    Name = roleName
+                    // DocumentFolders = 
+                });
+            }
+        }
+
+        internal void ProcessWebApplicationRoles() {
+            foreach (var webAppRule in Source.WebApplicationRules) {
+                var roleName = webAppRule.Parameter ?? string.Empty;
+                Roles.Add(new Role() { Name = roleName?? string.Empty, PackageRole = PackageRole.WebApplication });
+                // create the developer library object in the composition data
+                var services = CompositionData.WebApplications ?? (CompositionData.WebApplications = new List<WebApplication>());
+                services.Add(new WebApplication() {
+                    Name = roleName
+                    // DocumentFolders = 
+                });
+            }
+        }
+
+        internal void ProcessSourceCodeRoles() {
+            foreach (var sourceCodeRule in Source.SourceCodeRules) {
+                var roleName = sourceCodeRule.Parameter ?? string.Empty;
+                Roles.Add(new Role() { Name = roleName?? string.Empty, PackageRole = PackageRole.SourceCode });
+                // create the developer library object in the composition data
+                var services = CompositionData.SourceCodes ?? (CompositionData.SourceCodes = new List<SourceCode>());
+                services.Add(new SourceCode() {
+                    Name = roleName
+                    // DocumentFolders = 
+                });
             }
         }
 
@@ -142,11 +246,16 @@ namespace CoApp.Autopackage {
 
             foreach (var asm in Source.AssemblyRules) {
                 var fileList = FileList.ProcessIncludes(null, asm, "assembly", "include", Source.FileRules, Environment.CurrentDirectory);
-                Assemblies.Add(new PackageAssembly(asm.Parameter, asm, fileList.Select(each => each.SourcePath)));
+                Assemblies.Add(new PackageAssembly(asm.Parameter, asm, fileList));
             }
 
             // now, check to see that our assemblies are unique.
             var assemblyNames = Assemblies.Select(each => each.Name).ToArray();
+           
+            foreach( var asmName in assemblyNames) {
+                Roles.Add(new Role() { Name = asmName ?? string.Empty, PackageRole = PackageRole.Assembly });
+            }
+
             if (assemblyNames.Count() != assemblyNames.Distinct().Count()) {
                 // there is a duplicate there somewhere. run thru the list and rat em out.
                 foreach (var name in assemblyNames) {
@@ -196,19 +305,17 @@ namespace CoApp.Autopackage {
             // Step 3 : Gather the dependency information for the package
 
             // explictly defined
-            var dependentPackages = new List<Package>();
+            DependentPackages = new List<Package>();
 
             if( !Name.Equals("coapp.toolkit", StringComparison.CurrentCultureIgnoreCase) ) {
                 // don't auto-add the coapp.toolkit dependency for the toolkit itself.
-                var toolkitPackage = Source.PackageManager.GetPackages("coapp.toolkit-*-any-820d50196d4e8857", null, null, null, null, null, null, null, null, null, false, AutopackageMain._messages).Result.OrderByDescending(each => each.Version).FirstOrDefault();
-                
+                var toolkitPackage = Source.PackageManager.GetPackages("coapp.toolkit-*-any-1e373a58e25250cb", null, null, null, null, null, null, null, null, null, false, AutopackageMain._messages).Result.OrderByDescending(each => each.Version).FirstOrDefault();
                 
                 if( toolkitPackage != null ) {
                     Source.PackageManager.GetPackageDetails(toolkitPackage.CanonicalName, AutopackageMain._messages).Wait();
                     Console.WriteLine("Implict Package Dependency: {0} -> {1}", toolkitPackage.CanonicalName, toolkitPackage.ProductCode);
-                    dependentPackages.Add(toolkitPackage);    
+                    DependentPackages.Add(toolkitPackage);    
                 }
-                
             }
 
             foreach (var pkgName in Source.RequiresRules.SelectMany(each => each["package"].Values)) {
@@ -232,7 +339,7 @@ namespace CoApp.Autopackage {
 
                     Source.PackageManager.GetPackageDetails(pkg.CanonicalName,AutopackageMain._messages).Wait();
 
-                    dependentPackages.Add(pkg);
+                    DependentPackages.Add(pkg);
                     
                 } catch (Exception e) {
                     AutopackageMessages.Invoke.Error(
@@ -240,8 +347,8 @@ namespace CoApp.Autopackage {
                 }
             }
 
-            
-            foreach( var pkg in dependentPackages) {
+
+            foreach (var pkg in DependentPackages) {
                 if (Dependencies == null ) {
                     Dependencies = new List<Guid>();
                 }
@@ -260,17 +367,20 @@ namespace CoApp.Autopackage {
         }
 
         private void DigitallySign(string filename) {
-            try {
-                var peBinary = PeBinary.Load(filename);
-                if (peBinary.IsManaged) {
-                    peBinary.StrongNameKeyCertificate = Source.Certificate;
+            _tasks.Add(Binary.Load(filename , BinaryLoadOptions.All).ContinueWith(antecedent => {
+                if (antecedent.IsFaulted) {
+                    AutopackageMessages.Invoke.Error(MessageCode.SigningFailed, null, "Failed to load binary '{0}'", filename);
+                    return;
                 }
-                peBinary.SigningCertificate = Source.Certificate;
-                peBinary.Save();
-            } catch( Exception e ) {
-                Logger.Error(e);
-                AutopackageMessages.Invoke.Error(MessageCode.SigningFailed, null, "Digital Signing of binary '{0}' failed.", filename);
+                DigitallySign(antecedent.Result);
+            }, TaskContinuationOptions.AttachedToParent));
+        }
+
+        private void DigitallySign( Binary binary ) {
+            if (binary.IsManaged) {
+                binary.StrongNameKeyCertificate = Source.Certificate;
             }
+            binary.SigningCertificate = Source.Certificate;
         }
 
         internal void ProcessDigitalSigning() {
@@ -280,15 +390,85 @@ namespace CoApp.Autopackage {
                 var reSign = signRule.HasProperty("replace-signature") && signRule["replace-signature"].Value.IsTrue();
 
                 var filesToSign = FileList.ProcessIncludes(null, signRule, "signing", "include",Source.FileRules, Environment.CurrentDirectory);
-                foreach (var file in filesToSign) {
+                foreach (var f in filesToSign) {
+                    var file = f;
+
                     if (reSign || !Verifier.HasValidSignature(file.SourcePath)) {
-                        DigitallySign(file.SourcePath);
+                        try {
+                            _tasks.Add(Binary.Load(file.SourcePath).ContinueWith(antecedent => {
+                                if( antecedent.IsFaulted ) {
+                                    AutopackageMessages.Invoke.Error(MessageCode.SigningFailed, null, "Failed to load binary '{0}'", file.SourcePath);
+                                    return;
+                                }
+
+                                var binary = antecedent.Result;
+                                DigitallySign(binary);
+
+                                if (signRule.HasProperty("attributes")) {
+                                    var attribs = signRule["attributes"];
+                                    foreach (var l in attribs.Labels) {
+                                        switch (l.ToLower()) {
+                                            case "company":
+                                                binary.CompanyName = attribs[l].Value.ToString();
+                                                break;
+                                            case "description":
+                                                binary.FileDescription = attribs[l].Value.ToString();
+                                                break;
+                                            case "product-name":
+                                                binary.ProductName = attribs[l].Value.ToString();
+                                                break;
+                                            case "product-version":
+                                                binary.ProductVersion = attribs[l].Value.ToString();
+                                                break;
+                                            case "file-version":
+                                                binary.FileVersion = attribs[l].Value.ToString();
+                                                break;
+                                            case "copyright":
+                                                binary.LegalCopyright = attribs[l].Value.ToString();
+                                                break;
+                                            case "trademark":
+                                                binary.LegalTrademarks = attribs[l].Value.ToString();
+                                                break;
+                                            case "title":
+                                                binary.AssemblyTitle = attribs[l].Value.ToString();
+                                                break;
+                                            case "comments":
+                                                binary.Comments = attribs[l].Value.ToString();
+                                                break;
+                                        }
+                                    }
+                                }
+
+                            }, TaskContinuationOptions.AttachedToParent));
+
+                        } catch (Exception e) {
+                            Logger.Error(e);
+                            AutopackageMessages.Invoke.Error(MessageCode.SigningFailed, null, "Digital Signing of binary '{0}' failed.", file.SourcePath);
+                        }
                     }
                 }
             }
 
             // verify that all files that should be signed are actually signed.
             // TODO : make sure stuff is actually signed.
+        }
+
+        internal void SaveModifiedBinaries() {
+            Console.WriteLine("(info) ... waiting for binary file modifications to complete ...");
+            _tasks.WaitAll();
+            Console.WriteLine("(info) ... modifications complete, now saving binary files ...");
+            var saving = Binary.Files.Where(each => each.Modified).Select(each => each.Save());
+            try {
+                Task.WaitAll(saving.ToArray());
+                Console.WriteLine("(info) ... done saving binary files ...");
+            } catch( Exception e) {
+                
+                if( e.GetType() == typeof(AggregateException)) {
+                    e = (e as AggregateException).Flatten().InnerExceptions[0];
+                }
+                Logger.Error(e);
+                AutopackageMessages.Invoke.Error(MessageCode.SigningFailed, null, "Saving binary failed. (see inner exception ) {0}--{1}",e.Message, e.StackTrace );
+            }
         }
 
         internal void ProcessBasicPackageInformation() {
@@ -301,19 +481,20 @@ namespace CoApp.Autopackage {
                     MessageCode.MissingPackageName, Source.PackageRules.Last().SourceLocation, "Missing property 'name' in 'package' rule.");
             }
 
-            Version = (Source.PackageRules.GetPropertyValue("version") as string).VersionStringToUInt64();
+            Version = Source.PackageRules.GetPropertyValue("version");
+
             if (Version == 0) {
                 // try to figure out package version from binaries.
                 // check assemblies first
                 foreach (var assembly in Assemblies) {
-                    Version = assembly.Version.VersionStringToUInt64();
+                    Version = assembly.Version;
                     if (Version == 0) {
                         AutopackageMessages.Invoke.Error(
                             MessageCode.AssemblyHasNoVersion, assembly.Rule.SourceLocation, "Assembly '{0}' doesn't have a version.", assembly.Name);
                     } else {
                         AutopackageMessages.Invoke.Warning(
                             MessageCode.AssumingVersionFromAssembly, Assemblies.First().Rule.SourceLocation,
-                            "Package Version not specified, assuming version '{0}' from first assembly", Version.UInt64VersiontoString());
+                            "Package Version not specified, assuming version '{0}' from first assembly", Version.ToString());
 
                         if (Architecture == Architecture.Auto || Architecture == Architecture.Unknown) {
                             // while we're here, let's grab this as the architecture.
@@ -326,39 +507,28 @@ namespace CoApp.Autopackage {
 
                 // check application next 
                 foreach (var file in DestinationDirectoryFiles) {
-                    var pe = PEInfo.Scan(file.SourcePath);
-                    if (pe.IsPEBinary) {
-                        Version = pe.FileVersion.VersionStringToUInt64();
+                    var binary = Binary.Load(file.SourcePath).Result;
+ 
+                    if (binary.IsPEFile) {
+                        Version = binary.FileVersion;
+
+                        AutopackageMessages.Invoke.Warning(
+                              MessageCode.AssumingVersionFromApplicationFile, null,
+                              "Package Version not specified, assuming version '{0}' from application file '{1}'", Version.ToString(),
+                              file.SourcePath);
 
                         if (Architecture == Architecture.Auto || Architecture == Architecture.Unknown) {
                             // while we're here, let's grab this as the architecture.
-                            if (pe.IsAny) {
+                            if (binary.IsAnyCpu) {
                                 Architecture = Architecture.Any;
-                            } else if (pe.Is64Bit) {
+                            } else if (binary.Is64Bit) {
                                 Architecture = Architecture.x64;
                             } else {
                                 Architecture = Architecture.x86;
                             }
                         }
 
-                        if (Version == 0) {
-                            AutopackageMessages.Invoke.Warning(
-                                MessageCode.AssumingVersionFromApplicationFile, null,
-                                "Package Version not specified, assuming version '{0}' from application file '{1}'", Version.UInt64VersiontoString(),
-                                file.SourcePath);
-
-                            if (Architecture == Architecture.Auto || Architecture == Architecture.Unknown) {
-                                // while we're here, let's grab this as the architecture.
-                                if (pe.IsAny) {
-                                    Architecture = Architecture.Any;
-                                } else if (pe.Is64Bit) {
-                                    Architecture = Architecture.x64;
-                                } else {
-                                    Architecture = Architecture.x86;
-                                }
-                            }
-                            break;
-                        }
+                        break;
                     }
                 }
 
@@ -369,10 +539,7 @@ namespace CoApp.Autopackage {
 
             var arch = Source.PackageRules.GetPropertyValue("arch") as string;
             if ((Architecture == Architecture.Auto || Architecture == Architecture.Unknown )&& arch != null) {
-                try {
-                    Architecture = (Architecture) Enum.Parse(typeof(Architecture), arch, true);
-                } catch {
-                }
+                Architecture = arch;
             }
 
             // is it still not set?
@@ -390,7 +557,6 @@ namespace CoApp.Autopackage {
                 Locations = new List<Uri>();
                 Locations.AddRange(locations.Select(location => location.ToUri()).Where(uri => uri != null));
             }
-            
 
             var feeds = Source.PackageRules.GetPropertyValues("feed").Union(Source.PackageRules.GetPropertyValues("feeds"));
             if (!feeds.IsNullOrEmpty()) {
@@ -412,135 +578,163 @@ namespace CoApp.Autopackage {
             }
         }
 
-        internal void ProcessAssemblyManifests() {
-            // -----------------------------------------------------------------------------------------------------------------------------------
-            // Step 5 : Build Assembly Manifests, catalog files and policy files
-            var policyRule = Source.CompatabilityPolicyRules.FirstOrDefault();
-            var versionRange = string.Empty;
+        internal void UpdateApplicationManifests() {
+            foreach( var manifestRule in Source.ManifestRules) {
+                var filesToTouch = FileList.ProcessIncludes(null, manifestRule, "manifest", "include", Source.FileRules, Environment.CurrentDirectory);
+                var depAsms = Enumerable.Empty<string>();
 
-            IEnumerable<string> versions = Enumerable.Empty<string>();
+                if(manifestRule.HasProperty("assemblies")) {
+                    depAsms = manifestRule["assemblies"].Values;
+                } 
 
-            // figure out what major/minor versions we need are overriding.
-            var minimum = policyRule["minimum"].Value.VersionStringToUInt64();
-            var maximum = policyRule["maximum"].Value.VersionStringToUInt64();
-            if (minimum != 0 && maximum == 0) {
-                maximum = Version - 1;
-            }
+                if(manifestRule.HasProperty("assembly")) {
+                    depAsms = depAsms.Union(manifestRule["assembly"].Values);
+                } 
 
-            if (minimum != 0) {
-                versionRange = @"{0}-{1}".format(minimum.UInt64VersiontoString(), maximum.UInt64VersiontoString());
-            }
+                foreach( var depAsm in depAsms) {
+                    var pkt = string.Empty;
+                    var ver = string.Empty;
+                    var arch = Architecture;
 
-            if (policyRule != null) {
-                versions = policyRule["versions"].Values;
-
-                if (versions.IsNullOrEmpty()) {
-                    // didn't specify versions explicitly.
-                    // we can check for overriding versions.
-                    // TODO: SOON
-                }
-            }
-
-            if (minimum > 0) {
-                BindingPolicyMinVersion = minimum;
-                BindingPolicyMaxVersion = maximum;
-            }
-            
-
-            var nativeAssemblies = Assemblies.Where(each => !each.IsManaged).ToArray();
-            foreach (var nativeAssembly in nativeAssemblies) {
-                // create assembly manifest
-                var manifestXml = _nativeAssemblyManifest.FormatWithMacros(Source.GetMacroValue, new {Assembly = nativeAssembly});
-                // write out manifest wherever we need it.
-
-                if (minimum != 0) {
-                    foreach (var oldVersion in versions) {
-                        var policyXml = _nativePublisherConfiguration.FormatWithMacros(
-                            Source.GetMacroValue, new {
-                                Assembly = nativeAssembly,
-                                OldAssembly = new {
-                                    MajorMinorVersion = oldVersion,
-                                    VersionRange = versionRange
-                                },
-                            });
-
-                        // write out policyXml wherever we're needin' it.
-                    }
-                }
-            }
-
-            // create a policy assembly for each one of the policies required for each of the managed assemblies.
-            var managedAssemblies = Assemblies.Where(each => each.IsManaged).ToArray();
-            if (minimum != 0) {
-                foreach (var managedAssembly in managedAssemblies) {
-                    // create the policy file 
-                    foreach (var oldVersion in versions) {
-                        var policyXml = _managedPublisherConfiguration.FormatWithMacros(
-                            Source.GetMacroValue, new {
-                                Assembly = managedAssembly,
-                                OldAssembly = new {
-                                    MajorMinorVersion = oldVersion,
-                                    VersionRange = versionRange
-                                },
-                            });
-
-                        var policyConfigFile = "policy.{0}.{1}.dll.config".format(oldVersion, managedAssembly.Name).MarkFileTemporary();
-                        var policyFile = "policy.{0}.{1}.dll".format(oldVersion, managedAssembly.Name).MarkFileTemporary();
-
-                        // write out the policy config file
-                        File.WriteAllText(policyConfigFile, policyXml);
-
-                        var rc = Tools.AssemblyLinker.Exec("/link:{0} /out:{1} /v:{2}", policyConfigFile, policyFile, Version.UInt64VersiontoString());
-                        if (rc != 0) {
+                    var name = depAsm;
+                    // find the assembly. it's either in this package, or in one of our dependencies.
+                    var assembly = Assemblies.FirstOrDefault(each => each.Name == name);
+                    if( assembly != null ) {
+                        pkt = PublicKeyToken;
+                        ver = Version.ToString();
+                    } else {
+                        // the assembly isn't in this package. 
+                        // it must be in one of the dependent packages.
+                        var depPackage =
+                            DependentPackages.FirstOrDefault(each => each.Roles.Any(role => role.Name == name && role.PackageRole == PackageRole.Assembly));
+                        if (depPackage == null) {
                             AutopackageMessages.Invoke.Error(
-                                MessageCode.AssemblyLinkerError, null, "Unable to make policy assembly\r\n{0}",
-                                Tools.AssemblyLinker.StandardError + Tools.AssemblyLinker.StandardOut);
+                                MessageCode.ManifestReferenceNotFound, manifestRule.SourceLocation,
+                                "Assembly Reference for {0} not found in this package, or any dependencies", name);
+                            continue;
                         }
-                        Logger.Message("About to sign {0}", policyFile);
-                        DigitallySign(policyFile);
-                        Logger.Message("Should have signed {0}: Is Signed: {1}", policyFile, Verifier.HasValidSignature(policyFile));
+                        pkt = depPackage.PublicKeyToken;
+                        ver = depPackage.Version;
+                    }
 
-                        
-
-                        // and now we can create assembly entries for these.
-                        Assemblies.Add(new PackageAssembly(Path.GetFileName(policyFile), null, new[] {policyFile, policyConfigFile}));
+                    foreach( var file in filesToTouch) {
+                        Console.WriteLine("Adding dependency to manifest [{0}] => {1} {2} {3} {4}", file.SourcePath, name, ver, arch, pkt);
+                        _tasks.Add(Binary.Load(file.SourcePath).ContinueWith(antecedent => {
+                            var binary = antecedent.Result;
+                            binary.Manifest.Value.AddDependency(name, ver, arch, pkt);
+                        }, TaskContinuationOptions.AttachedToParent));
                     }
                 }
             }
         }
 
-        internal void ProcessCosmeticMetadata() {
+        private void CreateManagedAssemblyPolicies() {
+            // create a policy assembly for each one of the policies required for each of the managed assemblies.
+            var managedAssemblies = Assemblies.Where(each => each.IsManaged).ToArray();
 
+            foreach (var managedAssembly in managedAssemblies) {
+                foreach (var oldVersion in _versionRedirects) {
+                    // create the policy file 
+                    var policyXml = _managedPublisherConfiguration.FormatWithMacros(
+                        Source.GetMacroValue, new {
+                            Assembly = managedAssembly,
+                            OldAssembly = new {
+                                MajorMinorVersion = oldVersion.ToString(),
+                                VersionRange = BindingRedirect.VersionRange
+                            },
+                        });
+
+                    var policyConfigFile = "policy.{0}.{1}.dll.config".format(oldVersion.ToString(), managedAssembly.Name).GetFileInTempFolder();
+                    var policyFile = "policy.{0}.{1}.dll".format(oldVersion.ToString(), managedAssembly.Name).GetFileInTempFolder();
+
+                    // write out the policy config file
+                    File.WriteAllText(policyConfigFile, policyXml);
+
+                    var rc = Tools.AssemblyLinker.Exec("/link:{0} /out:{1} /v:{2}", policyConfigFile, policyFile, Version.ToString());
+                    if (rc != 0) {
+                        AutopackageMessages.Invoke.Error(
+                            MessageCode.AssemblyLinkerError, null, "Unable to make policy assembly\r\n{0}",
+                            Tools.AssemblyLinker.StandardError + Tools.AssemblyLinker.StandardOut);
+                    }
+                    Logger.Message("About to sign {0}", policyFile);
+                    DigitallySign(policyFile);
+                    Logger.Message("Should have signed {0}: Is Signed: {1}", policyFile, Verifier.HasValidSignature(policyFile));
+
+                    // and now we can create assembly entries for these.
+                    Assemblies.Add(new PackageAssembly(Path.GetFileName(policyFile), null, new[] {policyFile, policyConfigFile}));
+                }
+            }
+
+        }
+
+        private void CreateNativeAssemblyPolicies() {
+            var nativeAssemblies = Assemblies.Where(each => each.IsNative).ToArray();
+            foreach (var nativeAssembly in nativeAssemblies) {
+                foreach (var oldVersion in _versionRedirects) {
+                    var policyAssemblyName = "policy.{0}.{1}".format(oldVersion.ToString(), nativeAssembly.Name);
+
+                    var policyManifest = new NativeManifest(null) {
+                        AssemblyName = policyAssemblyName,
+                        AssemblyArchitecture = Architecture,
+                        AssemblyPublicKeyToken = PublicKeyToken,
+                        AssemblyType = AssemblyType.win32policy,
+                        AssemblyVersion = Version
+                    };
+                    policyManifest.AddDependency(nativeAssembly.Name, 0L, Architecture, PublicKeyToken, "*", AssemblyType.win32, BindingRedirect);
+
+                    Assemblies.Add(new PackageAssembly(policyAssemblyName, null, policyManifest));
+                }
+            }
+        }
+
+        internal void CreateAssemblyPolicies() {
+            // -----------------------------------------------------------------------------------------------------------------------------------
+            // Step 5 : Build Assembly Manifests, catalog files and policy files
+            var policyRule = Source.CompatabilityPolicyRules.FirstOrDefault();
+            if (policyRule == null) {
+                return;
+            }
+
+            // figure out what major/minor versions we need are overriding.
+            var minimum = (FourPartVersion)policyRule["minimum"].Value;
+            var maximum = (FourPartVersion)policyRule["maximum"].Value;
+
+            if (minimum != 0 && maximum == 0) {
+                maximum = Version - 1;
+            }
+            
+            _versionRedirects = policyRule["versions"].Values.Select(each => (TwoPartVersion)each);
+
+            if (_versionRedirects.IsNullOrEmpty()) {
+                // didn't specify versions explicitly.
+                // we can check for overriding versions.
+                // TODO: SOON
+            }
+
+            if (maximum > 0L) {
+                BindingPolicyMinVersion = minimum;
+                BindingPolicyMaxVersion = maximum;
+
+                CreateNativeAssemblyPolicies();
+                CreateManagedAssemblyPolicies();
+            }
+        }
+
+        internal void ProcessCosmeticMetadata() {
             DisplayName = Source.PackageRules.GetPropertyValue("display-name");
             if( string.IsNullOrEmpty(DisplayName )) {
                 DisplayName = Name;
             }
 
+            // pull child icons from packages and insert as binaries locally.
             PackageDetails.Description = Source.MetadataRules.GetPropertyValue("description").LiteralOrFileText();
             PackageDetails.SummaryDescription = Source.MetadataRules.GetPropertyValue("summary");
-
+            
             var iconFilename = Source.MetadataRules.GetPropertyValue("icon");
 
             if (File.Exists(iconFilename)) {
                 try {
-                    Image img = Image.FromFile(iconFilename);
-                    if (img.Width > 256 || img.Height > 256) {
-                        var widthIsConstraining = img.Width > img.Height;
-                        // Prevent using images internal thumbnail
-                        img.RotateFlip(RotateFlipType.Rotate180FlipNone);
-                        img.RotateFlip(RotateFlipType.Rotate180FlipNone);
-                        var newWidth = widthIsConstraining ? 256 : img.Width * 256 / img.Height;
-                        var newHeight = widthIsConstraining ? img.Height * 256 / img.Width : 256;
-                        var newImage = img.GetThumbnailImage(newWidth, newHeight, null, IntPtr.Zero);
-                        img.Dispose();
-                        img = newImage;
-                    }
-
-                    using (var ms = new MemoryStream()) {
-                        img.Save(ms, ImageFormat.Png);
-                        PackageDetails.Icon = Convert.ToBase64String(ms.ToArray());
-
-                    }
+                    IconImage = Image.FromFile(iconFilename);
                 }
                 catch (Exception e) {
                     AutopackageMessages.Invoke.Warning(MessageCode.BadIconReference, Source.MetadataRules.GetProperty("icon").SourceLocation,
@@ -548,9 +742,12 @@ namespace CoApp.Autopackage {
                 }
             }
             else {
-                AutopackageMessages.Invoke.Warning(MessageCode.NoIcon, Source.MetadataRules.GetProperty("icon").SourceLocation,
-                    "Image for icon not specified (or not found) {0}", iconFilename);
+                AutopackageMessages.Invoke.Warning(MessageCode.NoIcon, null , "Image for icon not specified", iconFilename);
             }
+
+            
+            ChildIcons = DependentPackages.ToDictionary(each => each.ProductCode, each => each.Icon);
+
             var licenses = Source.MetadataRules.GetPropertyValues("licenses");
             if( licenses.Any()) {
                 PackageDetails.Licenses = new List<License>();
@@ -587,7 +784,6 @@ namespace CoApp.Autopackage {
             
             PackageDetails.IsNsfw = Source.MetadataRules.GetPropertyValue("nsfw").IsTrue();
             PackageDetails.Stability = (sbyte)(Source.MetadataRules.GetPropertyValue("stability").ToInt32());
-            
 
             PackageDetails.Tags = Source.MetadataRules.GetPropertyValues("tags").ToList();
             
@@ -613,7 +809,8 @@ namespace CoApp.Autopackage {
         }
 
         internal void ProcessCompositionRules() {
-            CompositionRules = new List<CompositionRule>();
+            CompositionData.CompositionRules = new List<CompositionRule>();
+
             // PackageCompositionRules = AllRules.GetRulesByName("package-composition");
             var compositionRuleCategories = Source.PackageCompositionRules.Select(each => each.Parameter).Distinct();
             
@@ -688,7 +885,7 @@ namespace CoApp.Autopackage {
 
                         if (!propertyValue.Labels.IsNullOrEmpty()) {
                             foreach (var label in propertyValue.Labels) {
-                                CompositionRules.Add( new CompositionRule {
+                                CompositionData.CompositionRules.Add(new CompositionRule {
                                     Action = type,
                                     Category = category,
                                     Destination = label,                // aka "Key"

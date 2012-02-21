@@ -278,7 +278,7 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
         /// <param name = "name">Resource name.</param>
         /// <param name = "type">Resource type.</param>
         /// <param name = "lang">Resource language.</param>
-        internal static void Delete(string filename, ResourceId type, ResourceId name, UInt16 lang) {
+        public static void Delete(string filename, ResourceId type, ResourceId name, UInt16 lang) {
             SaveTo(filename, type, name, lang, null);
         }
 

@@ -58,15 +58,17 @@ pTK [options] action [buildconfiguration...]
         verify                  ensures that the product source matches the 
                                 built and cleaned
 
-        trace                   performs a build using CoApp Trace to gather 
-                                build data 
-
         list                    lists availible builds from buildinfo
 
     [buildconfiguration]        optional; indicates the builds from the 
                                 buildinfo file to act on. Defaults to all
 
 ";
+
+//        trace                   performs a build using CoApp Trace to gather 
+//                                build data 
+
+
 
         /// <summary>
         /// Wrapper for the Windows command line
@@ -129,6 +131,7 @@ pTK [options] action [buildconfiguration...]
         private readonly List<string> _tmpFiles= new List<string>();
         private string _searchPaths = "";
         private PropertySheet _propertySheet;
+        internal Rule[] DefineRules;
 
         /// <summary>
         /// Entry Point
@@ -181,7 +184,17 @@ pTK [options] action [buildconfiguration...]
             if (string.IsNullOrEmpty(compilerBatchFile))
                 throw new CoAppException("Cannot locate Visual C++ vcvars batch file command. Please install {0} (and use --rescan-tools). ".format(compilerName));
 
-            _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", compilerBatchFile, arch == "x86" ? "x86" : "x64");
+            // _cmdexe.Exec(@"/c ""{0}"" /{1} & set ", compilerBatchFile, arch == "x86" ? "x86" : "x64");
+            // thanks Raggles!
+            var archToSet = string.Empty;
+            if (arch == "x86")
+                archToSet = "x86";
+            else if (Environment.Is64BitOperatingSystem && arch == "x64")
+                archToSet = "amd64";
+            else if (!Environment.Is64BitOperatingSystem && arch == "x64")
+                archToSet = "x86_amd64";
+
+            _cmdexe.Exec(@"/c ""{0}"" {1} & set ", compilerBatchFile, archToSet);
 
             foreach (var x in _cmdexe.StandardOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)) {
                 if (x.Contains("=")) {
@@ -407,9 +420,9 @@ pTK [options] action [buildconfiguration...]
                     _hgexe.Kill();
                 if (_ptk != null)
                     _ptk.Kill();
-                if (_traceexe != null) {
-                    _traceexe.Kill();
-                }
+//                if (_traceexe != null) {
+  //                  _traceexe.Kill();
+    //            }
             };
 
 
@@ -481,11 +494,11 @@ pTK [options] action [buildconfiguration...]
 
             // set up several tools we need
             _cmdexe = new ProcessUtility("cmd.exe");
-            var f = new ProgramFinder("").ScanForFile("trace.exe");
+            //var f = new ProgramFinder("").ScanForFile("trace.exe");
 
-            if(!string.IsNullOrEmpty(f)) {
+            //if(!string.IsNullOrEmpty(f)) {
                 //_traceexe = new ProcessUtility(new ProgramFinder("").ScanForFile("trace.exe"));
-            }
+            //}
 
             _ptk = new ProcessUtility(Assembly.GetEntryAssembly().Location);
             // if this package is tracked by git, we can use git
@@ -509,7 +522,7 @@ pTK [options] action [buildconfiguration...]
                 _gitcmd = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.cmd");
                 _gitexe = null;
                 if (string.IsNullOrEmpty(_gitcmd)) {
-                    f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
+                    var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("git.exe");
                     if (string.IsNullOrEmpty(f)) {
                         return Fail("Can not find git.cmd or git.exe (required to perform verification.)");
                     }
@@ -518,7 +531,7 @@ pTK [options] action [buildconfiguration...]
             }
 
             if (_useHg) {
-                 f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
+                var f = ProgramFinder.ProgramFilesAndDotNet.ScanForFile("hg.exe");
                 if (string.IsNullOrEmpty(f)) {
                     return Fail("Can not find hg.exe (required to perform verification.)");
                 }
@@ -526,6 +539,16 @@ pTK [options] action [buildconfiguration...]
             }
 
             // find sdk batch files.
+
+            /* FIXME: URGENT.
+             * C:\Program Files (x86)\Microsoft Visual Studio 8\VC\vcvarsall.bat
+                C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\vcvars32.bat
+                C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\vcvarsamd64.bat
+                C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_amd64\vcvarsx86_amd64.bat
+             * VC7.0: C:\Program Files\Microsoft Visual Studio .NET\Vc7\bin\vcvars32.bat
+
+
+             * */
 
             _setenvcmd71 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd", excludeFilters: new[] { @"\Windows Azure SDK\**" , "winddk**" }, includeFilters: new [] {"sdk**", "v7.1**"}, rememberMissingFile:true, tagWithCosmeticVersion:"7.1");
             _setenvcmd7 = ProgramFinder.ProgramFilesAndDotNetAndSdk.ScanForFile("setenv.cmd", excludeFilters: new[] { @"\Windows Azure SDK\**", "7.1**", "winddk**" }, includeFilters: new[] { "sdk**", "v7**" }, rememberMissingFile: true, tagWithCosmeticVersion: "7.0");
@@ -572,8 +595,11 @@ pTK [options] action [buildconfiguration...]
             try {
                 // load and parse. propertySheet will contain everything else we need for later
                 _propertySheet = PropertySheet.Load(buildinfo);
+
+                DefineRules = _propertySheet.Rules.Where(each => each.Id == "define" && each.Name == "*").ToArray();
+
                 _propertySheet.GetMacroValue += (valueName) => {
-                    return Environment.GetEnvironmentVariable(valueName);
+                    return (from rule in DefineRules where rule.HasProperty(valueName) select rule[valueName].Value).FirstOrDefault() ?? Environment.GetEnvironmentVariable(valueName);
                 };
                 _propertySheet.GetCollection += (collectionName) => {
                     return Enumerable.Empty<object>();
@@ -692,9 +718,22 @@ pTK [options] action [buildconfiguration...]
 @setlocal 
 {1}:
 @cd ""{0}""
+{2}
 
-
-".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
+REM ===================================================================
+REM STANDARD ERROR HANDLING BLOCK
+REM ===================================================================
+REM Everything went ok!
+:success
+exit /b 0
+        
+REM ===================================================================
+REM Something not ok :(
+:failed
+echo ERROR: Failure in script. aborting.
+exit /b 1
+REM ===================================================================
+".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0], script);
                 var scriptpath = WriteTempScript(script);
                 _traceexe.ExecNoRedirections(@"--nologo ""--output-file={1}"" cmd.exe /c ""{0}""", scriptpath, traceFile);
             }
@@ -734,9 +773,22 @@ pTK [options] action [buildconfiguration...]
 @setlocal 
 {1}:
 @cd ""{0}""
+{2}
 
-
-".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0]) + script;
+REM ===================================================================
+REM STANDARD ERROR HANDLING BLOCK
+REM ===================================================================
+REM Everything went ok!
+:success
+exit /b 0
+        
+REM ===================================================================
+REM Something not ok :(
+:failed
+echo ERROR: Failure in script. aborting.
+exit /b 1
+REM ===================================================================
+".format(Environment.CurrentDirectory, Environment.CurrentDirectory[0],script);
                 // tell the user what we are about to run
                 //Console.WriteLine(script);
                 // create temporary file
@@ -824,10 +876,47 @@ pTK [options] action [buildconfiguration...]
         /// <summary>
         /// Builds all dependencies listed in a given build rule
         /// </summary>
-        /// <param name="build">A build rule to which the dependencies should be built</param>
-        private void CleanDependencies(Rule build) {
+        /// <param name="buildRule">A build rule to which the dependencies should be built</param>
+        private void CleanDependencies(Rule buildRule) {
+            var uses = buildRule["uses"];
+            if (uses != null) {
+                foreach (var configuration in uses.Labels) {
+                    var locations = buildRule["uses"][configuration];
+
+                    if (string.IsNullOrEmpty(configuration)) {
+                        // this could be a use in the local file.
+                        var builds = from rule in _propertySheet.Rules where locations.Contains(rule.Name) select rule;
+
+                        if (builds.Any()) {
+                            Clean(builds);
+                            continue;
+                        }
+                    }
+
+                    foreach (var folder in locations.Select(path => path.GetFullPath())) {
+                        // if it wasn't an internal build, then switch to the folder and run the build specified.
+                        if (!Directory.Exists(folder)) {
+                            throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                        }
+
+                        var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
+                        if (!File.Exists(depBuildinfo)) {
+                            throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
+                        }
+
+                        using (var popd = new PushDirectory(folder)) {
+                            // build dependency project
+                            _ptk.ExecNoRedirections("--nologo clean {0}", configuration);
+                            if (_ptk.ExitCode != 0) {
+                                throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(configuration) ? "all" : configuration);
+                            }
+                        }
+                    }
+                }
+            }            
+            
+            /*
             // save current directory
-            var pwd = Environment.CurrentDirectory;
 
             var uses = build["uses"];
             if (uses != null) {
@@ -866,23 +955,24 @@ pTK [options] action [buildconfiguration...]
                     }
 
                     // switch project directory
-                    Environment.CurrentDirectory = folder;
-                    // build dependency project
-                    _ptk.ExecNoRedirections("--nologo clean {0}", config);
-                    if (_ptk.ExitCode != 0)
-                        throw new ConsoleException(
-                            "Dependency project failed to clean [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
-                    // reset directory to where we came from
-                    Environment.CurrentDirectory = pwd;
+                    using (var popd = new PushDirectory(folder)) {
+                        // build dependency project
+                        _ptk.ExecNoRedirections("--nologo clean {0}", config);
+                        if (_ptk.ExitCode != 0)
+                            throw new ConsoleException(
+                                "Dependency project failed to clean [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
+                        // reset directory to where we came from
+                    }
                 }
-            }
+            }*/
         }
 
-        private IEnumerable<Rule> LocalChildBuilds( Rule build ) {
-            var uses = build["uses"];
+        private IEnumerable<Rule> LocalChildBuilds( Rule buildRule ) {
+            var uses = buildRule["uses"];
             return uses != null ? (from useLabel in uses.Labels let use = uses[useLabel] where string.IsNullOrEmpty(useLabel) select (from rule in _propertySheet.Rules where use.Contains(rule.Name) select rule)).Aggregate(Enumerable.Empty<Rule>(), (current, builds) => current.Union(builds)) : Enumerable.Empty<Rule>();
         }
 
+        /*
        private Dictionary<string,string> ExternalChildBuilds( Rule build ) {
            var result = new Dictionary<string, string>();
            
@@ -915,60 +1005,65 @@ pTK [options] action [buildconfiguration...]
                }
            }
            return result;
-       }
+       }*/
 
         /// <summary>
         /// Builds all dependencies listed in a given build rule
         /// </summary>
-        /// <param name="build">A build rule to which the dependencies should be built</param>
-        private void BuildDependencies(Rule build) {
+        /// <param name="buildRule">A build rule to which the dependencies should be built</param>
+        private void BuildDependencies(Rule buildRule) {
             // save current directory
-            var pwd = Environment.CurrentDirectory;
-
-            var uses = build["uses"];
+            var uses = buildRule["uses"];
             if (uses != null) {
-                foreach (var useLabel in uses.Labels) {
-                    var use = build["uses"][useLabel];
+                foreach (var configuration in uses.Labels) {
+                    var locations = buildRule["uses"][configuration];
 
-                    var config = string.Empty;
-                    var folder = string.Empty;
-
-                    // set folder and configuration as needed
-                    config = useLabel;
-                    folder = use.Value;
-
-
-                    if (string.IsNullOrEmpty(config)) {
+                    if (string.IsNullOrEmpty(configuration)) {
                         // this could be a use in the local file.
-                        var builds = from rule in _propertySheet.Rules where use.Contains(rule.Name) select rule;
+                        var builds = from rule in _propertySheet.Rules where locations.Contains(rule.Name) select rule;
 
-                        if( builds.Any() ) {
+                        if (builds.Any()) {
                             Build(builds);
                             continue;
                         }
                     }
 
-                    // if it wasn't an internal build, then switch to the folder and run the build specified.
+                    /*
+                     * uses x86="..\zlib";
+                     * uses x86="..\libpng";
+                     * 
+                     * or
+                     * 
+                     * uses : configuration {
+                     *      "location",
+                     *      "location",
+                     *      "location",
+                     *      "location"
+                     * }
+                     * 
+                     * uses : configuration: location;
+                     * 
+                     */
 
-                    folder = folder.GetFullPath();
-                    if (!Directory.Exists(folder)) {
-                        throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                    foreach (var folder in locations.Select(path => path.GetFullPath())) {
+                        // if it wasn't an internal build, then switch to the folder and run the build specified.
+                        if (!Directory.Exists(folder)) {
+                            throw new ConsoleException("Dependency project [{0}] does not exist.", folder);
+                        }
+
+                        var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
+                        if (!File.Exists(depBuildinfo)) {
+                            throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
+                        }
+
+                        using (var popd = new PushDirectory(folder)) {
+                            // build dependency project
+                            _ptk.ExecNoRedirections("--nologo build {0}", configuration);
+                            if (_ptk.ExitCode != 0) {
+                                throw new ConsoleException("Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(configuration) ? "all" : configuration);
+                            }
+                        }
                     }
-
-                    var depBuildinfo = Path.Combine(folder, @"copkg\.buildinfo");
-                    if (!File.Exists(depBuildinfo)) {
-                        throw new ConsoleException("Dependency project is missing buildinfo [{0}]", depBuildinfo);
-                    }
-
-                    // switch project directory
-                    Environment.CurrentDirectory = folder;
-                    // build dependency project
-                    _ptk.ExecNoRedirections("--nologo build {0}", config);
-                    if (_ptk.ExitCode != 0)
-                        throw new ConsoleException(
-                            "Dependency project failed to build [{0}] config={1}", depBuildinfo, string.IsNullOrEmpty(config) ? "all" : config);
-                    // reset directory to where we came from
-                    Environment.CurrentDirectory = pwd;
                 }
             }
         }

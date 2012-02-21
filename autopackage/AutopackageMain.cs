@@ -55,6 +55,7 @@ namespace CoApp.Autopackage {
         UnableToDeterminePackageArchitecture,
         UnknownCompositionRuleType,
         MultiplePackagesMatched,
+        ManifestReferenceNotFound,
 
         // warnings
         WarningUnknown = 500,
@@ -114,7 +115,10 @@ namespace CoApp.Autopackage {
         internal PackageSource PackageSource;
         internal AutopackageModel PackageModel;
         internal AtomFeed PackageFeed;
-      
+        private string _signingCertPath;
+        private string _signingCertPassword;
+        private bool _remember;
+
         protected override ResourceManager Res {
             get {
                 return Resources.ResourceManager;
@@ -172,6 +176,7 @@ namespace CoApp.Autopackage {
         ///   Process return code.
         /// </returns>
         protected override int Main(IEnumerable<string> args) {
+            // force temporary folder to be where we want it to be.
             _messages = new PackageManagerMessages {
                 UnexpectedFailure = UnexpectedFailure,
                 NoPackagesFound = NoPackagesFound,
@@ -192,8 +197,6 @@ namespace CoApp.Autopackage {
                 PackageBlocked = BlockedPackage,
                 UnknownPackage = UnknownPackage,
             };
-
-            PackageSource = new PackageSource();
 
             try {
                 // default:
@@ -229,15 +232,15 @@ namespace CoApp.Autopackage {
                             break;
 
                         case "certificate-path":
-                            PackageSource.SigningCertPath = Path.GetFullPath(last);
+                            _signingCertPath = Path.GetFullPath(last);
                             break;
 
                         case "password":
-                            PackageSource.SigningCertPassword = last;
+                            _signingCertPassword = last;
                             break;
 
                         case "remember":
-                            PackageSource.Remember = lastAsBool;
+                            _remember = lastAsBool;
                             break;
 
                         case "override":
@@ -273,16 +276,26 @@ namespace CoApp.Autopackage {
 
                 Logo();
 
-                
+                var allFiles = parameters.FindFilesSmarter().ToArray();
+                foreach (var file in allFiles) {
+                    using (var popd = new PushDirectory(Path.GetDirectoryName(file.GetFullPath()))) {
+                        Binary.UnloadAndResetAll();
+                        PackageSource = new PackageSource();
 
-                // ------ Load Information to create Package 
-                PackageSource.LoadPackageSourceData(parameters);
+                        PackageSource.SigningCertPath = _signingCertPath;
+                        PackageSource.SigningCertPassword = _signingCertPassword;
+                        PackageSource.Remember = _remember;
 
-                // ------- Create data model for package
-                CreatePackageModel();
+                        // ------ Load Information to create Package 
+                        PackageSource.LoadPackageSourceData(file);
 
-                // ------ Generate package MSI from model
-                CreatePackageFile();
+                        // ------- Create data model for package
+                        CreatePackageModel();
+
+                        // ------ Generate package MSI from model
+                        CreatePackageFile();
+                    }
+                }
 
             } catch (AutopackageException) {
                 return Fail("Autopackage encountered errors.\r\n");
@@ -313,6 +326,12 @@ namespace CoApp.Autopackage {
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
 
+            // Ensure digital signatures and strong names are all good to go
+            // this doesn't commit the files to disk tho' ...
+            PackageModel.ProcessDigitalSigning();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
             PackageModel.ProcessApplicationRole();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
@@ -321,6 +340,21 @@ namespace CoApp.Autopackage {
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
 
+            PackageModel.ProcessServiceRoles();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
+            PackageModel.ProcessDriverRoles();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
+            PackageModel.ProcessWebApplicationRoles();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
+            PackageModel.ProcessSourceCodeRoles();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
 
             // identify all assemblies to create in the package
             PackageModel.ProcessAssemblyRules();
@@ -336,15 +370,19 @@ namespace CoApp.Autopackage {
             PackageModel.ProcessDependencyInformation();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
-            
 
-            // Build Assembly Manifests, catalog files and policy files
-            PackageModel.ProcessAssemblyManifests();
+            // update manifests for things that need them.
+            PackageModel.UpdateApplicationManifests();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
 
-            // Ensure digital signatures and strong names are all good to go
-            PackageModel.ProcessDigitalSigning();
+            // Build Assembly policy files
+            PackageModel.CreateAssemblyPolicies();
+            // at the end of the step, if there are any errors, let's print them out and exit now.
+            FailOnErrors();
+
+            // persist all the changes to any binaries that we've touched.
+            PackageModel.SaveModifiedBinaries();
             // at the end of the step, if there are any errors, let's print them out and exit now.
             FailOnErrors();
 
@@ -358,7 +396,7 @@ namespace CoApp.Autopackage {
         }
 
         private void CreatePackageFile() {
-            var msiFile = Path.Combine(Environment.CurrentDirectory, "{0}-{1}-{2}.msi".format(PackageModel.Name, PackageModel.Version.UInt64VersiontoString(), PackageModel.Architecture));
+            var msiFile = Path.Combine(Environment.CurrentDirectory, "{0}-{1}-{2}.msi".format(PackageModel.Name, (string)PackageModel.Version, PackageModel.Architecture.ToString()));
             PackageSource.MacroValues.Add("OutputFilename", Path.GetFileName(msiFile));
             PackageSource.MacroValues.Add("Name", Path.GetFileNameWithoutExtension(msiFile));
             PackageSource.MacroValues.Add("CanonicalName", Path.GetFileNameWithoutExtension(PackageModel.CanonicalName));
@@ -372,6 +410,13 @@ namespace CoApp.Autopackage {
 
             PeBinary.SignFile(msiFile, PackageSource.Certificate);
             Console.WriteLine("\r\n ==========\r\n DONE : Signed MSI File: {0}", msiFile);
+
+            // recognize the new package in case it is needed for another package.
+            if (!string.IsNullOrEmpty(msiFile) && File.Exists(msiFile)) {
+                Console.WriteLine("\r\n Recognizing: {0}", msiFile);
+                PackageManager.Instance.RecognizeFile(null, msiFile, null, _messages).Wait();
+            }
+
         }
 
         private void HandleWarnings(MessageCode code, SourceLocation sourceLocation, string message, object[] args) {

@@ -83,9 +83,32 @@ namespace CoApp.Autopackage {
 
         private static IEnumerable<FileEntry> SetDestinationDirectory(IEnumerable<FileEntry> fileEntries, dynamic rule) {
             var destination = rule.destination.Value as string ?? string.Empty;
-
             if (!string.IsNullOrEmpty(destination)) {
-                return fileEntries.Select(each => new FileEntry( each.SourcePath, Path.Combine(destination, each.DestinationPath)));
+
+                // change forward slashes to backslashes
+                destination = destination.Replace("/", "\\");
+
+                // we don't permit any parent directory references here.
+                while (destination.Contains("..")) {
+                    destination = destination.Replace("..", "");
+                }
+            
+                // multiple backslashes are reduced to a single
+                while (destination.Contains("\\\\")) {
+                    destination = destination.Replace("\\\\", "\\");
+                }
+
+                // strip off leading dot-xxx pairs: .. ./ 
+                while (destination.StartsWith("..") || destination.StartsWith(".\\") ) {
+                    destination = destination.Substring(2);
+                }
+
+                // remove any extra backslashes on either end..
+                destination = destination.Trim('\\');
+
+                if (!string.IsNullOrEmpty(destination)) {
+                    return fileEntries.Select(each => new FileEntry(each.SourcePath, Path.Combine(destination, each.DestinationPath)));
+                }
             }
             return fileEntries;
         }
@@ -148,41 +171,42 @@ namespace CoApp.Autopackage {
 
         internal static IEnumerable<FileEntry> ProcessIncludes(FileList thisInstance, dynamic rule, string name, string includePropertyName, IEnumerable<Rule> fileRules, string root) {
             var fileEntries = Enumerable.Empty<FileEntry>();
-            var includes = rule.include.Values;
+            var property = rule[includePropertyName];
+            
+            if( property != null ) {
+                foreach (string include in property.Values ) {
+                    // first check to see if the include is another file list
+                    if (fileRules.GetRulesByParameter(include).Any()) {
+                        // there is one? Great. Add that to the list of our files 
+                        var inheritedList = GetFileList(include, fileRules);
 
-            foreach (string include in includes) {
-                // first check to see if the include is another file list
-                if (fileRules.GetRulesByParameter(include).Any()) {
-                    // there is one? Great. Add that to the list of our files 
-                    var inheritedList = GetFileList(include, fileRules);
+                        if (inheritedList == null) {
+                            AutopackageMessages.Invoke.Error(
+                                MessageCode.DependentFileListUnavailable, rule.SourceLocation,
+                                "File list '{0}' depends on file list '{1}' which is not availible.", name, include);
+                            continue;
+                        }
 
-                    if (inheritedList == null) {
-                        AutopackageMessages.Invoke.Error(
-                            MessageCode.DependentFileListUnavailable, rule.SourceLocation,
-                            "File list '{0}' depends on file list '{1}' which is not availible.", name, include);
+                        if (inheritedList == thisInstance) {
+                            // already complained about circular reference.
+                            continue;
+                        }
+
+                        fileEntries = fileEntries.Union(inheritedList.FileEntries.Select(each => new FileEntry(each)));
                         continue;
                     }
 
-                    if (inheritedList == thisInstance) {
-                        // already complained about circular reference.
-                        continue;
+                    // it's not a reference include. lets see if we can pick up some files with it.
+                    var foundFiles = root.FindFilesSmarter(include).ToArray();
+
+                    if (!foundFiles.Any()) {
+                        AutopackageMessages.Invoke.Warning(
+                            MessageCode.IncludeFileReferenceMatchesZeroFiles, rule.include.SourceLocation,
+                            "File include reference '{0}' matches zero files in path '{1}'", include, root);
                     }
-
-                    fileEntries = fileEntries.Union(inheritedList.FileEntries.Select(each => new FileEntry(each)));
-                    continue;
+                    fileEntries = fileEntries.Union(foundFiles.Select(each => new FileEntry(each, root.GetSubPath(each))));
                 }
-
-                // it's not a reference include. lets see if we can pick up some files with it.
-                var foundFiles = root.FindFilesSmarter(include).ToArray();
-
-                if (!foundFiles.Any()) {
-                    AutopackageMessages.Invoke.Warning(
-                        MessageCode.IncludeFileReferenceMatchesZeroFiles, rule.include.SourceLocation,
-                        "File include reference '{0}' matches zero files in path '{1}'", include, root);
-                }
-                fileEntries = fileEntries.Union(foundFiles.Select(each => new FileEntry (each, root.GetSubPath(each))));
             }
-
             return fileEntries;
         }
 

@@ -15,21 +15,32 @@ using System.Linq;
 using System.Text;
 
 namespace CoApp.Autopackage {
+    using System.IO;
+    using Developer.Toolkit.Publishing;
     using Toolkit.Engine;
     using Toolkit.Engine.Model;
     using Toolkit.Extensions;
     using Toolkit.Scripting.Languages.PropertySheet;
+    using Toolkit.Win32;
 
     public class PackageAssembly {
         public string Name { get; set; }
 
+        private Binary _firstPE;
+        internal Binary FirstPEBinary { get { return _firstPE ?? (_firstPE = PEFiles.FirstOrDefault()); } }
+
+        private IEnumerable<Binary> _peFiles;
+        internal IEnumerable<Binary> PEFiles { get { return _peFiles ?? (_peFiles = BinaryFiles.Where(each => each.IsPEFile)); } }
+
+        private IEnumerable<Binary> _binaryFiles;
+        private IEnumerable<Binary> BinaryFiles { get { return _binaryFiles ?? (_binaryFiles = SourceFiles.Select(each => Binary.Load(each).Result)); }}
+
         private Architecture _architecture;
         public Architecture Architecture { get {
             if( _architecture == Architecture.Unknown) {
-                var firstPE = Filenames.Select(Toolkit.Win32.PEInfo.Scan).Where(each => each.IsPEBinary).FirstOrDefault();
-                if( firstPE.Is64Bit ) {
+                if (FirstPEBinary.Is64Bit) {
                     _architecture = Architecture.x64;
-                } else if ( firstPE.IsAny ) {
+                } else if (FirstPEBinary.IsAnyCpu) {
                     _architecture= Architecture.Any;
                 }
                 else {
@@ -40,36 +51,54 @@ namespace CoApp.Autopackage {
         }}
 
         public Rule Rule { get; set; }
-        internal IEnumerable<string> Filenames;
         private bool? _isManaged;
-        private string _version;
+        private bool? _isPolicy;
+        private bool? _isNative;
+
+        private FourPartVersion _version;
         private bool? _isErrorFree;
         public string PublicKeyToken { get; set; }
 
+        private readonly IEnumerable<FileEntry> _files;
+
+        internal IEnumerable<FileEntry>  Files {get { return _files; } }
+
+        internal IEnumerable<string>  SourceFiles {
+            get { return _files.Select(each => each.SourcePath); }
+        }
+
         public bool FilesAreSigned {
             get {
-                return !Filenames.Any(file => !Toolkit.Crypto.Verifier.HasValidSignature(file));
+                return SourceFiles.All(Toolkit.Crypto.Verifier.HasValidSignature);
             }
         }
 
         public bool IsManaged {
             get {
-                if( _isManaged == null ) {
-                    _isManaged =!Filenames.Select(Toolkit.Win32.PEInfo.Scan).Any(info => info.IsPEBinary && !info.IsManaged);
+                if( _isPolicy == true || _isNative == true) {
+                    return false;
                 }
-                return _isManaged.Value;
+                // if none of them are not managed. 
+                return (_isManaged ?? (_isManaged = !PEFiles.Any(each => !each.IsManaged))).Value;
             }
         }
 
-        public string Version { 
+        public bool IsNative {
             get {
-                if (_version == null) {
-                    foreach (var s in Filenames.Select(Toolkit.Win32.PEInfo.Scan).Where(s => s.IsPEBinary)) {
-                        _version = s.FileVersion;
-                        break;
-                    }
+                if (_isPolicy == true || _isManaged == true) {
+                    return false;
                 }
-                return _version;
+                return (_isNative ?? (_isNative = !IsManaged)).Value;
+            }
+        }
+
+        public bool IsNativePolicy {
+            get { return _isPolicy == true; }
+            set { _isPolicy = value; }
+        }
+        public FourPartVersion Version { 
+            get {
+                return _version == 0L ? (_version = FirstPEBinary.FileVersion) : _version;
             }
         }
         
@@ -79,7 +108,7 @@ namespace CoApp.Autopackage {
                     _isErrorFree = true;
 
                     /*
-                    if (IsManaged && Filenames.Count() > 1) {
+                    if (IsManaged && SourceFiles.Count() > 1) {
                         AutopackageMessages.Invoke.Error(
                             MessageCode.ManagedAssemblyWithMoreThanOneFile, Rule.SourceLocation, "Managed assembly '{0}' with more than one file in include",
                             Name);
@@ -97,13 +126,51 @@ namespace CoApp.Autopackage {
         public PackageAssembly(string assemblyName, Rule rule ,string filename ) {
             Name = assemblyName;
             Rule = rule;
-            Filenames = filename.SingleItemAsEnumerable();
+            _files = new FileEntry(filename, Path.GetFileName(filename)).SingleItemAsEnumerable();
         }
 
-        public PackageAssembly(string assemblyName, Rule rule, IEnumerable<string> filenames) {
+        
+        public PackageAssembly(string assemblyName, Rule rule, IEnumerable<string> files) {
             Name = assemblyName;
             Rule = rule;
-            Filenames = filenames;
+            // when given just filenames, strip the 
+            _files = files.Select(each => new FileEntry(each, Path.GetFileName(each)));
         }
+
+        public PackageAssembly(string assemblyName, Rule rule, IEnumerable<FileEntry> files) {
+            Name = assemblyName;
+            Rule = rule;
+            _files = files;
+        }
+
+        public PackageAssembly(string assemblyName, Rule rule, NativeManifest policyManifest) {
+            Name = assemblyName;
+            Rule = rule;
+            _assemblyManifest = policyManifest;
+            _isPolicy = true;
+            _files = Enumerable.Empty<FileEntry>();
+        }
+
+        private NativeManifest _assemblyManifest;
+        public string AssemblyManifest {
+            get {
+                if (_assemblyManifest == null) {
+                    _assemblyManifest  = new NativeManifest(null) {
+                        AssemblyName = Name,
+                        AssemblyArchitecture = Architecture,
+                        AssemblyLanguage = "*",
+                        AssemblyVersion = Version,
+                        AssemblyPublicKeyToken = PublicKeyToken,
+                        AssemblyType = AssemblyType.win32
+                    };
+
+                    foreach( var file in _files) {
+                        _assemblyManifest.AddFile(file.DestinationPath, file.SourcePath.GetFileSHA1());
+                    }
+                }
+                return _assemblyManifest.ToString();
+            }
+        }
+
     }
 }

@@ -91,7 +91,22 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
             set {
                 _manifest = value;
                 _data = null;
-                _size = Encoding.UTF8.GetBytes(_manifest.OuterXml).Length;
+                _size = PrettyManifestXml().Length;
+            }
+        }
+
+        /// <summary>
+        ///   Embedded XML manifest.
+        /// </summary>
+        public string ManifestText {
+            get {
+                return Manifest.OuterXml;
+            }
+            set {
+                _manifest = new XmlDocument();
+                _manifest.LoadXml(value);
+                _data = null;
+                _size = PrettyManifestXml().Length;
             }
         }
 
@@ -125,11 +140,24 @@ namespace CoApp.Developer.Toolkit.ResourceLib {
         /// <param name = "w">Binary stream.</param>
         internal override void Write(BinaryWriter w) {
             if (_manifest != null) {
-                w.Write(Encoding.UTF8.GetBytes(_manifest.OuterXml));
+                w.Write(PrettyManifestXml());
             }
             else if (_data != null) {
                 w.Write(_data);
             }
+        }
+
+        // GS02: Make the XML look pretty ;)
+        private byte[] PrettyManifestXml() {
+            if( _manifest != null ) {
+                using (var memoryStream = new MemoryStream()) {
+                    using (var xw = XmlWriter.Create(memoryStream, new XmlWriterSettings { ConformanceLevel = ConformanceLevel.Document, Encoding = new UTF8Encoding(false), OmitXmlDeclaration = false, Indent = true })) {
+                        _manifest.WriteTo(xw);
+                    }
+                    return memoryStream.GetBuffer();
+                } 
+            }
+            return _data ?? new byte[0];
         }
 
         /// <summary>

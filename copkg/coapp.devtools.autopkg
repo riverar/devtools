@@ -1,10 +1,9 @@
 // autopackage file for coapp.devtools
+@import "outercurve.inc";
 
 package {
     name: "CoApp.Devtools";
     display-name: "CoApp Developer Tools";
-    
-    location: "http://coapp.org/repository/${OutputFilename}";
 }
 
 // requires {

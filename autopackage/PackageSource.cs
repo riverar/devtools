@@ -39,6 +39,7 @@ namespace CoApp.Autopackage {
         internal IEnumerable<Rule> RequiresRules;
         internal IEnumerable<Rule> ProvidesRules;
         internal IEnumerable<Rule> CompatabilityPolicyRules;
+        internal IEnumerable<Rule> ManifestRules;
         internal IEnumerable<Rule> PackageCompositionRules;
         internal IEnumerable<Rule> IdentityRules;
         internal IEnumerable<Rule> SigningRules;
@@ -68,7 +69,7 @@ namespace CoApp.Autopackage {
            
         }
 
-        internal void LoadPackageSourceData(IEnumerable<string> parameters) {
+        internal void LoadPackageSourceData(string autopackageSourceFile) {
             // ------ Load Information to create Package 
 
             FindCertificate();
@@ -77,7 +78,7 @@ namespace CoApp.Autopackage {
             StartPackageManager();
 
             // load up all the specified property sheets
-            LoadPropertySheets(parameters);
+            LoadPropertySheets(autopackageSourceFile);
 
             // Determine the roles that are going into the MSI, and ensure we know the basic information for the package (ver, arch, etc)
             CollectRoleRules();
@@ -105,12 +106,12 @@ namespace CoApp.Autopackage {
                 }
             }
 
-            return DefineRules.GetPropertyValue(valuename) ?? (MacroValues.ContainsKey(valuename) ? MacroValues[valuename] : null);
+            return DefineRules.GetPropertyValue(valuename) ?? (MacroValues.ContainsKey(valuename) ? MacroValues[valuename] : Environment.GetEnvironmentVariable(valuename));
         }
 
         internal IEnumerable<object> GetFileCollection(string collectionname) {
             // we use this to pick up file collections.
-            var fileRule = FileRules.Where(each => each.Parameter == collectionname).FirstOrDefault();
+            var fileRule = FileRules.FirstOrDefault(each => each.Parameter == collectionname);
 
             if( fileRule == null) {
                 AutopackageMessages.Invoke.Error(MessageCode.UnknownFileList, null, "Reference to unknown file list '{0}'", collectionname);
@@ -127,23 +128,20 @@ namespace CoApp.Autopackage {
             return Enumerable.Empty<object>();
         }
 
-        internal void LoadPropertySheets(IEnumerable<string> parameters) {
+        internal void LoadPropertySheets(string autopackageSourceFile) {
             //
             var template = PropertySheet.Parse(Properties.Resources.template_autopkg, "autopkg-template");
 
-            PropertySheets = parameters.Select(
-                each => {
-                    if (!File.Exists(each.GetFullPath())) {
-                        throw new ConsoleException("Can not find autopackage file '{0}'", each.GetFullPath());
-                    }
+            if (!File.Exists(autopackageSourceFile.GetFullPath())) {
+                throw new ConsoleException("Can not find autopackage file '{0}'", autopackageSourceFile.GetFullPath());
+            }
+            
+            var result = PropertySheet.Load(autopackageSourceFile);
+            result.GetCollection += GetFileCollection;
+            result.GetMacroValue += GetMacroValue;
 
-                    var result = PropertySheet.Load(each);
-                    result.GetCollection += GetFileCollection;
-                    result.GetMacroValue += GetMacroValue;
-
-                    return result;
-                }).Union(template.SingleItemAsEnumerable()).ToArray();
-
+            PropertySheets = new[] {result, template};
+            
             // this is the master list of all the rules from all included sheets
             AllRules = PropertySheets.SelectMany(each => each.Rules).Reverse().ToArray();
 
@@ -158,6 +156,7 @@ namespace CoApp.Autopackage {
             RequiresRules = AllRules.GetRulesByName("requires");
             ProvidesRules = AllRules.GetRulesByName("provides");
 
+            ManifestRules = AllRules.GetRulesByName("manifest");
             CompatabilityPolicyRules = AllRules.GetRulesByName("compatability-policy");
             PackageCompositionRules = AllRules.GetRulesByName("package-composition");
             IdentityRules = AllRules.GetRulesByName("identity");

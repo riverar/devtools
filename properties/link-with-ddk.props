@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="UserMacros">
+    <!--
+    // safecrtnt.lib    : Baked in security-enhanced functions (you know, those _s thangs).
+    // msvcrt.lib		    : Baked in CRT (Windows XP SP3 and up).
+    // msvcrt_winxp.obj : Implementation of some downlevel APIs, like except_handler4_common.
+    
+    GS01: I've removed $(DDKInstallPath)lib\wxp\i386\msvcrt_winxp.obj
+    -->
+    <DDK_CRT>$(DDKInstallPath)lib\Crt\$(DDKPlatform)\safecrtnt.lib;$(DDKInstallPath)lib\Crt\$(DDKPlatform)\msvcrt.lib;</DDK_CRT>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>$(DDK_CRT);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(OutDir)include;$(DDKInstallPath)inc\crt\;$(DDKInstallPath)inc\api\;%(AdditionalIncludeDirectories);$(IncludePath)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="DDK_CRT">
+      <Value>$(DDK_CRT)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

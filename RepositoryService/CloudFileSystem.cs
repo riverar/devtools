@@ -170,6 +170,7 @@
                         try {
                             if (gzip) {
                                 var localGZFilename = localFilename.GenerateTemporaryFilename();
+                                Console.WriteLine("TEMP: {0}", localGZFilename);
                                 using (var gzStream = new GZipStream(
                                     new FileStream(localGZFilename, FileMode.CreateNew), CompressionMode.Compress, CompressionLevel.BestCompression)) {
                                         using (var fs = new FileStream(localFilename, FileMode.Open, FileAccess.Read, FileShare.Read)) {

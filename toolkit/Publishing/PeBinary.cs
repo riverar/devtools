@@ -50,10 +50,15 @@ namespace CoApp.Developer.Toolkit.Publishing {
         private MetadataReaderHost _host = new PeReader.DefaultHost();
         private readonly Task _loading;
         public readonly List<PeBinary> UnsignedDependentBinaries = new List<PeBinary>();
+        private IEnumerable<ManifestResource> _manifestResources;
 
         private static Dictionary<string, PeBinary> _cache = new Dictionary<string, PeBinary>();
         public string Filename { get { return _filename; } }
         public PEInfo Info { get {return _info;} }
+        public static IEnumerable<PeBinary> ModifiedBinaries {
+            get {
+            return _cache.Values.Where(each => each._pendingChanges);
+        } }
 
         public static PeBinary FindAssembly(string assemblyname, string version) {
             lock (_cache) {
@@ -115,7 +120,6 @@ namespace CoApp.Developer.Toolkit.Publishing {
                 Console.WriteLine("FAIL: {0} / {1}\r\n{2}", inner.GetType(), inner.Message, inner.StackTrace);
 
             }
-
             return result;
         }
 
@@ -123,28 +127,38 @@ namespace CoApp.Developer.Toolkit.Publishing {
             _filename = filename;
             _info = PEInfo.Scan(filename);
             _loading = Task.Factory.StartNew(() => {
-                using (var ri = new ResourceInfo()) {
-                    // lets pull out the relevant resources first.
-                    ri.Load(_filename);
-                    try {
-                        var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).FirstOrDefault();
-                        var versionResource = ri.Resources[versionKey].First() as VersionResource;
-                        var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
+                try {
+                    using (var ri = new ResourceInfo()) {
+                        // lets pull out the relevant resources first.
+                        try {
+                            ri.Load(_filename);
+                            var manifests = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_MANIFEST);
+                            _manifestResources = manifests.Select(each => ri.Resources[each].FirstOrDefault() as ManifestResource);
 
-                        _comments = TryGetVersionString(versionStringTable, "Comments");
-                        _companyName = TryGetVersionString(versionStringTable, "CompanyName");
-                        _productName = TryGetVersionString(versionStringTable, "ProductName");
-                        _assemblyVersion = TryGetVersionString(versionStringTable, "Assembly Version");
-                        _fileVersion = TryGetVersionString(versionStringTable, "FileVersion");
-                        _internalName = TryGetVersionString(versionStringTable, "InternalName");
-                        _originalFilename = TryGetVersionString(versionStringTable, "OriginalFilename");
-                        _legalCopyright = TryGetVersionString(versionStringTable, "LegalCopyright");
-                        _legalTrademarks = TryGetVersionString(versionStringTable, "LegalTrademarks");
-                        _fileDescription = TryGetVersionString(versionStringTable, "FileDescription");
-                        _bugTracker = TryGetVersionString(versionStringTable, "BugTracker");
-                    } catch {
-                        // skip it if this fails.
+                            var versionKey = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_VERSION).FirstOrDefault();
+                            var versionResource = ri.Resources[versionKey].First() as VersionResource;
+                            var versionStringTable = (versionResource["StringFileInfo"] as StringFileInfo).Strings.Values.First();
+
+                            _comments = TryGetVersionString(versionStringTable, "Comments");
+                            _companyName = TryGetVersionString(versionStringTable, "CompanyName");
+                            _productName = TryGetVersionString(versionStringTable, "ProductName");
+                            _assemblyVersion = TryGetVersionString(versionStringTable, "Assembly Version");
+                            _fileVersion = TryGetVersionString(versionStringTable, "FileVersion");
+                            _internalName = TryGetVersionString(versionStringTable, "InternalName");
+                            _originalFilename = TryGetVersionString(versionStringTable, "OriginalFilename");
+                            _legalCopyright = TryGetVersionString(versionStringTable, "LegalCopyright");
+                            _legalTrademarks = TryGetVersionString(versionStringTable, "LegalTrademarks");
+                            _fileDescription = TryGetVersionString(versionStringTable, "FileDescription");
+                            _bugTracker = TryGetVersionString(versionStringTable, "BugTracker");
+
+
+                        } catch {
+                            // skip it if this fails.
+                            Logger.Warning("File {0} failed to load win32 resources", filename);
+                        }
                     }
+                } catch( Exception e ) {
+                    Logger.Warning("File {0} doesn't appear to have win32 resources",filename);
                 }
 
                 if (IsManaged) {
@@ -474,6 +488,9 @@ namespace CoApp.Developer.Toolkit.Publishing {
 
         public void Save(bool autoHandleDependencies = false) {
             lock (this) {
+                if (_manifest != null ) {
+                    _pendingChanges = _manifest.Modified || _pendingChanges;
+                }
                 Logger.Message("Saving Binary '{0}' : Pending Changes: {1} ", _filename, _pendingChanges);
                 if (_pendingChanges) {
                    
@@ -526,8 +543,8 @@ namespace CoApp.Developer.Toolkit.Publishing {
                                                     throw new CoAppException("dependent assembly '{0}-{1}' not strong named".format(ar.Name.Value, ar.Version.ToString()));
                                                 }
                                             }
-                                            (ar as AssemblyReference).PublicKeyToken = dep.MutableAssembly.PublicKeyToken.ToList();
-                                            (ar as AssemblyReference).PublicKey = dep.MutableAssembly.PublicKey;
+                                            (ar as Microsoft.Cci.MutableCodeModel.AssemblyReference).PublicKeyToken = dep.MutableAssembly.PublicKeyToken.ToList();
+                                            (ar as Microsoft.Cci.MutableCodeModel.AssemblyReference).PublicKey = dep.MutableAssembly.PublicKey;
                                         }
                                     }
                                 }
@@ -580,12 +597,28 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             }
                         }
 
-
                         // update native metadata 
                         try {
                             var ri = new ResourceInfo();
 
                             ri.Load(tmpFilename);
+
+                            if (_manifest != null && _manifest.Modified) {
+                                // GS01: We only support one manifest right now. 
+                                // so we're gonna remove the extra ones.
+                                // figure out the bigger case later. 
+                                var manifestKeys = ri.Resources.Keys.Where(each => each.ResourceType == ResourceTypes.RT_MANIFEST).ToArray();
+                                foreach (var k in manifestKeys) {
+                                    ri.Resources.Remove(k);
+                                }
+
+                                var manifestResource = new ManifestResource();
+                                manifestResource.ManifestText = _manifest.ToString();
+                                ri.Resources.Add(new ResourceId(ResourceTypes.RT_MANIFEST), new List<Resource> {
+                                    manifestResource
+                                });
+                                manifestResource.SaveTo(tmpFilename);
+                            }
 
                             VersionResource versionResource;
                             StringTable versionStringTable;
@@ -628,8 +661,12 @@ namespace CoApp.Developer.Toolkit.Publishing {
                             versionStringTable["BugTracker"] = _bugTracker;
 
                             versionResource.SaveTo(tmpFilename);
-                        } catch {
 
+                           
+
+                            
+                        } catch(Exception e) {
+                            Console.WriteLine("{0} -- {1}", e.Message, e.StackTrace);
                         }
 
                         // strong name the binary
@@ -656,6 +693,9 @@ namespace CoApp.Developer.Toolkit.Publishing {
                     }
                 }
                 _pendingChanges = false;
+                if (_manifest != null) {
+                    _manifest.Modified = false;
+                }
             }
         }
 
@@ -727,7 +767,7 @@ namespace CoApp.Developer.Toolkit.Publishing {
             filename.TryHardToMakeFileWriteable();
 
             var urls = new[] {
-                "http://timestamp.comodoca.com/authenticode","http://timestamp.verisign.com/scripts/timstamp.dll"
+                "http://timestamp.verisign.com/scripts/timstamp.dll", "http://timestamp.comodoca.com/authenticode", "http://www.startssl.com/timestamp", "http://timestamp.globalsign.com/scripts/timstamp.dll", "http://time.certum.pl/"
             };
 
             var signedOk = false;
@@ -800,6 +840,24 @@ namespace CoApp.Developer.Toolkit.Publishing {
             _mutableAssembly = null;
             _host.Dispose();
             _host = null;
+        }
+
+        private NativeManifest _manifest;
+        
+        public NativeManifest Manifest {
+            get {
+                if( _manifest == null ) {
+                    if( _manifestResources.IsNullOrEmpty() ) {
+                        _manifest = new NativeManifest(null);
+                        return _manifest;
+                    }
+                    if( _manifestResources.Count() > 1 ) {
+                            throw new CoAppException("PE Binary with more than one manifest. Not yet supported. Wuff.");
+                    }
+                    _manifest = new NativeManifest(_manifestResources.FirstOrDefault().ManifestText);
+                }
+                return _manifest;
+            }
         }
     }
 }

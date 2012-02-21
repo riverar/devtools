@@ -15,6 +15,7 @@ namespace coapp_simplesigner {
     using System.IO;
     using System.Linq;
     using System.Security.Cryptography;
+    using System.Threading;
     using System.Threading.Tasks;
     using CoApp.Developer.Toolkit.Exceptions;
     using CoApp.Developer.Toolkit.Publishing;
@@ -45,7 +46,9 @@ Options:
     --remember                  store certificate details in registry 
                                 (encrypted)
 
-    --sign-only                 just sign the binary, no strong-naming
+    --sign                      digitally sign the binary
+    --strong-name               strong name the assembly (if it is a .NET asm)
+
     --no-metadata               don't try to adjust any metadata
     --force                     re-sign the binaries, even if they have 
                                 a signature
@@ -55,7 +58,6 @@ Options:
 
     --auto                      automatically handle unsigned dependent 
                                 assemblies
-
 
 Metadata Options:
 -----------------
@@ -71,12 +73,38 @@ Metadata Options:
     --file-version=<value>      set the File Version to <value>
 
     * use value AUTO to have it pull company name from the certificate
-";
 
-        private bool _resign;
+
+Manifest Options:    
+-----------------
+
+    --execution-level=<level>   sets the requestedExecutionLevel in the 
+                                manifest to the specified level
+                                    one of 
+                                        administrator 
+                                        invoker
+                                        highest-available
+
+    --dpi-aware=<bool>          sets the 'dpi aware' flag in the manifest
+
+
+    --reference-assembly=<ref>  adds an assembly reference to the PE binary
+                                <ref> should be in the format:
+                                ""<NAME>, Version=<VERSION>, PublicKeyToken=<PKT>, ProcessorArchitecture=<ARCH>""
+                                where 
+                                    <NAME> is the name of the assembly
+                                    <VERSION> is the four-part version number (1.2.3.4)
+                                    <PKT> is the public key token of the publisher
+                                    <ARCH> is one of {{ x86, x64, any }}
+
+        for example, to add a reference to zlib the option might look like this:
+        --reference-assembly=""zlib, Version=1.2.5.0, PublicKeyToken=1e373a58e25250cb, ProcessorArchitecture=x86""
+
+";
+        private List<AssemblyReference> assemblyReferences = new List<AssemblyReference>();
         private bool _remember;
-        private bool _sign = true;
-        private bool _strongname = true;
+        private bool _sign;
+        private bool _strongname;
         private bool _verbose;
         private bool _verify;
         private bool _auto;
@@ -84,14 +112,16 @@ Metadata Options:
         private string _signingCertPath = string.Empty;
         private string _signingCertPassword;
         private CertificateReference _certificate;
-        private string _fileVersion;
+        private FourPartVersion _fileVersion;
         private string _company;
         private string _description;
         private string _internalName;
         private string _copyright;
         private string _productName;
         private string _originalFilename;
-        private string _productVersion;
+        private FourPartVersion _productVersion;
+        private ExecutionLevel _executionLevel = ExecutionLevel.none;
+        private bool? _dpiAware;
 
         private static int Main(string[] args) {
             return new SimpleSignerMain().Startup(args);
@@ -133,12 +163,12 @@ Metadata Options:
                         _auto = true;
                         break;
 
-                    case "sign-only":
-                        _strongname = false;
+                    case "sign":
+                        _sign = true;
                         break;
 
-                    case "name-only":
-                        _sign = false;
+                    case "strong-name":
+                        _strongname = true;
                         break;
 
                     case "verbose":
@@ -173,14 +203,61 @@ Metadata Options:
                         _verify = true;
                         break;
 
-                    case "resign" :
-                    case "force":
-                        _resign = true;
+                    case "reference-assembly" :
+                        foreach (var asmRef in argumentParameters) {
+                            if( string.IsNullOrEmpty(asmRef)) {
+                                return Fail("Missing assembly information for --assembly-reference.");
+                            }
+
+                            var parts = asmRef.Split(", ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                            var assemblyref = new AssemblyReference { Name = parts[0] };
+
+                            foreach( var part in parts.Skip(1)) {
+                                var kp = part.Split("= ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                                if( kp.Length != 2) {
+                                    return Fail("Invalid option '{0}' in assembly reference '{1}'.", part, asmRef);
+                                }
+                                
+                                
+                                switch( kp[0].ToLower()) {
+                                    case "version":
+                                    case "ver":
+                                        assemblyref.Version = kp[1];
+                                        if (assemblyref.Version == 0L) {
+                                            return Fail("Invalid Version '{0}' in assembly reference '{1}'.", kp[1], asmRef);
+                                        }
+                                        break;
+
+                                    case "publickeytoken":
+                                    case "pkt":
+                                    case "token":
+                                        if( kp[1].Length != 16) {
+                                            return Fail("Invalid publicKeyToken '{0}' in assembly reference '{1}'.", kp[1], asmRef);
+                                        }
+                                        assemblyref.PublicKeyToken = kp[1];
+                                        break;
+
+                                    case "processorarchitecture":
+                                    case "architecture":
+                                    case "arch":
+                                        assemblyref.Architecture = kp[1];
+                                        if (assemblyref.Architecture == Architecture.Auto || assemblyref.Architecture == Architecture.Unknown) {
+                                            return Fail("Invalid processorArchitecture '{0}' in assembly reference '{1}'.", kp[1], asmRef);
+                                        }
+                                        break;
+                                }
+                               
+                            }
+                            if (assemblyref.Version == 0 || assemblyref.Architecture == Architecture.Unknown || string.IsNullOrEmpty(assemblyref.PublicKeyToken)) {
+                                return Fail("Invalid assembly reference '{0}' ", asmRef);
+                            }
+                            assemblyReferences.Add(assemblyref);
+                        }
                         break;
 
                     case "product-version":
                         _productVersion = argumentParameters.Last();
-                        if (_productVersion.VersionStringToUInt64() == 0 || _productVersion.VersionStringToUInt64().UInt64VersiontoString() != _productVersion) {
+                        if (_productVersion == 0L ) {
                             return Fail("--product-version must be in the form ##.##.##.##");
                         }
 
@@ -188,12 +265,42 @@ Metadata Options:
 
                     case "file-version":
                         _fileVersion  = argumentParameters.Last();
-                        if (_fileVersion.VersionStringToUInt64() == 0 || _fileVersion.VersionStringToUInt64().UInt64VersiontoString() != _fileVersion) {
+                        if (_fileVersion == 0L ) {
                             return Fail("--file-version must be in the form ##.##.##.##");
                         }
-
                         break;
 
+                    case "execution-level":
+                        switch( argumentParameters.Last() ) {
+                            case "administrator":
+                            case "admin":
+                            case "requires-admin":
+                            case "requiresadmin":
+                            case "requiresadministrator":
+                            case "requires-administrator":
+                                _executionLevel = ExecutionLevel.requireAdministrator;
+                                break;
+                            case "invoker":
+                            case "asinvoker":
+                            case "as-invoker":
+                                _executionLevel = ExecutionLevel.asInvoker;
+                                break;
+                            case "highest-available":
+                            case "highest":
+                            case "highestavailable":
+                                _executionLevel = ExecutionLevel.highestAvailable;
+                                break;
+                        }
+                        break;
+
+                    case "dpi-aware" :
+                        if (argumentParameters.Last().IsTrue()) {
+                            _dpiAware = true;
+                        }
+                        if (argumentParameters.Last().IsFalse()) {
+                            _dpiAware = false;
+                        }
+                        break;
                     default:
                         return Fail("Unknown parameter [--{0}]", arg);
                 }
@@ -203,7 +310,7 @@ Metadata Options:
 
            
             if( _verify ) {
-                return Verify(parameters);
+                // return Verify(parameters);
             }
 
             if( string.IsNullOrEmpty(_signingCertPath) ) {
@@ -231,21 +338,140 @@ Metadata Options:
                 return Fail("Missing files to sign/name. \r\n\r\n    Use --help for command line help.");
             }
 
-
             var tasks = new List<Task>();
 
             if( _company != null && _company.Equals("auto", StringComparison.CurrentCultureIgnoreCase) ) {
                 _company = _certificate.CommonName;
             }
-
-
+            var failures = 0;
             try {
                 var allFiles = parameters.FindFilesSmarter().ToArray();
-                
+                var origMD5 = new Dictionary<string, string>();
+
+                var loading = allFiles.Select(each =>
+                    Binary.Load(each, 
+                        BinaryLoadOptions.PEInfo | 
+                        BinaryLoadOptions.VersionInfo | 
+                        BinaryLoadOptions.Managed | 
+                        BinaryLoadOptions.Resources | 
+                        BinaryLoadOptions.Manifest | 
+                        BinaryLoadOptions.UnsignedManagedDependencies |
+                        BinaryLoadOptions.MD5 ).ContinueWith(antecedent => {
+                        lock (allFiles) {
+                            if (antecedent.IsFaulted) {
+                                Console.WriteLine("Failed to load file '{0}'", each);
+                                var e = antecedent.Exception.Flatten().InnerExceptions.First();
+                                Console.WriteLine("{0}--{1}", e.Message, e.StackTrace);
+                                return;
+                            }
+
+                            try {
+                                var binary = antecedent.Result;
+                                origMD5.Add(each, binary.MD5);
+
+
+                                if (binary.IsPEFile) {
+                                    // do PE file stuff
+                                    if (_sign) {
+                                        binary.SigningCertificate = _certificate;
+                                    }
+
+                                    if (binary.IsManaged && _strongname) {
+                                        binary.StrongNameKeyCertificate = _certificate;
+                                    }
+
+                                    if( !assemblyReferences.IsNullOrEmpty()) {
+                                        foreach( var asmRef in assemblyReferences ) {
+                                            binary.Manifest.Value.AddDependency( asmRef.Name , asmRef.Version, asmRef.Architecture, asmRef.PublicKeyToken);
+                                        }
+                                    }
+
+                                    if (_company != null) {
+                                        binary.CompanyName = _company;
+                                    }
+                                    if (_description != null) {
+                                        binary.FileDescription = _description;
+                                    }
+                                    if (_internalName != null) {
+                                        binary.InternalName = _internalName;
+                                    }
+                                    if (_copyright != null) {
+                                        binary.LegalCopyright = _copyright;
+                                    }
+                                    if (_originalFilename != null) {
+                                        binary.OriginalFilename = _originalFilename;
+                                    }
+                                    if (_productName != null) {
+                                        binary.ProductName = _productName;
+                                    }
+                                    if (_productVersion != 0) {
+                                        binary.ProductVersion = _productVersion;
+                                    }
+                                    if (_fileVersion != 0) {
+                                        binary.FileVersion = _fileVersion;
+                                    }
+                                    if (_dpiAware != null) {
+                                        binary.Manifest.Value.DpiAware = _dpiAware == true;
+                                    }
+                                    if (_executionLevel != ExecutionLevel.none) {
+                                        binary.Manifest.Value.RequestedExecutionLevel = _executionLevel;
+                                    }
+                                }
+                                else {
+                                    // do stuff for non-pe files
+                                    // we can try to apply a signature, and that's about it.
+                                    if (_sign) {
+                                        binary.SigningCertificate = _certificate;
+                                    }
+                                }
+                                binary.Save().Wait();
+                            } catch(Exception e) {
+                                while( e.GetType() == typeof(AggregateException)) {
+                                    e = (e as AggregateException).Flatten().InnerExceptions[0];
+                                } 
+                                failures  += Fail("{0}--{1}", e.Message, e.StackTrace);
+                            }
+                        }
+                    }, TaskContinuationOptions.AttachedToParent)).ToArray();
+
+                // Thread.Sleep(1000);
+                // wait for loading.
+                return Task.Factory.ContinueWhenAll(loading, tsks => {
+                    Console.WriteLine("Done {0} files", tsks.Length);
+
+                    (from each in Binary.Files
+                        select new {
+                            Filename = Path.GetFileName(each.Filename),
+                            Original_MD5 = origMD5[each.Filename],
+                            New_MD5 = each.MD5,
+                            //  Status = each.Message,
+                        }).ToTable().ConsoleOut();
+
+                    if (failures > 0) {
+                        Console.WriteLine("*** Bad News. Failed. *** ");
+                    }
+
+                    if (Binary.IsAnythingStillLoading) {
+                        Console.WriteLine("\r\n==== Uh, stuff is still in the loading state?! ====\r\n");
+                    }
+
+                    return failures;
+                }).Result;
+
+            } catch( Exception e ) {
+                Console.WriteLine("{0}--{1}", e.Message,e.StackTrace);
+                return Fail("not good.");
+            }
+            /*
+
+            try {
                 var binaries = new List<PeBinary>();
                 var nonBinaries = new List<PEInfo>();
 
                 var results = new List<FileResult>();
+
+
+
 
 
                 foreach (var f in allFiles) {
@@ -400,10 +626,11 @@ Metadata Options:
             catch (Exception e) {
                 return Fail(e.Message);
             }
-
-            return 0;
+            */
+                return 0;
         }
 
+        /*
         public int Verify(IEnumerable<string> parameters) {
             var allFiles = parameters.FindFilesSmarter().ToArray().AsParallel();
 
@@ -425,6 +652,7 @@ Metadata Options:
             }
             return 0;
         }
+         * */
 
         #region fail/help/logo
 

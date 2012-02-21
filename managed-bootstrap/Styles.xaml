@@ -1,0 +1,170 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
+    xmlns:clr="clr-namespace:System;assembly=mscorlib" >
+
+    <!-- Fonts-->
+    <FontFamily x:Key="ContentFontFamily">Segoe UI, Tahoma, Lucida Sans Unicode</FontFamily>
+
+    <clr:Double x:Key="HeaderFontSize">22</clr:Double>
+    <clr:Double x:Key="HeaderButtonFontSize">8</clr:Double>
+    <clr:Double x:Key="ButtonFontSize">14</clr:Double>
+    <clr:Double x:Key="TextFontSize">14</clr:Double>
+    <clr:Double x:Key="MinutiaTextFontSize">9</clr:Double>
+    <clr:Double x:Key="InstructionFontSize">18</clr:Double>
+    <clr:Double x:Key="LargeInstructionFontSize">20</clr:Double>
+    
+    <!-- Colors -->
+    <Color x:Key="HeaderColor">#FF119EDA</Color>
+    <Color x:Key="WhiteColor">#FFFFFFFF</Color>
+    <Color x:Key="MetroButtonColor">#FF202020</Color>
+    <Color x:Key="BorderColor">#FFB2B2B2</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="HeaderBrush" Color="{StaticResource HeaderColor}" />
+    <SolidColorBrush x:Key="MetroMainButtons" Color="{StaticResource MetroButtonColor}" />
+    <SolidColorBrush x:Key="WhiteColorBrush" Color="{StaticResource WhiteColor}" />
+    <SolidColorBrush x:Key="PageBorderBrush" Color="{StaticResource BorderColor}" />
+
+    <!-- Styles-->
+
+    <Style x:Key="SadFace" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+    </Style>
+
+    <Style x:Key="HeaderText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource HeaderFontSize}"/>
+    </Style>
+
+    <Style x:Key="HeaderButtonText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource MinutiaTextFontSize}"/>
+    </Style>
+
+    <Style x:Key="ProductText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource TextFontSize}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="ButtonText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource TextFontSize}"/>
+    </Style>
+
+    <Style x:Key="MinutiaText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource MinutiaTextFontSize}"/>
+    </Style>
+
+    <Style x:Key="BoldMinutiaText"  BasedOn="{StaticResource MinutiaText}" TargetType="TextBlock">
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+
+    <Style x:Key="InstructionText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource InstructionFontSize}"/>
+    </Style>
+
+    <Style x:Key="InstallationMessageText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource InstructionFontSize}"/>
+    </Style>
+
+
+    <Style x:Key="LargeInstructionText" BasedOn="{StaticResource InstructionText}" TargetType="TextBlock" >
+        <Setter Property="FontSize" Value="{StaticResource LargeInstructionFontSize}"/>
+    </Style>
+
+
+    <Style x:Key="HeaderBackground" TargetType="StackPanel">
+        <Setter Property="Background" Value="{StaticResource HeaderBrush}"/>
+    </Style>
+    
+    <Style x:Key="ContentBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource WhiteColorBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PageBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="15" Opacity="0.55" ShadowDepth="0"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ContentFrameStyle" TargetType="Frame">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Margin" Value="45,195,0,0"/>
+        <Setter Property="Padding" Value="58,15,58,15"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    </Style>
+
+    <!-- Shapes -->
+    <Geometry x:Key="PathClose">F1 M 171.964,69.0358L 169.982,67.0534L 166.988,70.047L 164.01,67.0694L 162.02,69.0599L 164.997,72.0375L 162.028,75.0071L 164.01,76.9895L 166.98,74.0199L 169.973,77.0135L 171.964,75.0231L 168.97,72.0294L 171.964,69.0358 Z</Geometry>
+    <Geometry x:Key="PathCheckmark">F1 M 303.787,398.635L 305.06,400.314C 305.06,400.314 307.13,396.088 310.394,394.416C 310.315,395.61 309.996,396.645 310.553,397.919C 309.12,398.237 306.175,401.82 305.22,403.571C 303.866,401.899 302.274,400.626 301.159,400.228L 303.787,398.635 Z</Geometry>
+
+
+    <Style x:Key="MetroPathButton" TargetType="{x:Type Button}">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border Background="Transparent" Tag="{TemplateBinding Tag}">
+                        <ContentPresenter x:Name="content" Tag="{TemplateBinding Tag}"/>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal">
+                                    <Storyboard>
+                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                            <EasingDoubleKeyFrame KeyTime="0" Value="0.7"/>
+                                        </DoubleAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="MouseOver">
+                                    <Storyboard>
+                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                            <EasingDoubleKeyFrame KeyTime="0" Value="1.0"/>
+                                        </DoubleAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <Storyboard>
+                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                            <EasingDoubleKeyFrame KeyTime="0" Value="0.4"/>
+                                        </DoubleAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <Storyboard>
+                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                            <EasingDoubleKeyFrame KeyTime="0" Value="0.2"/>
+                                        </DoubleAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

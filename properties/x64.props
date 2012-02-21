@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="UserMacros">
+    <TargetPlatform>x64</TargetPlatform>
+    <DDKPlatform>amd64</DDKPlatform>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>X64;_X64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="TargetPlatform">
+      <Value>$(TargetPlatform)</Value>
+    </BuildMacro>
+    <BuildMacro Include="DDKPlatform">
+      <Value>$(DDKPlatform)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

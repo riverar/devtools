@@ -51,7 +51,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="$(SolutionDir)Source\CoApp.Devtools.AssemblyStrongName.cs" />
     <Compile Include="Publishing\CertificateReference.cs" />
+    <Compile Include="Publishing\NativeManifest.cs" />
+    <Compile Include="Publishing\Binary.cs" />
     <Compile Include="Publishing\PeBinary.cs" />
+    <Compile Include="Publishing\Prerequisite.cs" />
+    <Compile Include="Publishing\TaskList.cs" />
     <Compile Include="ResourceLib\Accelerator.cs" />
     <Compile Include="ResourceLib\AcceleratorResource.cs" />
     <Compile Include="ResourceLib\BitmapFile.cs" />
@@ -115,13 +119,10 @@
       <Name>CoApp.CCI</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup><AssemblySearchPaths>$(SolutionDir)\ext\libraries\;$(SolutionDir)\ext\binaries\;$(AssemblySearchPaths)</AssemblySearchPaths></PropertyGroup>  
-  <PropertyGroup>
-    <PreBuildEvent>REM get dependent binaries from sibling project
-if exist "$(SolutionDir)scripts\$(ConfigurationName)-pre-build.cmd" "$(SolutionDir)scripts\$(ConfigurationName)-pre-build.cmd"
-</PreBuildEvent>
-  </PropertyGroup>
+  <PropertyGroup><AssemblySearchPaths>$(SolutionDir)..\coapp\output\any\$(Configuration)\bin;$(SolutionDir)\ext\libraries\;c:\programdata\Reference Assemblies\any;$(AssemblySearchPaths)</AssemblySearchPaths></PropertyGroup>  
+
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -1,0 +1,141 @@
+﻿<Window x:Class="CoApp.Bootstrapper.AreYouSure"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Background="Transparent" AllowsTransparency="True" WindowStyle="None" ShowInTaskbar="False" ResizeMode="NoResize" Topmost="True" WindowStartupLocation="CenterScreen"
+        Title="Are You Sure" Height="270" Width="480">
+    <Window.Resources>
+        <FontFamily x:Key="ContentFontFamily">Segoe UI, Tahoma, Lucida Sans Unicode</FontFamily>
+
+        <Style x:Key="ContentBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#FFB2B2B2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="15" Opacity="0.55" ShadowDepth="0"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <SolidColorBrush x:Key="MetroMainButtons" Color="#FF202020" />
+
+        <Geometry x:Key="PathClose">F1 M 171.964,69.0358L 169.982,67.0534L 166.988,70.047L 164.01,67.0694L 162.02,69.0599L 164.997,72.0375L 162.028,75.0071L 164.01,76.9895L 166.98,74.0199L 169.973,77.0135L 171.964,75.0231L 168.97,72.0294L 171.964,69.0358 Z</Geometry>
+        <Geometry x:Key="PathCheckmark">F1 M 303.787,398.635L 305.06,400.314C 305.06,400.314 307.13,396.088 310.394,394.416C 310.315,395.61 309.996,396.645 310.553,397.919C 309.12,398.237 306.175,401.82 305.22,403.571C 303.866,401.899 302.274,400.626 301.159,400.228L 303.787,398.635 Z</Geometry>
+
+        <Style x:Key="MetroPathButton" TargetType="{x:Type Button}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border Background="Transparent" Tag="{TemplateBinding Tag}">
+                            <ContentPresenter x:Name="content" Tag="{TemplateBinding Tag}"/>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal">
+                                        <Storyboard>
+                                            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                                <EasingDoubleKeyFrame KeyTime="0" Value="0.7"/>
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="MouseOver">
+                                        <Storyboard>
+                                            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                                <EasingDoubleKeyFrame KeyTime="0" Value="1.0"/>
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                                <EasingDoubleKeyFrame KeyTime="0" Value="0.4"/>
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="content">
+                                                <EasingDoubleKeyFrame KeyTime="0" Value="0.2"/>
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="textStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="TextAlignment" Value="Left"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Padding" Value="100,0,0,0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <Style x:Key="ButtonText"  BasedOn="{StaticResource textStyle}" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="0,0,0,0" />
+        </Style>
+
+        <Style x:Key="largerText" BasedOn="{StaticResource textStyle}" TargetType="{x:Type TextBlock}" >
+            <Setter Property="FontSize" Value="30"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="TextAlignment" Value="Justify"/>
+            <Setter Property="Padding" Value="50,0" />
+        </Style>
+        
+    </Window.Resources>
+    <Border Style="{StaticResource ContentBorderStyle}" >
+        <StackPanel>
+            <StackPanel Name="headerPanel" Background="Transparent" Height="60"  Panel.ZIndex="99" VerticalAlignment="Top" >
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="CloseBtn" Grid.Column="2" Width="19" Height="23" Style="{StaticResource MetroPathButton}" ToolTip="Cancel" Click="CloseBtn_Click">
+                        <Path Fill="Black" Data="{StaticResource PathClose}" Margin="0,0,0,0" Stretch="Fill" Width="9" Height="9" />
+                    </Button>
+                </Grid>
+            </StackPanel>
+
+            <TextBlock Name="MessageText" Height="140" Style="{StaticResource largerText}" Margin="0,-20,0,0">Are you sure you would like to cancel installing the software?</TextBlock>
+
+            <Grid Margin="10,10,10,10" Grid.Row="2" Height="40" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="1" x:Name="CancelButton" Style="{DynamicResource MetroPathButton}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="40" Width="120" Margin="30,0,0,0" ToolTip="Cancel" Click="CancelButton_Click">
+                    <Canvas>
+                        <Ellipse Width="30" Height="30" Margin="90,5,5,5" Stretch="Fill" StrokeLineJoin="Round" Stroke="{StaticResource MetroMainButtons}" StrokeThickness="1.5"/>
+                        <Path Width="14" Height="16" Margin="98,12" Stretch="Fill" Fill="{StaticResource MetroMainButtons}" Data="{StaticResource PathClose}"/>
+                        <TextBlock Name="CancelText"  Width="50" Style="{StaticResource ButtonText}" TextAlignment="Center" Margin="0" Canvas.Top="10" Canvas.Left="30"><Run Text="Cancel"/></TextBlock>
+                    </Canvas>
+                </Button>
+                
+                <Button Grid.Column="2" x:Name="ContinueButton" Style="{DynamicResource MetroPathButton}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="40" Width="120" Margin="30,0,0,0" ToolTip="Continue" IsCancel="True" IsDefault="False" IsEnabled="True" Click="InstallButton_Click">
+                    <Canvas>
+                        <Ellipse Width="30" Height="30" Margin="90,5,5,5" Stretch="Fill" StrokeLineJoin="Round" Stroke="{StaticResource MetroMainButtons}" StrokeThickness="1.5"/>
+                        <Path Width="14" Height="16" Margin="98,12" Stretch="Fill" Fill="{StaticResource MetroMainButtons}" Data="{StaticResource PathCheckmark}"/>
+                        <TextBlock Name="ContinueText"  Width="80" Style="{StaticResource ButtonText}" TextAlignment="Center" Margin="0" Canvas.Top="10" Canvas.Left="5"><Run Text="Continue"/></TextBlock>
+                    </Canvas>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

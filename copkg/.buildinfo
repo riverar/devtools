@@ -10,11 +10,29 @@
 release { 
     // builds the binaries in "Release" mode but does not sign them.
     set : cfg = "Release";
+    
     uses : {
         anycpu 
     };
     
-    build-command: @"echo build done.";
+    build-command: @"
+    cscript //e:jscript scripts\increment-build-version.js
+    echo build done.";
+}
+
+package { 
+    default: false;
+    set : cfg = "Release";
+    uses : sign;
+    build-command: @"
+        cscript //e:jscript scripts\increment-build-version.js
+        REM Add the coapp tools folder to the end of the path, in case we don't have the tools in the path
+        PATH=%PATH%;%CD%\ext\tools
+        
+        cd copkg
+        autopackage coapp.devtools.autopkg  || goto failed
+        echo Done Packaging!
+    ";
 }
 
 debug {
@@ -45,22 +63,17 @@ sign {
     targets: {
     };
     
-     build-command: @"
+    build-command: @"
+        REM Add the coapp tools folder to the end of the path, in case we don't have the tools in the path
+        PATH=%PATH%;%CD%\ext\tools
+     
         REM sign files in release directory
-        ext\tools\simplesigner --nologo  ""${release_dir}autopackage.exe"" ""${release_dir}Azure.exe"" ""${release_dir}CoApp.RepositoryService.exe"" ""${release_dir}mkRepo.exe"" ""${release_dir}pTk.exe"" ""${release_dir}QuickTool.exe"" ""${release_dir}Scan.exe"" ""${release_dir}simplesigner.exe"" ""${release_dir}ToolScanner.exe"" ""${release_dir}CoApp.CCI.dll"" ""${release_dir}CoApp.Developer.Toolkit.dll""
-        
-        REM Everything went ok!
-        exit /b 0
-        
-        REM Something not ok :(
-        :failed
-        echo ERROR: Failure in script. aborting.
-        exit /b 1
+        simplesigner --nologo  --sign --strong-name ""${release_dir}autopackage.exe"" ""${release_dir}Azure.exe"" ""${release_dir}CoApp.RepositoryService.exe"" ""${release_dir}mkRepo.exe"" ""${release_dir}pTk.exe"" ""${release_dir}QuickTool.exe"" ""${release_dir}Scan.exe"" ""${release_dir}simplesigner.exe"" ""${release_dir}ToolScanner.exe"" ""${release_dir}CoApp.CCI.dll"" ""${release_dir}CoApp.Developer.Toolkit.dll""
     ";
 }
 
 
-publish {
+export {
     set : release_dir = @"output\any\Release\bin\";
     set : binaries_dir = @"..\binaries\";
     set : tools_dir = @"..\tools\";
@@ -71,7 +84,7 @@ publish {
     };
     
     build-command: @"
-        REM copy binaries into ..\binaries folder (this should be the one that is committed back when published)
+        REM copy binaries into ..\binaries folder (this should be the one that is committed back when exported)
         xcopy /Q /D /Y  ""${release_dir}autopackage.exe""  ""${tools_dir}"" || goto failed
         xcopy /Q /D /Y  ""${release_dir}Azure.exe""  ""${tools_dir}"" || goto failed
         xcopy /Q /D /Y  ""${release_dir}CoApp.RepositoryService.exe""  ""${tools_dir}"" || goto failed
@@ -87,24 +100,8 @@ publish {
         REM bring along the tool dependencies
         xcopy /Q /D /Y  ""${release_dir}CoApp.Toolkit.dll"" ""${tools_dir}"" || goto failed
         xcopy /Q /D /Y  ""${release_dir}CoApp.Toolkit.Engine.Client.dll""  ""${tools_dir}"" || goto failed
-
-
-        xcopy /Q /D /Y  ""${release_dir}CoApp.CCI.dll""  ""${binaries_dir}"" || goto failed
-        xcopy /Q /D /Y  ""${release_dir}CoApp.Developer.Toolkit.dll""  ""${binaries_dir}"" || goto failed
-     
-        rem TODO: package stuff too?
-        rem 
         
-        REM update version
         cscript //e:jscript scripts\increment-build-version.js
-        
-        REM Everything went ok!
-        exit /b 0
-        
-        REM Something not ok :(
-        :failed
-        echo ERROR: Failure in script. aborting.
-        exit /b 1
     ";
 }
 
@@ -117,6 +114,8 @@ anycpu {
     uses: clean;
     
     targets: { 
+        @"output\any\${cfg}\bin\managed-bootstrap.exe",
+        @"output\any\${cfg}\bin\native-bootstrap.exe",
         @"output\any\${cfg}\bin\autopackage.exe",
         @"output\any\${cfg}\bin\Azure.exe",
         @"output\any\${cfg}\bin\CoApp.RepositoryService.exe",
@@ -131,17 +130,12 @@ anycpu {
     };
 
     build-command: @"
-        msbuild  /p:Configuration=${cfg} ""/p:Platform=Any CPU"" devtools.sln || goto failed
-    
-        REM Everything went ok!
-        exit /b 0
+        REM build the native-bootstrapper first
+        msbuild  /p:Configuration=${cfg} ""/p:Platform=win32"" /p:SolutionDir=..\ native-bootstrap\bootstrap.vcxproj  || goto failed
         
-        REM Something not ok :(
-        :failed
-        echo ERROR: Failure in script. aborting.
-        exit /b 1
+        REM then everything else
+        msbuild  /p:Configuration=${cfg} ""/p:Platform=Any CPU"" devtools.sln || goto failed
     ";
-  
 }
 
 clean {
