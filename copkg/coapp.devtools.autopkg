@@ -79,12 +79,11 @@ assemblies {
     };
 }
 
-developer-library[coapp-devtools] {
-    include : {
+developer-library[refasms] { 
+    reference-assemblies : {
         dlls
     };
 }
-
 package-composition {
     symlinks : { 
         exes => @"${bin}\${each.Name}" = @"${packagedir}\${each.Name}";
