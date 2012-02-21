@@ -80,6 +80,12 @@ assemblies {
     };
 }
 
+developer-library[coapp-devtools] {
+    include : {
+        dlls
+    };
+}
+
 package-composition {
     symlinks : { 
         exes => @"${bin}\${each.Name}" = @"${packagedir}\${each.Name}";
